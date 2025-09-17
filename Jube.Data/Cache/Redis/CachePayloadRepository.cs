@@ -135,7 +135,7 @@ public class CachePayloadRepository(
                          $"Payload:{tenantRegistryId}:{entityAnalysisModelGuid:N}",
                          (from sortedSetEntry in sortedSetEntries
                              where sortedSetEntry.Element.ToString() !=
-                                   entityInconsistentAnalysisModelInstanceEntryGuid.ToString()
+                                   entityInconsistentAnalysisModelInstanceEntryGuid.ToString("N")
                              select sortedSetEntry.Element).ToArray()))
                 try
                 {
