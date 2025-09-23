@@ -101,14 +101,18 @@ namespace Jube.App.Controllers.Helper
                 }
 
                 List<string> entityAnalysisModelAbstractionCalculations = null;
-                List<string> entityAnalysisModelsAdaptations = null;
+                List<string> entityAnalysisModelsHttpAdaptations = null;
+                List<string> entityAnalysisModelsExhaustiveAdaptations = null;
                 if (parseRuleRequestDto.RuleParseType > 4)
                 {
                     entityAnalysisModelAbstractionCalculations
                         = EntityAnalysisModelAbstractionCalculations(parseRuleRequestDto.EntityAnalysisModelId);
 
-                    entityAnalysisModelsAdaptations
-                        = EntityAnalysisModelsAdaptations(parseRuleRequestDto.EntityAnalysisModelId);
+                    entityAnalysisModelsHttpAdaptations
+                        = EntityAnalysisModelsHttpAdaptations(parseRuleRequestDto.EntityAnalysisModelId);
+
+                    entityAnalysisModelsExhaustiveAdaptations
+                        = EntityAnalysisModelsExhaustiveAdaptations(parseRuleRequestDto.EntityAnalysisModelId);
                 }
 
                 var parser = new Parser.Parser(_log,
@@ -122,7 +126,8 @@ namespace Jube.App.Controllers.Helper
                     EntityAnalysisModelsSanctions = entityAnalysisModelsSanctions,
                     EntityAnalysisModelsLists = entityAnalysisModelsLists,
                     EntityAnalysisModelsDictionaries = entityAnalysisModelsDictionaries,
-                    EntityAnalysisModelsAdaptations = entityAnalysisModelsAdaptations
+                    EntityAnalysisModelsHttpAdaptations = entityAnalysisModelsHttpAdaptations,
+                    EntityAnalysisModelsExhaustiveAdaptations = entityAnalysisModelsExhaustiveAdaptations
                 };
 
                 var errorSpans = new List<ErrorSpan>();
@@ -222,12 +227,22 @@ namespace Jube.App.Controllers.Helper
             }
         }
 
-        private List<string> EntityAnalysisModelsAdaptations(int entityAnalysisModelId)
+        private List<string> EntityAnalysisModelsHttpAdaptations(int entityAnalysisModelId)
         {
             var entityAnalysisModelHttpAdaptationRepository =
                 new EntityAnalysisModelHttpAdaptationRepository(_dbContext, _userName);
 
             return entityAnalysisModelHttpAdaptationRepository
+                .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)
+                .Select(s => s.Name).ToList();
+        }
+
+        private List<string> EntityAnalysisModelsExhaustiveAdaptations(int entityAnalysisModelId)
+        {
+            var entityAnalysisModelExhaustiveRepository =
+                new ExhaustiveSearchInstanceRepository(_dbContext, _userName);
+
+            return entityAnalysisModelExhaustiveRepository
                 .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)
                 .Select(s => s.Name).ToList();
         }

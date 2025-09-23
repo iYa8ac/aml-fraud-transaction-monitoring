@@ -209,10 +209,7 @@ public class GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery
                         Group = "Abstraction",
                         ProcessingTypeId = 7
                     }));
-        }
 
-        if (parserTypeId >= 6)
-        {
             var entityAnalysisModelHttpAdaptationRepository =
                 new EntityAnalysisModelHttpAdaptationRepository(_dbContext, _tenantRegistryId);
 
@@ -220,13 +217,13 @@ public class GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery
                 .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId).Select(s =>
                     new Dto
                     {
-                        Name = $"Adaptation.{s.Name}",
-                        Value = $"Adaptation.{s.Name}",
-                        ValueJsonPath = $"adaptation.{s.Name}",
-                        ValueSqlPath = $"(\"Json\"-> 'adaptation' ->> '{s.Name}')::double precision",
+                        Name = $"HTTPAdaptation.{s.Name}",
+                        Value = $"HTTPAdaptation.{s.Name}",
+                        ValueJsonPath = $"HttpAdaptation.{s.Name}",
+                        ValueSqlPath = $"(\"Json\"-> 'httpAdaptation' ->> '{s.Name}')::double precision",
                         DataTypeId = 3,
                         JQueryBuilderDataType = "double",
-                        Group = "Adaptation",
+                        Group = "HTTPAdaptation",
                         ProcessingTypeId = 7
                     }));
 
@@ -237,13 +234,14 @@ public class GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery
                 .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId).Select(s =>
                     new Dto
                     {
-                        Name = $"Adaptation.{s.Name}",
-                        Value = $"Adaptation.{s.Name}",
-                        ValueJsonPath = $"adaptation.{s.Name}",
-                        ValueSqlPath = $"(\"Json\"-> 'adaptation' ->> '{s.Name}')::double precision",
+                        Name = $"ExhaustiveAdaptation.{s.Name}",
+                        Value = $"ExhaustiveAdaptation.{s.Name}",
+                        ValueJsonPath = $"ExhaustiveAdaptation.{s.Name}",
+                        ValueSqlPath = $"(\"Json\"-> 'exhaustiveAdaptation' ->> '{s.Name}')::double precision",
                         DataTypeId = 3,
                         JQueryBuilderDataType = "double",
-                        Group = "Adaptation"
+                        Group = "ExhaustiveAdaptation",
+                        ProcessingTypeId = 7
                     }));
         }
 

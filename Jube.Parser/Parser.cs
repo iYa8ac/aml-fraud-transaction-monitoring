@@ -27,7 +27,8 @@ public class Parser
     public List<string> EntityAnalysisModelAbstractionCalculations;
     public Dictionary<string, EntityAnalysisModelRequestXPath> EntityAnalysisModelRequestXPaths;
     public List<string> EntityAnalysisModelsAbstractionRule;
-    public List<string> EntityAnalysisModelsAdaptations;
+    public List<string> EntityAnalysisModelsHttpAdaptations;
+    public List<string> EntityAnalysisModelsExhaustiveAdaptations;
     public List<string> EntityAnalysisModelsDictionaries;
     public List<string> EntityAnalysisModelsLists;
     public List<string> EntityAnalysisModelsSanctions;
@@ -49,6 +50,8 @@ public class Parser
         if (!_ruleScriptTokens.Contains("Payload")) _ruleScriptTokens.Add("Payload");
         if (!_ruleScriptTokens.Contains("Abstraction")) _ruleScriptTokens.Add("Abstraction");
         if (!_ruleScriptTokens.Contains("Activation")) _ruleScriptTokens.Add("Activation");
+        if (!_ruleScriptTokens.Contains("ExhaustiveAdaptation")) _ruleScriptTokens.Add("ExhaustiveAdaptation");
+        if (!_ruleScriptTokens.Contains("HttpAdaptation")) _ruleScriptTokens.Add("HttpAdaptation");
         if (!_ruleScriptTokens.Contains("Select")) _ruleScriptTokens.Add("Select");
         if (!_ruleScriptTokens.Contains("Case")) _ruleScriptTokens.Add("Case");
         if (!_ruleScriptTokens.Contains("End Select")) _ruleScriptTokens.Add("End Select");
@@ -70,7 +73,6 @@ public class Parser
 
     public ParsedRule Parse(ParsedRule parsedRule)
     {
-        //var value = new List<ErrorSpan>();
         try
         {
             var lines = parsedRule.ParsedRuleText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
@@ -80,7 +82,7 @@ public class Parser
             {
                 if (!string.IsNullOrEmpty(line))
                 {
-                    //'Remove strings as they are allowed to have special characters
+                    //Remove strings as they are allowed to have special characters
                     var matches = Regex.Matches(line, "\"(?:[^\"\\\\]|\\\\.)*\"");
 
                     string[] separator =
@@ -94,31 +96,31 @@ public class Parser
                         if (NumericHelper.IsNumeric(tokens[j]))
                             valid = true;
                         else
-                            //'Loop around all permissions,  matching up with the tokens that have been found in the rule text.
+                            //Loop around all permissions,  matching up with the tokens that have been found in the rule text.
                             foreach (var ruleScriptToken in _ruleScriptTokens)
                             {
-                                //'There is a curious case of valid language tokens such a "End If" which is logically a single token,  but would be read as two tokens.  As seen above,  it is possible to store such logical tokens in the registry.
+                                //There is a curious case of valid language tokens such a "End If" which is logically a single token,  but would be read as two tokens.  As seen above,  it is possible to store such logical tokens in the registry.
                                 var permissionTokensCount = ruleScriptToken.Split(" ".ToCharArray()).Length;
-                                //'Find out how many tokens exist inside this token.
+                                //Find out how many tokens exist inside this token.
 
                                 var testToken = "";
                                 int f;
-                                //'This joins up the a token for matching based the next number of tokens
+                                //This joins up the token for matching based the next number of tokens
                                 for (f = 0; f < permissionTokensCount; f++)
                                 {
                                     if (f > 0) testToken += " ";
-                                    var extend = j + f; //'We are adding the tokens that come after.
+                                    var extend = j + f; //We are adding the tokens that come after.
                                     if (extend < tokens.Length) testToken += tokens[extend];
-                                    //'A new test token has been constructed,  for example End If
+                                    //A new test token has been constructed,  for example End If
                                 }
 
                                 if (string.Equals(ruleScriptToken, testToken,
                                         StringComparison.CurrentCultureIgnoreCase))
-                                    //'Check fof the test token (perhaps derived) matches.
+                                    //Check fof the test token (perhaps derived) matches.
                                     valid = true;
                             }
 
-                        if (valid) continue; //'This would be enough to kill the routine, return false.
+                        if (valid) continue; //This would be enough to kill the routine, return false.
                         softParseFailed = true;
 
                         parsedRule.ErrorSpans.Add(new ErrorSpan
@@ -313,7 +315,7 @@ public class Parser
 
         countLine += 1;
         sb.AppendLine(
-            "Public Shared Function Match(Data As Dictionary(Of String, Object),TTLCounter As Dictionary(Of String, Integer),Abstraction As Dictionary(Of String, Double),Adaptation As Dictionary(Of String, Double),List as Dictionary(Of String,List(Of String)),Deviation as Dictionary(Of String, Double),Calculation As Dictionary(Of String, Double),Sanctions As Dictionary(Of String, Double),KVP As Dictionary(Of String, Double),Log as ILog) As Boolean");
+            "Public Shared Function Match(Data As Dictionary(Of String, Object),TTLCounter As Dictionary(Of String, Integer),Abstraction As Dictionary(Of String, Double),HttpAdaptation As Dictionary(Of String, Double),ExhaustiveAdaptation As Dictionary(Of String, Double),List as Dictionary(Of String,List(Of String)),Deviation as Dictionary(Of String, Double),Calculation As Dictionary(Of String, Double),Sanctions As Dictionary(Of String, Double),KVP As Dictionary(Of String, Double),Log as ILog) As Boolean");
 
         countLine += 1;
         sb.AppendLine("Dim Matched as Boolean");
@@ -707,13 +709,13 @@ public class Parser
 
                             replaceString = replaceString + "Calculation(\"" + elements[k] + "\")";
                         }
-                        else if (string.Equals("adaptation", firstString,
+                        else if (string.Equals("exhaustiveAdaptation", firstString,
                                      StringComparison.OrdinalIgnoreCase))
                         {
                             findString = firstString + "." + elements[k];
 
-                            if (EntityAnalysisModelsAdaptations != null)
-                                if (EntityAnalysisModelsAdaptations.All(w => w != elements[k]))
+                            if (EntityAnalysisModelsExhaustiveAdaptations != null)
+                                if (EntityAnalysisModelsExhaustiveAdaptations.All(w => w != elements[k]))
                                 {
                                     var errorSpan = new ErrorSpan
                                     {
@@ -724,8 +726,28 @@ public class Parser
                                     parsedRule.ErrorSpans.Add(errorSpan);
                                 }
 
-                            replaceString = replaceString + "Adaptation(\"" + elements[k] + "\")";
+                            replaceString = replaceString + "ExhaustiveAdaptation(\"" + elements[k] + "\")";
                         }
+                        else if (string.Equals("HTTPAdaptation", firstString,
+                                     StringComparison.OrdinalIgnoreCase))
+                        {
+                            findString = firstString + "." + elements[k];
+
+                            if (EntityAnalysisModelsHttpAdaptations != null)
+                                if (EntityAnalysisModelsHttpAdaptations.All(w => w != elements[k]))
+                                {
+                                    var errorSpan = new ErrorSpan
+                                    {
+                                        Message =
+                                            $"Line {i + 1}: Dictionary does not exist for {elements[k]}.",
+                                        Line = i
+                                    };
+                                    parsedRule.ErrorSpans.Add(errorSpan);
+                                }
+
+                            replaceString = replaceString + "HTTPAdaptation(\"" + elements[k] + "\")";
+                        }
+
                         else if (string.Equals("list", firstString,
                                      StringComparison.OrdinalIgnoreCase))
                         {

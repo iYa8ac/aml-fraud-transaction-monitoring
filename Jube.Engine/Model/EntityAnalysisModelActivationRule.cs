@@ -22,7 +22,8 @@ public class EntityAnalysisModelActivationRule
 {
     public delegate bool Match(Dictionary<string, object> data, Dictionary<string, int> ttlCounter,
         Dictionary<string, double> abstraction,
-        Dictionary<string, double> httpAdaptation, Dictionary<string, double> exhaustiveAdaptation,
+        Dictionary<string, double> httpAdaptation, 
+        Dictionary<string, double> exhaustiveAdaptation,
         Dictionary<string, List<string>> list,
         Dictionary<string, double> calculation,
         Dictionary<string, double> sanctions, Dictionary<string, double> kvp, ILog log);
