@@ -1077,7 +1077,7 @@ public class EntityAnalysisModelManager
 
     private void SyncExhaustiveSearchInstances(DbContext dbContext, Parser.Parser parser)
     {
-        parser.EntityAnalysisModelsAdaptations = [];
+        parser.EntityAnalysisModelsExhaustiveAdaptations = [];
 
         foreach (var (key, value) in ActiveEntityAnalysisModels)
         {
@@ -1204,7 +1204,7 @@ public class EntityAnalysisModelManager
                         Log.Debug(
                             $"Entity Start: Exhaustive GUID {exhaustive.Id} has added {exhaustive.Name} to shadow collection.");
 
-                        parser.EntityAnalysisModelsAdaptations.TryAdd(exhaustive.Name);
+                        parser.EntityAnalysisModelsExhaustiveAdaptations.TryAdd(exhaustive.Name);
 
                         Log.Debug(
                             $"Entity Start: Exhaustive GUID {exhaustive.Id} has added {exhaustive.Name} to parser.");
@@ -1433,7 +1433,7 @@ public class EntityAnalysisModelManager
                     Log.Debug(
                         $"Entity Start: Model {key} and Exhaustive Search Instance Trial Instance ID  {entityAnalysisModelAdaptation.Id} has been added to a shadow list of Adaptations.");
 
-                    parser.EntityAnalysisModelsAdaptations.Add(entityAnalysisModelAdaptation.Name);
+                    parser.EntityAnalysisModelsHttpAdaptations.Add(entityAnalysisModelAdaptation.Name);
 
                     Log.Debug(
                         $"Entity Start: Model {key} and Exhaustive Search Instance Trial Instance ID  {entityAnalysisModelAdaptation.Id} has added {entityAnalysisModelAdaptation.Name} to parser.");

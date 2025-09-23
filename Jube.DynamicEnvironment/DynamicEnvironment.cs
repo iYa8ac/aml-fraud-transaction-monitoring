@@ -61,7 +61,7 @@ public class DynamicEnvironment
             { "SMTPPassword", null },
             { "SMTPFrom", null },
             { "ClickatellAPIKey", null },
-            { "HttpAdaptationUrl", "https://localhost:5001" },
+            { "HttpAdaptationUrl", "http://localhost:5001" },
             { "HttpAdaptationTimeout", "1000" },
             { "HttpAdaptationValidateSsl", "False" },
             { "ReprocessingBulkLimit", "10000" },
