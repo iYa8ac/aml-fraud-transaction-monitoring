@@ -223,7 +223,7 @@ public class GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery
                         ValueSqlPath = $"(\"Json\"-> 'httpAdaptation' ->> '{s.Name}')::double precision",
                         DataTypeId = 3,
                         JQueryBuilderDataType = "double",
-                        Group = "HTTPAdaptation",
+                        Group = "Adaptation",
                         ProcessingTypeId = 7
                     }));
 
@@ -240,7 +240,7 @@ public class GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery
                         ValueSqlPath = $"(\"Json\"-> 'exhaustiveAdaptation' ->> '{s.Name}')::double precision",
                         DataTypeId = 3,
                         JQueryBuilderDataType = "double",
-                        Group = "ExhaustiveAdaptation",
+                        Group = "Adaptation",
                         ProcessingTypeId = 7
                     }));
         }
