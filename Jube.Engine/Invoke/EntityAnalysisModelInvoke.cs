@@ -545,7 +545,7 @@ public class EntityAnalysisModelInvoke(
 
                                             break;
                                         }
-                                        case 6:
+                                        case 6 or 7:
                                         {
                                             cachePayloadDocumentStore.Add(xPath.Name, double.Parse(value));
 
