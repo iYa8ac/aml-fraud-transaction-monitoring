@@ -81,7 +81,7 @@ namespace Jube.DynamicEnvironment
                     "ThreadPoolManualControl", "False"
                 },
                 {
-                    "MinThreadPoolThreads", "40"
+                    "MinThreadPoolThreads", "30"
                 },
                 {
                     "MaxThreadPoolThreads", "1000"
@@ -147,7 +147,7 @@ namespace Jube.DynamicEnvironment
                     "ActivationWatcherAllowPersist", "True"
                 },
                 {
-                    "ActivationWatcherPersistThreads", "4"
+                    "ActivationWatcherPersistThreads", "1"
                 },
                 {
                     "AMQP", "False"
@@ -225,7 +225,7 @@ namespace Jube.DynamicEnvironment
                     "EnableCallback", "True"
                 },
                 {
-                    "CallbackTimeout", "3000"
+                    "CallbackTimeout", "1000"
                 },
                 {
                     "StreamingActivationWatcher", "True"
@@ -261,7 +261,7 @@ namespace Jube.DynamicEnvironment
                     "Log4NetLogPath", null
                 },
                 {
-                    "Log4NetLogMaximumFileSize", "100MB"
+                    "Log4NetLogMaximumFileSize", "500MB"
                 },
                 {
                     "Log4NetLogMaxSizeRollBackups", "100"
