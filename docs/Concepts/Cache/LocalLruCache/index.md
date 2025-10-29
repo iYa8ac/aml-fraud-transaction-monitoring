@@ -1,8 +1,8 @@
 ---
 layout: default
-title: AMQP Queue Ingestion and Exchange Publishing
+title: Local Least Recently Used (LRU) Cache
 nav_order: 2
-parent: API
+parent: Cache
 grand_parent: Concepts
 ---
 

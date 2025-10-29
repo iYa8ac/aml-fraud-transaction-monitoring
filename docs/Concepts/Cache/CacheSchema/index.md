@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Cache Schema
+title: Redis Schema
 nav_order: 1
 parent: Cache
 grand_parent: Concepts
