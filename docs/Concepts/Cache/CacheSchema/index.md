@@ -8,6 +8,8 @@ grand_parent: Concepts
 
 🚀Speed up implementation with hands-on, face-to-face [training](https://www.jube.io/jube-training) from the developer.
 
+# Redis Schema
+
 As introduced in the architecture section of this documentation, the real-time performance of the platform is in large
 part owing to the use of a Remote Key Value \ Data Structure Pair data store, in the form of Redis (although these days
 it

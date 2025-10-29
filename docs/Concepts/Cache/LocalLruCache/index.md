@@ -8,6 +8,8 @@ grand_parent: Concepts
 
 🚀Speed up implementation with hands-on, face-to-face [training](https://www.jube.io/jube-training) from the developer.
 
+# Local Least Recently Used (LRU) Cache
+
 As introduced in the architecture section of this documentation, the real-time performance of the platform is in large
 part owing to the use of a Remote Key Value \ Data Structure Pair data store, in the form of Redis (although these days
 it implies any RESP protocol). In many cases the centralization of and the serialized access to this data are extremely
