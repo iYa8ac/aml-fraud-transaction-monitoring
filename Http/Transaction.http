@@ -2,16 +2,16 @@ POST http://127.0.0.1:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d
 Content-Type: application/json
 
 {
-  "AccountId": "Test4",
+  "AccountId": "Test19",
   "TxnId": "0987654321",
-  "TxnDateTime": "2018-08-19T21:41:37.247",
+  "TxnDateTime": "2024-12-01T21:41:37.247",
   "Currency": "826",
   "ResponseCode": "0",
   "CurrencyAmount": "123.45",
   "SettlementAmount": "100000",
   "AccountCurrency": "566",
-  "IP": "123.456.789.200",
-  "DeviceId": "OlaRoseGoldPhone6",
+  "IP": "123.456.789.123",
+  "DeviceId": "OlaRoseGoldPhone3",
   "ChannelId": "1",
   "AppVersionCode": "12.34",
   "ServiceCode": "DID",
@@ -67,7 +67,8 @@ Content-Type: application/json
   "IsRebill": "False",
   "OrderId": "10607324128",
   "TransactionTypeId": "1000",
-  "TransactionResultId": "1006"
+  "TransactionResultId": "1006",
+  "Test":"Test1"
 }
 
 <> 2025-06-13T101843.200.json

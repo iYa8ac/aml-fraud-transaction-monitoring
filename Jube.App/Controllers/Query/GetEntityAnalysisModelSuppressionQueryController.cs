@@ -15,6 +15,8 @@ namespace Jube.App.Controllers.Query
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Query;
@@ -63,8 +65,8 @@ namespace Jube.App.Controllers.Query
         }
 
         [HttpGet]
-        public ActionResult<List<GetEntityAnalysisModelSuppressionQuery.Dto>> Get(string suppressionKey,
-            string suppressionKeyValue)
+        public async Task<ActionResult<List<GetEntityAnalysisModelSuppressionQuery.Dto>>> GetAsync(string suppressionKey,
+            string suppressionKeyValue, CancellationToken token = default)
         {
             try
             {
@@ -76,7 +78,7 @@ namespace Jube.App.Controllers.Query
                     return Forbid();
                 }
 
-                return Ok(query.Execute(suppressionKey, suppressionKeyValue));
+                return Ok(await query.ExecuteAsync(suppressionKey, suppressionKeyValue, token));
             }
             catch (Exception e)
             {

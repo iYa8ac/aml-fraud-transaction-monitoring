@@ -15,6 +15,7 @@ namespace Jube.App.Controllers.Query
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Code;
     using Data.Context;
@@ -72,7 +73,7 @@ namespace Jube.App.Controllers.Query
         }
 
         [HttpGet("{guid:Guid}")]
-        public async Task<ActionResult<CaseQueryDto>> GetAsync(Guid guid)
+        public async Task<ActionResult<CaseQueryDto>> GetAsync(Guid guid, CancellationToken token = default)
         {
             try
             {
@@ -84,7 +85,7 @@ namespace Jube.App.Controllers.Query
                     return Forbid();
                 }
 
-                var value = await query.ExecuteAsync(guid).ConfigureAwait(false);
+                var value = await query.ExecuteAsync(guid, token).ConfigureAwait(false);
 
                 if (query == null)
                 {
@@ -99,9 +100,10 @@ namespace Jube.App.Controllers.Query
                     CaseKeyValue = value.CaseKeyValue
                 };
 
-                caseEventRepository.Insert(caseEvent);
+                await caseEventRepository.InsertAsync(caseEvent, token).ConfigureAwait(false);
 
-                caseRepository.LockToUser(caseEvent.Id);
+                await caseRepository.LockToUserAsync(caseEvent.Id, token);
+
                 value.Locked = true;
                 value.LockedUser = userName;
 

@@ -11,18 +11,21 @@
 * see <https://www.gnu.org/licenses/>.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Jube.Data.Context;
-
 namespace Jube.Data.Query
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Context;
+    using LinqToDB;
+
     public class GetEntityAnalysisModelAsynchronousQueueBalancesQuery(DbContext dbContext)
     {
-        public IEnumerable<Dto> Execute(int limit)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(int limit, CancellationToken token = default)
         {
-            var query = dbContext.EntityAnalysisModelAsynchronousQueueBalance
+            var query = await dbContext.EntityAnalysisModelAsynchronousQueueBalance
                 .OrderByDescending(o => o.Id)
                 .Take(limit)
                 .Select(s => new Dto
@@ -33,7 +36,7 @@ namespace Jube.Data.Query
                     Archive = s.Archive,
                     EntityAnalysisModelGuid = s.EntityAnalysisModelGuid,
                     ActivationWatcher = s.ActivationWatcher
-                });
+                }).ToListAsync(token);
 
             return query;
         }

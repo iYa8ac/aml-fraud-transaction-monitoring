@@ -15,6 +15,7 @@ namespace Jube.App.Code
 {
     using System;
     using System.Net.Http;
+    using System.Threading;
     using System.Threading.Tasks;
     using System.Web;
     using DynamicEnvironment;
@@ -22,6 +23,7 @@ namespace Jube.App.Code
 
     public class SendSms
     {
+        private static readonly HttpClient HttpClient = new HttpClient();
         private readonly DynamicEnvironment dynamicEnvironment;
         private readonly ILog log;
 
@@ -31,27 +33,40 @@ namespace Jube.App.Code
             this.log = log;
         }
 
-        public void Send(string notificationDestination, string notificationBody)
+        public async Task SendAsync(string notificationDestination, string notificationBody, CancellationToken token = default)
         {
-            var clickatellString
-                = $"https://platform.clickatell.com/messages/http/send?apiKey={dynamicEnvironment.AppSettings("ClickatellAPIKey")}&to={HttpUtility.UrlEncode(notificationDestination.Replace("+", "").Replace(" ", ""))}&content={HttpUtility.UrlEncode(notificationBody)}";
+            if (String.IsNullOrWhiteSpace(notificationDestination) || String.IsNullOrWhiteSpace(notificationBody))
+            {
+                return;
+            }
+
+            var apiKey = dynamicEnvironment.AppSettings("ClickatellAPIKey");
+            var sanitizedDestination = HttpUtility.UrlEncode(
+                notificationDestination.Replace("+", "").Replace(" ", ""));
+            var encodedBody = HttpUtility.UrlEncode(notificationBody);
+
+            var clickatellUrl =
+                $"https://platform.clickatell.com/messages/http/send?apiKey={apiKey}&to={sanitizedDestination}&content={encodedBody}";
+
             try
             {
-                var client = new HttpClient();
-                var response = client.GetAsync(clickatellString);
+                using var response = await HttpClient.GetAsync(clickatellUrl, token).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
 
-                var valueTask = Task.Run(() => response.Result.Content.ReadAsStringAsync());
-                valueTask.Wait();
+                var content = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
-                    log.Info($"Notification Dispatch: Result is {valueTask.Result}.");
+                    log.Info($"Notification Dispatch: Clickatell response: {content}");
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                log.Warn("Notification Dispatch: send operation cancelled.");
             }
             catch (Exception ex)
             {
-                log.Error(
-                    $"Notification Dispatch: Has failed to send Clickatell string of {clickatellString} with error of {ex}.");
+                log.Error($"Notification Dispatch: failed to send Clickatell request to {clickatellUrl}. Error: {ex}");
             }
         }
     }

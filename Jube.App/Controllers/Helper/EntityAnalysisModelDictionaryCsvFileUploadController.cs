@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Helper
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Poco;
@@ -72,7 +74,7 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpPost]
-        public IActionResult Upload(List<IFormFile> files, int entityAnalysisModelDictionaryId)
+        public async Task<ActionResult> UploadAsync(List<IFormFile> files, int entityAnalysisModelDictionaryId, CancellationToken token = default)
         {
             try
             {
@@ -95,12 +97,12 @@ namespace Jube.App.Controllers.Helper
                     {
                         try
                         {
-                            var splits = reader.ReadLine()?.Split(",");
+                            var splits = (await reader.ReadLineAsync(token))?.Split(",");
                             if (splits != null)
                             {
-                                var entityAnalysisModelDictionaryKvp = entityAnalysisModelDictionaryKvpRepository
-                                    .GetByIdKvpKey(entityAnalysisModelDictionaryId,
-                                        splits[0]);
+                                var entityAnalysisModelDictionaryKvp = await entityAnalysisModelDictionaryKvpRepository
+                                    .GetByIdKvpKeyAsync(entityAnalysisModelDictionaryId,
+                                        splits[0], token);
 
                                 if (splits.Length > 1)
                                 {
@@ -113,13 +115,13 @@ namespace Jube.App.Controllers.Helper
                                             KvpValue = Double.Parse(splits[1])
                                         };
 
-                                        entityAnalysisModelDictionaryKvpRepository.Insert(
-                                            entityAnalysisModelsDictionaryKvp);
+                                        await entityAnalysisModelDictionaryKvpRepository.InsertAsync(
+                                            entityAnalysisModelsDictionaryKvp, token);
                                     }
                                     else
                                     {
                                         entityAnalysisModelDictionaryKvp.KvpValue = Double.Parse(splits[1]);
-                                        entityAnalysisModelDictionaryKvpRepository.Update(entityAnalysisModelDictionaryKvp);
+                                        await entityAnalysisModelDictionaryKvpRepository.UpdateAsync(entityAnalysisModelDictionaryKvp, token);
                                     }
                                 }
                             }
@@ -141,8 +143,8 @@ namespace Jube.App.Controllers.Helper
                         EntityAnalysisModelDictionaryId = entityAnalysisModelDictionaryId
                     };
 
-                    entityAnalysisModelDictionaryCsvFileUploadRepository.Insert(
-                        entityAnalysisModelDictionaryCsvFileUpload);
+                    await entityAnalysisModelDictionaryCsvFileUploadRepository.InsertAsync(
+                        entityAnalysisModelDictionaryCsvFileUpload, token);
                 }
 
                 return StatusCode(200);

@@ -24,8 +24,5 @@ namespace Jube.Cache.Redis.Interfaces
 
         Task InsertAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string multiPartString,
             int distanceThreshold, double? value);
-
-        Task UpdateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string multiPartString,
-            int distanceThreshold, double? value);
     }
 }

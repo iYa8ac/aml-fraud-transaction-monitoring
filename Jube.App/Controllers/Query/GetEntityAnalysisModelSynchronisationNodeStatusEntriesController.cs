@@ -15,6 +15,8 @@ namespace Jube.App.Controllers.Query
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Query;
@@ -62,7 +64,7 @@ namespace Jube.App.Controllers.Query
         }
 
         [HttpGet]
-        public ActionResult<List<GetEntityAnalysisModelSynchronisationNodeStatusEntriesQuery.Dto>> Get()
+        public async Task<ActionResult<List<GetEntityAnalysisModelSynchronisationNodeStatusEntriesQuery.Dto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -74,7 +76,7 @@ namespace Jube.App.Controllers.Query
                     return Forbid();
                 }
 
-                return Ok(query.Execute());
+                return Ok(await query.ExecuteAsync(token));
             }
             catch (Exception e)
             {

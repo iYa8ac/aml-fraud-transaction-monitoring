@@ -17,6 +17,7 @@ namespace Jube.Data.Reporting
     using System.Collections.Generic;
     using System.Dynamic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Dictionary;
     using Extension;
@@ -25,13 +26,13 @@ namespace Jube.Data.Reporting
 
     public class Postgres(string connectionString)
     {
-        public async Task<Dictionary<string, string>> IntrospectAsync(string sql, Dictionary<string, object> parameters)
+        public async Task<Dictionary<string, string>> IntrospectAsync(string sql, Dictionary<string, object> parameters, CancellationToken token = default)
         {
             var connection = new NpgsqlConnection(connectionString);
             var values = new Dictionary<string, string>();
             try
             {
-                await connection.OpenAsync().ConfigureAwait(false);
+                await connection.OpenAsync(token).ConfigureAwait(false);
 
                 var tableName = "Temp_" + Guid.NewGuid().ToString("N");
 
@@ -44,7 +45,7 @@ namespace Jube.Data.Reporting
                     commandTempTable.Parameters.AddWithValue(key, value);
                 }
 
-                await commandTempTable.ExecuteNonQueryAsync().ConfigureAwait(false);
+                await commandTempTable.ExecuteNonQueryAsync(token).ConfigureAwait(false);
 
                 var introspectionSql = "SELECT attname, format_type(atttypid, atttypmod) AS type" +
                                        " FROM pg_attribute" +
@@ -57,8 +58,8 @@ namespace Jube.Data.Reporting
                 var command = new NpgsqlCommand(introspectionSql);
                 command.Connection = connection;
 
-                var reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
-                while (await reader.ReadAsync().ConfigureAwait(false))
+                var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
                     values.Add(reader.GetValue(0).AsString(), reader.GetValue(1).AsString());
                 }
@@ -82,12 +83,12 @@ namespace Jube.Data.Reporting
             return values;
         }
 
-        public async Task PrepareAsync(string sql, List<object> parameters)
+        public async Task PrepareAsync(string sql, List<object> parameters, CancellationToken token = default)
         {
             var connection = new NpgsqlConnection(connectionString);
             try
             {
-                await connection.OpenAsync().ConfigureAwait(false);
+                await connection.OpenAsync(token).ConfigureAwait(false);
 
                 var command = new NpgsqlCommand(sql);
                 command.Connection = connection;
@@ -97,7 +98,7 @@ namespace Jube.Data.Reporting
                     command.Parameters.AddWithValue("@" + (i + 1), parameters[i]);
                 }
 
-                await command.PrepareAsync().ConfigureAwait(false);
+                await command.PrepareAsync(token).ConfigureAwait(false);
             }
             catch
             {
@@ -115,13 +116,13 @@ namespace Jube.Data.Reporting
         public async Task<List<string>> ExecuteReturnOnlyJsonFromArchiveSampleAsync(int entityAnalysisModelId,
             string filterSql,
             string filterTokens,
-            int limit, bool mockData)
+            int limit, bool mockData, CancellationToken token = default)
         {
             var value = new List<string>();
             var connection = new NpgsqlConnection(connectionString);
             try
             {
-                await connection.OpenAsync().ConfigureAwait(false);
+                await connection.OpenAsync(token).ConfigureAwait(false);
 
                 var tokens = JsonConvert.DeserializeObject<List<object>>(filterTokens);
                 tokens.Add(entityAnalysisModelId);
@@ -142,10 +143,11 @@ namespace Jube.Data.Reporting
                     command.Parameters.AddWithValue("@" + (i + 1), tokens[i]);
                 }
 
-                await command.PrepareAsync().ConfigureAwait(false);
+                await command.PrepareAsync(token).ConfigureAwait(false);
 
-                var reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
-                while (await reader.ReadAsync().ConfigureAwait(false))
+                var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
                     value.Add(reader.GetValue(0).AsString());
                 }
@@ -173,23 +175,25 @@ namespace Jube.Data.Reporting
             string sql,
             DateTime adjustedStartDate,
             int skip,
-            int limit)
+            int limit,
+            CancellationToken token = default)
         {
             var value = new List<DictionaryNoBoxing>();
             var connection = new NpgsqlConnection(connectionString);
             try
             {
-                await connection.OpenAsync().ConfigureAwait(false);
+                await connection.OpenAsync(token).ConfigureAwait(false);
 
                 var command = new NpgsqlCommand(sql);
                 command.Connection = connection;
                 command.Parameters.AddWithValue("adjustedStartDate", adjustedStartDate);
                 command.Parameters.AddWithValue("limit", limit);
                 command.Parameters.AddWithValue("skip", skip);
-                await command.PrepareAsync().ConfigureAwait(false);
 
-                var reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
-                while (await reader.ReadAsync().ConfigureAwait(false))
+                await command.PrepareAsync(token).ConfigureAwait(false);
+
+                var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
                     var dictionaryNoBoxing = new DictionaryNoBoxing();
                     for (var index = 0; index < reader.FieldCount; index++)
@@ -197,6 +201,11 @@ namespace Jube.Data.Reporting
                         if (!dictionaryNoBoxing.ContainsKey(reader.GetName(index)))
                         {
                             var clrType = reader.GetFieldType(index);
+
+                            if (await reader.IsDBNullAsync(index, token))
+                            {
+                                continue;
+                            }
 
                             if (clrType == typeof(int))
                             {
@@ -224,7 +233,7 @@ namespace Jube.Data.Reporting
                             }
                         }
                     }
-                    
+
                     value.Add(dictionaryNoBoxing);
                 }
 
@@ -248,13 +257,13 @@ namespace Jube.Data.Reporting
         }
 
         public async Task<List<IDictionary<string, object>>> ExecuteByNamedParametersAsync(string sql,
-            Dictionary<string, object> parameters)
+            Dictionary<string, object> parameters, CancellationToken token = default)
         {
             var value = new List<IDictionary<string, object>>();
             var connection = new NpgsqlConnection(connectionString);
             try
             {
-                await connection.OpenAsync().ConfigureAwait(false);
+                await connection.OpenAsync(token).ConfigureAwait(false);
 
                 var command = new NpgsqlCommand(sql);
                 command.Connection = connection;
@@ -264,17 +273,17 @@ namespace Jube.Data.Reporting
                     command.Parameters.AddWithValue("@" + key, o);
                 }
 
-                await command.PrepareAsync().ConfigureAwait(false);
+                await command.PrepareAsync(token).ConfigureAwait(false);
 
-                var reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
-                while (await reader.ReadAsync().ConfigureAwait(false))
+                var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
                     IDictionary<string, object> eo = new ExpandoObject();
                     for (var index = 0; index < reader.FieldCount; index++)
                     {
                         if (!eo.ContainsKey(reader.GetName(index)))
                         {
-                            eo.Add(reader.GetName(index), reader.IsDBNull(index) ? null : reader.GetValue(index));
+                            eo.Add(reader.GetName(index), await reader.IsDBNullAsync(index, token) ? null : reader.GetValue(index));
                         }
                     }
 
@@ -301,13 +310,13 @@ namespace Jube.Data.Reporting
         }
 
         public async Task<List<IDictionary<string, object>>> ExecuteByOrderedParametersAsync(string sql,
-            List<object> parameters)
+            List<object> parameters, CancellationToken token = default)
         {
             var value = new List<IDictionary<string, object>>();
             var connection = new NpgsqlConnection(connectionString);
             try
             {
-                await connection.OpenAsync().ConfigureAwait(false);
+                await connection.OpenAsync(token).ConfigureAwait(false);
 
                 var command = new NpgsqlCommand(sql);
                 command.Connection = connection;
@@ -317,17 +326,17 @@ namespace Jube.Data.Reporting
                     command.Parameters.AddWithValue("@" + (i + 1), parameters[i]);
                 }
 
-                await command.PrepareAsync().ConfigureAwait(false);
+                await command.PrepareAsync(token).ConfigureAwait(false);
 
-                var reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
-                while (await reader.ReadAsync().ConfigureAwait(false))
+                var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
                     IDictionary<string, object> eo = new ExpandoObject();
                     for (var index = 0; index < reader.FieldCount; index++)
                     {
                         if (!eo.ContainsKey(reader.GetName(index)))
                         {
-                            eo.Add(reader.GetName(index), reader.IsDBNull(index) ? null : reader.GetValue(index));
+                            eo.Add(reader.GetName(index), await reader.IsDBNullAsync(index, token) ? null : reader.GetValue(index));
                         }
                     }
 

@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Authentication
     using System;
     using System.IdentityModel.Tokens.Jwt;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using DynamicEnvironment;
@@ -62,11 +64,11 @@ namespace Jube.App.Controllers.Authentication
 
         [HttpPost("ByUserNamePassword")]
         [ProducesResponseType(typeof(AuthenticationResponseDto), (int)HttpStatusCode.OK)]
-        public ActionResult<AuthenticationResponseDto> ByUserNamePassword(
-            [FromBody] AuthenticationRequestDto model)
+        public async Task<ActionResult<AuthenticationResponseDto>> ByUserNamePasswordAsync(
+            [FromBody] AuthenticationRequestDto model, CancellationToken token = default)
         {
             var validator = new AuthenticationRequestDtoValidator();
-            var results = validator.Validate(model);
+            var results = await validator.ValidateAsync(model, token);
             if (!results.IsValid)
             {
                 return BadRequest(results);
@@ -78,7 +80,7 @@ namespace Jube.App.Controllers.Authentication
                 model.LocalIp = contextAccessor.HttpContext?.Connection.LocalIpAddress?.ToString();
                 model.UserAgent = Request.Headers.UserAgent.ToString();
 
-                service.AuthenticateByUserNamePassword(model, dynamicEnvironment.AppSettings("PasswordHashingKey"));
+                await service.AuthenticateByUserNamePasswordAsync(model, dynamicEnvironment.AppSettings("PasswordHashingKey"), token);
             }
             catch (PasswordExpiredException)
             {
@@ -127,7 +129,7 @@ namespace Jube.App.Controllers.Authentication
         [AllowAnonymous]
         [HttpPost("ChangePassword")]
         [ProducesResponseType(typeof(AuthenticationResponseDto), (int)HttpStatusCode.OK)]
-        public ActionResult ChangePassword([FromBody] ChangePasswordRequestDto model)
+        public async Task<ActionResult> ChangePasswordAsync([FromBody] ChangePasswordRequestDto model, CancellationToken token = default)
         {
             if (User.Identity == null)
             {
@@ -136,7 +138,7 @@ namespace Jube.App.Controllers.Authentication
 
             var validator = new ChangePasswordRequestDtoValidator();
 
-            var results = validator.Validate(model);
+            var results = await validator.ValidateAsync(model, token);
 
             if (!results.IsValid)
             {
@@ -145,8 +147,8 @@ namespace Jube.App.Controllers.Authentication
 
             try
             {
-                service.ChangePassword(User.Identity.Name, model,
-                    dynamicEnvironment.AppSettings("PasswordHashingKey"));
+                await service.ChangePasswordAsync(User.Identity.Name, model,
+                    dynamicEnvironment.AppSettings("PasswordHashingKey"), token);
             }
             catch (BadCredentialsException)
             {

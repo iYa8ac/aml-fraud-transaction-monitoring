@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Context;
     using LinqToDB;
@@ -46,27 +48,27 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<EntityAnalysisModelDictionaryKvp> Get()
+        public async Task<IEnumerable<EntityAnalysisModelDictionaryKvp>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelDictionaryKvp
+            return await dbContext.EntityAnalysisModelDictionaryKvp
                 .Where(w =>
                     w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
-                    !tenantRegistryId.HasValue);
+                    !tenantRegistryId.HasValue).ToListAsync(token);
         }
 
-        public EntityAnalysisModelDictionaryKvp GetByIdKvpKey(int id, string key)
+        public Task<EntityAnalysisModelDictionaryKvp> GetByIdKvpKeyAsync(int id, string key, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelDictionaryKvp.FirstOrDefault(w =>
+            return dbContext.EntityAnalysisModelDictionaryKvp.FirstOrDefaultAsync(w =>
                 (w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                  !tenantRegistryId.HasValue)
                 && w.EntityAnalysisModelDictionaryId == id && w.KvpKey == key
-                && (w.Deleted == 0 || w.Deleted == null));
+                && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public IEnumerable<EntityAnalysisModelDictionaryKvp> GetByEntityAnalysisModelDictionaryIdOrderById(
-            int entityAnalysisModelDictionaryId)
+        public async Task<IEnumerable<EntityAnalysisModelDictionaryKvp>> GetByEntityAnalysisModelDictionaryIdOrderByIdAsync(
+            int entityAnalysisModelDictionaryId, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelDictionaryKvp
+            return await dbContext.EntityAnalysisModelDictionaryKvp
                 .Where(w =>
                     (w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                      !tenantRegistryId.HasValue)
@@ -74,35 +76,35 @@ namespace Jube.Data.Repository
                         w.EntityAnalysisModelDictionary.EntityAnalysisModel.Deleted == null)
                     && w.EntityAnalysisModelDictionaryId == entityAnalysisModelDictionaryId &&
                     (w.Deleted == 0 || w.Deleted == null))
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public EntityAnalysisModelDictionaryKvp GetById(int id)
+        public Task<EntityAnalysisModelDictionaryKvp> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelDictionaryKvp.FirstOrDefault(w =>
+            return dbContext.EntityAnalysisModelDictionaryKvp.FirstOrDefaultAsync(w =>
                 (w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                  !tenantRegistryId.HasValue)
-                && w.EntityAnalysisModelDictionaryId == id && (w.Deleted == 0 || w.Deleted == null));
+                && w.EntityAnalysisModelDictionaryId == id && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public EntityAnalysisModelDictionaryKvp Insert(EntityAnalysisModelDictionaryKvp model)
+        public async Task<EntityAnalysisModelDictionaryKvp> InsertAsync(EntityAnalysisModelDictionaryKvp model, CancellationToken token = default)
         {
             model.CreatedUser = userName ?? model.CreatedUser;
             model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
             model.CreatedDate = DateTime.Now;
             model.Version = 1;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public EntityAnalysisModelDictionaryKvp
-            Update(EntityAnalysisModelDictionaryKvp model)
+        public async Task<EntityAnalysisModelDictionaryKvp>
+            UpdateAsync(EntityAnalysisModelDictionaryKvp model, CancellationToken token = default)
         {
-            var existing = dbContext.EntityAnalysisModelDictionaryKvp
-                .FirstOrDefault(w => w.Id == model.Id
-                                     && w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId ==
-                                     tenantRegistryId
-                                     && (w.Deleted == 0 || w.Deleted == null));
+            var existing = await dbContext.EntityAnalysisModelDictionaryKvp
+                .FirstOrDefaultAsync(w => w.Id == model.Id
+                                          && w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId ==
+                                          tenantRegistryId
+                                          && (w.Deleted == 0 || w.Deleted == null), token);
 
             if (existing == null)
             {
@@ -114,25 +116,24 @@ namespace Jube.Data.Repository
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
 
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token);
 
-            var config = new MapperConfiguration(cfg =>
+            var mapper = new Mapper(new MapperConfiguration(cfg =>
             {
                 cfg.CreateMap<EntityAnalysisModelDictionaryKvp, EntityAnalysisModelDictionaryKvpVersion>();
-            });
-            var mapper = new Mapper(config);
+            }));
 
             var audit = mapper.Map<EntityAnalysisModelDictionaryKvpVersion>(existing);
             audit.EntityAnalysisModelDictionaryKvpId = existing.Id;
 
-            dbContext.Insert(audit);
+            await dbContext.InsertAsync(audit, token: token);
 
             return model;
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.EntityAnalysisModelDictionaryKvp
+            var records = await dbContext.EntityAnalysisModelDictionaryKvp
                 .Where(d =>
                     (d.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                      !tenantRegistryId.HasValue)
@@ -141,7 +142,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {
@@ -149,16 +150,16 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelDictionaryKvp
+            return dbContext.EntityAnalysisModelDictionaryKvp
                 .Where(d =>
                     d.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryIdOutsideOfInstance
                     && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

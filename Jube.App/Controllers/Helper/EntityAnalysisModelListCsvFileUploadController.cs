@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Helper
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Poco;
@@ -70,7 +72,7 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpPost]
-        public IActionResult Upload(List<IFormFile> files, int entityAnalysisModelListId)
+        public async Task<ActionResult> UploadAsync(List<IFormFile> files, int entityAnalysisModelListId, CancellationToken token = default)
         {
             try
             {
@@ -96,10 +98,10 @@ namespace Jube.App.Controllers.Helper
                             var entityAnalysisModelsListValue = new EntityAnalysisModelListValue
                             {
                                 EntityAnalysisModelListId = entityAnalysisModelListId,
-                                ListValue = reader.ReadLine()
+                                ListValue = await reader.ReadLineAsync(token)
                             };
 
-                            entityAnalysisModelListValueRepository.Insert(entityAnalysisModelsListValue);
+                            await entityAnalysisModelListValueRepository.InsertAsync(entityAnalysisModelsListValue, token);
 
                             records += 1;
                         }
@@ -119,7 +121,7 @@ namespace Jube.App.Controllers.Helper
                         EntityAnalysisModelListId = entityAnalysisModelListId
                     };
 
-                    entityAnalysisModelListValueCsvFileUploadRepository.Insert(entityAnalysisModelListCsvFileUpload);
+                    await entityAnalysisModelListValueCsvFileUploadRepository.InsertAsync(entityAnalysisModelListCsvFileUpload, token);
                 }
 
                 return StatusCode(200);

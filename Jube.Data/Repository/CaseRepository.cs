@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -30,6 +32,7 @@ namespace Jube.Data.Repository
         {
             this.dbContext = dbContext;
             this.userName = userName;
+
             tenantRegistryId = dbContext.UserInTenant.Where(w => w.User == this.userName)
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
@@ -45,43 +48,43 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public void UpdateExpiredCaseDiary(int id, byte closedStatus, byte lastClosedStatus)
+        public Task UpdateExpiredCaseDiaryAsync(int id, byte closedStatus, byte lastClosedStatus, CancellationToken token = default)
         {
-            dbContext.Case
+            return dbContext.Case
                 .Where(d => d.Id == id)
                 .Set(s => s.ClosedStatusId, closedStatus)
                 .Set(s => s.LastClosedStatus, lastClosedStatus)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public void LockToUser(int id)
+        public Task LockToUserAsync(int id, CancellationToken token = default)
         {
-            dbContext.Case
+            return dbContext.Case
                 .Where(d => d.Id == id)
                 .Set(s => s.Locked, (byte)1)
                 .Set(s => s.LockedUser, userName)
                 .Set(s => s.LockedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public IEnumerable<Case> Get()
+        public async Task<IEnumerable<Case>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.Case.Where(w =>
+            return await dbContext.Case.Where(w =>
                 w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
-                !tenantRegistryId.HasValue);
+                !tenantRegistryId.HasValue).ToListAsync(token: token);
         }
 
-        public Case GetById(int id)
+        public Task<Case> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.Case.FirstOrDefault(w
+            return dbContext.Case.FirstOrDefaultAsync(w
                 => (w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                     !tenantRegistryId.HasValue)
-                   && w.Id == id);
+                   && w.Id == id, token);
         }
 
-        public IEnumerable<Case> GetByExpired()
+        public async Task<IEnumerable<Case>> GetByExpiredAsync(CancellationToken token = default)
         {
-            return dbContext.Case.Where(w
+            return await dbContext.Case.Where(w
                 => (w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                     !tenantRegistryId.HasValue)
                    && (w.ClosedStatusId == 0 ||
@@ -89,18 +92,18 @@ namespace Jube.Data.Repository
                        w.ClosedStatusId == 2 ||
                        w.ClosedStatusId == 4)
                    && DateTime.Now >= w.DiaryDate
-                   && w.Diary == 1);
+                   && w.Diary == 1).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public Case Insert(Case model)
+        public async Task<Case> InsertAsync(Case model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public Case Update(Case model)
+        public async Task<Case> UpdateCaseAsync(Case model, CancellationToken token = default)
         {
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token);
             return model;
         }
     }

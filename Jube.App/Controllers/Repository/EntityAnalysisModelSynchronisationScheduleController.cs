@@ -14,8 +14,9 @@
 namespace Jube.App.Controllers.Repository
 {
     using System;
-    using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -64,10 +65,8 @@ namespace Jube.App.Controllers.Repository
                     EntityAnalysisModelSynchronisationSchedule>();
                 cfg.CreateMap<EntityAnalysisModelSynchronisationSchedule,
                     EntityAnalysisModelSynchronisationScheduleDto>();
-                cfg.CreateMap<List<EntityAnalysisModelSynchronisationSchedule>,
-                        List<EntityAnalysisModelSynchronisationScheduleDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new EntityAnalysisModelSynchronisationScheduleRepository(dbContext, userName);
             validator = new EntityAnalysisModelSynchronisationScheduleDtoValidator();
@@ -84,7 +83,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCurrent")]
-        public ActionResult<EntityAnalysisModelSynchronisationScheduleDto> GetCurrent()
+        public async Task<ActionResult<EntityAnalysisModelSynchronisationScheduleDto>> GetCurrentAsync(CancellationToken token = default)
         {
             try
             {
@@ -96,7 +95,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<EntityAnalysisModelSynchronisationScheduleDto>(repository.GetCurrent()));
+                return Ok(mapper.Map<EntityAnalysisModelSynchronisationScheduleDto>(await repository.GetCurrentAsync(token)));
             }
             catch (Exception e)
             {
@@ -108,8 +107,8 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(EntityAnalysisModelSynchronisationScheduleDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<EntityAnalysisModelSynchronisationScheduleDto> Create(
-            [FromBody] EntityAnalysisModelSynchronisationScheduleDto model)
+        public async Task<ActionResult<EntityAnalysisModelSynchronisationScheduleDto>> CreateAsync(
+            [FromBody] EntityAnalysisModelSynchronisationScheduleDto model, CancellationToken token = default)
         {
             try
             {
@@ -121,10 +120,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Insert(mapper.Map<EntityAnalysisModelSynchronisationSchedule>(model)));
+                    return Ok(await repository.InsertAsync(mapper.Map<EntityAnalysisModelSynchronisationSchedule>(model), token));
                 }
 
                 return BadRequest(results);

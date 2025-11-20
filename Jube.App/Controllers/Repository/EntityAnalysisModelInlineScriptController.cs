@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -62,9 +64,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<EntityAnalysisModelInlineScriptDto, EntityAnalysisModelInlineScript>();
                 cfg.CreateMap<EntityAnalysisModelInlineScript, EntityAnalysisModelInlineScriptDto>();
-                cfg.CreateMap<List<EntityAnalysisModelInlineScript>, List<EntityAnalysisModelInlineScriptDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new EntityAnalysisModelInlineScriptRepository(dbContext, userName);
             validator = new EntityAnalysisModelInlineScriptDtoValidator();
@@ -82,7 +83,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<EntityAnalysisModelInlineScriptDto>> Get()
+        public async Task<ActionResult<List<EntityAnalysisModelInlineScriptDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -94,7 +95,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<EntityAnalysisModelInlineScriptDto>>(repository.Get()));
+                return Ok(mapper.Map<List<EntityAnalysisModelInlineScriptDto>>(await repository.GetAsync(token)));
             }
             catch (Exception e)
             {
@@ -104,8 +105,8 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByEntityAnalysisModelId/{entityAnalysisModelId:int}")]
-        public ActionResult<List<EntityAnalysisModelInlineScriptDto>> GetByEntityAnalysisModelId(
-            int entityAnalysisModelId)
+        public async Task<ActionResult<List<EntityAnalysisModelInlineScriptDto>>> GetByEntityAnalysisModelIdAsync(
+            int entityAnalysisModelId, CancellationToken token = default)
         {
             try
             {
@@ -118,7 +119,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<List<EntityAnalysisModelInlineScriptDto>>(
-                    repository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)));
+                    await repository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false)));
             }
             catch (Exception e)
             {
@@ -128,8 +129,8 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("{entityAnalysisModelInlineScriptId:int}")]
-        public ActionResult<EntityAnalysisModelInlineScriptDto> GetByEntityAnalysisModelInlineScriptId(
-            int entityAnalysisModelInlineScriptId)
+        public async Task<ActionResult<EntityAnalysisModelInlineScriptDto>> GetByEntityAnalysisModelInlineScriptIdAsync(
+            int entityAnalysisModelInlineScriptId, CancellationToken token = default)
         {
             try
             {
@@ -142,7 +143,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<EntityAnalysisModelInlineScriptDto>(
-                    repository.GetById(entityAnalysisModelInlineScriptId)));
+                    await repository.GetByIdAsync(entityAnalysisModelInlineScriptId, token)));
             }
             catch (Exception e)
             {
@@ -154,8 +155,8 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(EntityAnalysisModelInlineScriptDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<EntityAnalysisModelInlineScriptDto> Create(
-            [FromBody] EntityAnalysisModelInlineScriptDto model)
+        public async Task<ActionResult<EntityAnalysisModelInlineScriptDto>> CreateAsync(
+            [FromBody] EntityAnalysisModelInlineScriptDto model, CancellationToken token = default)
         {
             try
             {
@@ -167,10 +168,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Insert(mapper.Map<EntityAnalysisModelInlineScript>(model)));
+                    return Ok(await repository.InsertAsync(mapper.Map<EntityAnalysisModelInlineScript>(model), token));
                 }
 
                 return BadRequest(results);
@@ -185,8 +186,8 @@ namespace Jube.App.Controllers.Repository
         [HttpPut]
         [ProducesResponseType(typeof(EntityAnalysisModelInlineScriptDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<EntityAnalysisModelInlineScriptDto> Update(
-            [FromBody] EntityAnalysisModelInlineScriptDto model)
+        public async Task<ActionResult<EntityAnalysisModelInlineScriptDto>> UpdateAsync(
+            [FromBody] EntityAnalysisModelInlineScriptDto model, CancellationToken token = default)
         {
             try
             {
@@ -198,10 +199,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Update(mapper.Map<EntityAnalysisModelInlineScript>(model)));
+                    return Ok(await repository.UpdateAsync(mapper.Map<EntityAnalysisModelInlineScript>(model), token));
                 }
 
                 return BadRequest(results);
@@ -219,7 +220,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpDelete]
         [Route("{id:int}")]
-        public ActionResult<List<EntityAnalysisModelInlineScriptDto>> Delete(int id)
+        public async Task<ActionResult<List<EntityAnalysisModelInlineScriptDto>>> DeleteAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -231,7 +232,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.Delete(id);
+                await repository.DeleteAsync(id, token);
                 return Ok();
             }
             catch (KeyNotFoundException)

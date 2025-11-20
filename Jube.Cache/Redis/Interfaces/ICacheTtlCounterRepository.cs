@@ -15,7 +15,7 @@ namespace Jube.Cache.Redis.Interfaces
 {
     public interface ICacheTtlCounterRepository
     {
-        Task DecrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        Task<long> DecrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             Guid entityAnalysisModelTtlCounterGuid,
             string dataName, string dataValue, int decrement);
 

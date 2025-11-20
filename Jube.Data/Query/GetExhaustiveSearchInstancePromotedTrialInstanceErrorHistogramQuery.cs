@@ -16,8 +16,11 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Accord.Statistics.Visualizations;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstancePromotedTrialInstanceErrorHistogramQuery
     {
@@ -31,10 +34,10 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute(
-            int exhaustiveSearchInstanceId)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            var promotedExhaustiveSearchInstanceTrialInstanceId = dbContext
+            var promotedExhaustiveSearchInstanceTrialInstanceId = await dbContext
                 .ExhaustiveSearchInstancePromotedTrialInstance
                 .Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance.Id == exhaustiveSearchInstanceId
@@ -42,14 +45,13 @@ namespace Jube.Data.Query
                     && w.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance
                         .EntityAnalysisModel.TenantRegistryId == tenantRegistryId)
                 .OrderByDescending(o => o.Id)
-                .Select(s => s.ExhaustiveSearchInstanceTrialInstanceId)
-                .FirstOrDefault();
+                .Select(s => s.ExhaustiveSearchInstanceTrialInstanceId).FirstOrDefaultAsync(token);
 
-            var errors = dbContext.ExhaustiveSearchInstancePromotedTrialInstancePredictedActual
+            var errors = await dbContext.ExhaustiveSearchInstancePromotedTrialInstancePredictedActual
                 .Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstanceId == promotedExhaustiveSearchInstanceTrialInstanceId)
                 .OrderBy(o => o.Id)
-                .Select(s => s.Actual.Value - s.Predicted.Value).ToArray();
+                .Select(s => s.Actual.Value - s.Predicted.Value).ToArrayAsync(token);
 
             var histogram = new Histogram();
             histogram.Compute(errors, 10);

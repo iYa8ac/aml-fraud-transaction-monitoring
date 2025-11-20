@@ -15,24 +15,25 @@ namespace Jube.Data.Repository
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class EntityAnalysisAsynchronousQueueBalanceRepository(DbContext dbContext)
     {
-
-        public IEnumerable<EntityAnalysisAsynchronousQueueBalance> Get(int limit)
+        public async Task<IEnumerable<EntityAnalysisAsynchronousQueueBalance>> GetAsync(int limit, CancellationToken token = default)
         {
-            return (IOrderedQueryable<EntityAnalysisAsynchronousQueueBalance>)dbContext
+            return await dbContext
                 .EntityAnalysisAsynchronousQueueBalance
                 .OrderByDescending(o => o.Id)
-                .Take(limit);
+                .Take(limit).ToListAsync(token);
         }
 
-        public EntityAnalysisAsynchronousQueueBalance Insert(EntityAnalysisAsynchronousQueueBalance model)
+        public async Task<EntityAnalysisAsynchronousQueueBalance> InsertAsync(EntityAnalysisAsynchronousQueueBalance model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
     }

@@ -3,6 +3,8 @@ namespace Jube.App.Controllers.Preservation
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Cryptography.Exceptions;
     using Data.Context;
@@ -47,9 +49,9 @@ namespace Jube.App.Controllers.Preservation
         }
 
         [HttpPost("Import")]
-        public IActionResult Upload(List<IFormFile> files, string password, bool exhaustive,
+        public async Task<ActionResult> UploadAsync(List<IFormFile> files, string password, bool exhaustive,
             bool suppressions,
-            bool lists, bool dictionaries, bool visualisations)
+            bool lists, bool dictionaries, bool visualisations, CancellationToken token = default)
         {
             if (!permissionValidation.Validate(new[]
                 {
@@ -81,10 +83,14 @@ namespace Jube.App.Controllers.Preservation
 
                 foreach (var file in files)
                 {
-                    using var stream = file.OpenReadStream();
+                    var stream = file.OpenReadStream();
+                    await using var stream1 = stream.ConfigureAwait(false);
+
                     using var reader = new BinaryReader(stream);
                     var bytes = reader.ReadBytes((int)stream.Length);
-                    preservation.Import(bytes, importExportOptions);
+
+                    await preservation.ImportAsync(bytes, importExportOptions, token).ConfigureAwait(false);
+
                     return Ok();
                 }
 
@@ -107,8 +113,8 @@ namespace Jube.App.Controllers.Preservation
 
         [HttpGet("ExportPeek")]
         [Produces("text/plain")]
-        public ActionResult<string> Preview(bool exhaustive, bool suppressions, bool lists, bool dictionaries,
-            bool visualisations)
+        public async Task<ActionResult<string>> PreviewAsync(bool exhaustive, bool suppressions, bool lists, bool dictionaries,
+            bool visualisations, CancellationToken token = default)
         {
             if (!permissionValidation.Validate(new[]
                 {
@@ -128,13 +134,13 @@ namespace Jube.App.Controllers.Preservation
             };
 
             var preservation = new Preservation(dbContext, userName);
-            var payload = preservation.ExportPeek(importExportOptions);
+            var payload = await preservation.ExportPeekAsync(importExportOptions, token).ConfigureAwait(false);
             return payload.Yaml;
         }
 
         [HttpGet("Export")]
-        public IActionResult Export(string password, bool exhaustive, bool suppressions, bool lists, bool dictionaries,
-            bool visualisations)
+        public async Task<ActionResult> ExportAsync(string password, bool exhaustive, bool suppressions, bool lists, bool dictionaries,
+            bool visualisations, CancellationToken token = default)
         {
             if (!permissionValidation.Validate(new[]
                 {
@@ -159,7 +165,8 @@ namespace Jube.App.Controllers.Preservation
                     Visualisations = visualisations
                 };
 
-                var export = preservation.Export(importExportOptions);
+                var export = await preservation.ExportAsync(importExportOptions, token).ConfigureAwait(false);
+
                 return File(export.EncryptedBytes, "application/octet-stream", $"{export.Guid}.jemp");
             }
             catch (Exception ex)

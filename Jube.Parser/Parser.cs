@@ -16,8 +16,10 @@ namespace Jube.Parser
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
     using System.Text.RegularExpressions;
+    using Dictionary.Extensions;
     using log4net;
 
     public class Parser
@@ -195,15 +197,30 @@ namespace Jube.Parser
             {
                 this.ruleScriptTokens.Add("Not");
             }
-            
+
             if (!this.ruleScriptTokens.Contains("AND"))
             {
                 this.ruleScriptTokens.Add("AND");
             }
-            
+
             if (!this.ruleScriptTokens.Contains("OR"))
             {
                 this.ruleScriptTokens.Add("OR");
+            }
+
+            var type = typeof(Extensions);
+            var methods = type.GetMethods(
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Static
+            );
+
+            foreach (var method in methods)
+            {
+                if (!this.ruleScriptTokens.Contains(method.Name))
+                {
+                    this.ruleScriptTokens.Add(method.Name);
+                }
             }
         }
 
@@ -328,6 +345,9 @@ namespace Jube.Parser
             sb.AppendLine("Imports Jube.Dictionary");
 
             countLine += 1;
+            sb.AppendLine("Imports Jube.Dictionary.Extensions");
+
+            countLine += 1;
             sb.AppendLine("Imports System.Collections.Generic");
 
             countLine += 1;
@@ -386,6 +406,9 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine("Imports Jube.Dictionary");
+
+            countLine += 1;
+            sb.AppendLine("Imports Jube.Dictionary.Extensions");
 
             countLine += 1;
             sb.AppendLine("Imports System.Collections.Generic");
@@ -451,6 +474,9 @@ namespace Jube.Parser
             sb.AppendLine("Imports Jube.Dictionary");
 
             countLine += 1;
+            sb.AppendLine("Imports Jube.Dictionary.Extensions");
+
+            countLine += 1;
             sb.AppendLine("Imports System");
 
             countLine += 1;
@@ -458,7 +484,7 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine(
-                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Integer),Abstraction As PooledDictionary(Of String, Double),HttpAdaptation As Dictionary(Of String, Double),ExhaustiveAdaptation As PooledDictionary(Of String, Double),List as PooledDictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
+                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Long),Abstraction As PooledDictionary(Of String, Double),HttpAdaptation As Dictionary(Of String, Double),ExhaustiveAdaptation As PooledDictionary(Of String, Double),List as PooledDictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
 
             countLine += 1;
             sb.AppendLine("Dim Matched as Boolean");
@@ -511,6 +537,9 @@ namespace Jube.Parser
             sb.AppendLine("Imports Jube.Dictionary");
 
             countLine += 1;
+            sb.AppendLine("Imports Jube.Dictionary.Extensions");
+
+            countLine += 1;
             sb.AppendLine("Imports System");
 
             countLine += 1;
@@ -518,7 +547,7 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine(
-                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Integer),Abstraction As PooledDictionary(Of String, Double),List as Dictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
+                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Long),Abstraction As PooledDictionary(Of String, Double),List as Dictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
 
             countLine += 1;
             sb.AppendLine("Dim Matched as Boolean");
@@ -571,6 +600,9 @@ namespace Jube.Parser
             sb.AppendLine("Imports Jube.Dictionary");
 
             countLine += 1;
+            sb.AppendLine("Imports Jube.Dictionary.Extensions");
+
+            countLine += 1;
             sb.AppendLine("Imports System");
 
             countLine += 1;
@@ -578,10 +610,7 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine(
-                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter as PooledDictionary(Of String,Integer),List as Dictionary(Of String,List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
-
-            countLine += 1;
-            sb.AppendLine("Dim Matched as Double");
+                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter as PooledDictionary(Of String,Long),List as Dictionary(Of String,List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Object");
 
             if (tryCatchWrap)
             {
@@ -599,8 +628,7 @@ namespace Jube.Parser
                 sb.AppendLine("Log.Info(ex.ToString)");
                 sb.AppendLine("End Try");
             }
-
-            sb.AppendLine("Return Matched");
+            
             sb.AppendLine("End Function");
             sb.AppendLine("End Class");
             parsedRule.ParsedRuleText = sb.ToString();

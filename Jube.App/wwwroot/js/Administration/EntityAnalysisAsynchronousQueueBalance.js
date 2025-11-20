@@ -31,6 +31,8 @@ var dataSourceEntity = new kendo.data.DataSource({
                 instance: {type: "string"},
                 createdDate: {type: "date"},
                 tagging: {type: "number"},
+                caseCreation: {type: "number"},
+                notification: {type: "number"},
                 asynchronousEntityInvoke: {type: "number"}
             }
         }
@@ -54,6 +56,8 @@ $(document).ready(function () {
             {field: "instance", title: "Instance"},
             {field: "createdDate", title: "Created Date"},
             {field: "tagging", title: "Tagging"},
+            {field: "caseCreation", title: "Case Creation"},
+            {field: "notification", title: "Notification"},
             {field: "asynchronousEntityInvoke", title: "Asynchronous Model Invoke"}
         ]
     });

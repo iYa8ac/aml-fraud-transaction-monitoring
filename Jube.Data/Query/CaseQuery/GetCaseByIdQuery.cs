@@ -14,6 +14,8 @@
 namespace Jube.Data.Query.CaseQuery
 {
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using Dto;
     using LinqToDB;
@@ -31,7 +33,7 @@ namespace Jube.Data.Query.CaseQuery
             processCaseQuery = new ProcessCaseQuery(this.dbContext, userName);
         }
 
-        public CaseQueryDto Execute(int id)
+        public async Task<CaseQueryDto> ExecuteAsync(int id, CancellationToken token = default)
         {
             var query = from c in dbContext.Case
                 from i in dbContext.CaseWorkflow.InnerJoin(w =>
@@ -72,9 +74,9 @@ namespace Jube.Data.Query.CaseQuery
                     EnableVisualisation = i.EnableVisualisation.GetValueOrDefault() == 1
                 };
 
-            var getCaseByIdDto = query.FirstOrDefault();
+            var getCaseByIdDto = await query.FirstOrDefaultAsync(token);
 
-            return processCaseQuery.Process(getCaseByIdDto);
+            return await processCaseQuery.ProcessAsync(getCaseByIdDto, token);
         }
     }
 }

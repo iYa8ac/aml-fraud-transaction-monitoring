@@ -15,7 +15,10 @@ namespace Jube.Data.Query
 {
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstancePromotedTrialInstanceByLastActiveQuery
     {
@@ -34,10 +37,10 @@ namespace Jube.Data.Query
             this.dbContext = dbContext;
         }
 
-        public Dto Execute(
-            int exhaustiveSearchInstanceId)
+        public async Task<Dto> ExecuteAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            var query = dbContext
+            var query = await dbContext
                 .ExhaustiveSearchInstancePromotedTrialInstance
                 .Where(w =>
                     w.Active == 1 && w.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance.Id ==
@@ -56,7 +59,7 @@ namespace Jube.Data.Query
                         ExhaustiveSearchInstanceTrialInstanceId = s.ExhaustiveSearchInstanceTrialInstanceId.Value
                     }
                 )
-                .FirstOrDefault();
+                .FirstOrDefaultAsync(token).ConfigureAwait(false);
 
             return query;
         }

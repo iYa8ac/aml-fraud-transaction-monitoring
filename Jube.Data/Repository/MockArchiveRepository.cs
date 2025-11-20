@@ -15,28 +15,29 @@ namespace Jube.Data.Repository
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class MockArchiveRepository(DbContext dbContext)
     {
-
-        public void Insert(MockArchive model)
+        public Task InsertAsync(MockArchive model, CancellationToken token = default)
         {
-            dbContext.Insert(model);
+            return dbContext.InsertAsync(model, token: token);
         }
 
-        public IEnumerable<string> GetJsonByEntityAnalysisModelIdRandomLimit(int entityAnalysisModelId, int limit)
+        public async Task<IEnumerable<string>> GetJsonByEntityAnalysisModelIdRandomLimitAsync(int entityAnalysisModelId, int limit, CancellationToken token = default)
         {
-            return dbContext.MockArchive
+            return await dbContext.MockArchive
                 .Where(w => w.EntityAnalysisModelId == entityAnalysisModelId)
-                .OrderBy(o => o.EntityAnalysisModelInstanceEntryGuid).Select(s => s.Json).Take(limit);
+                .OrderBy(o => o.EntityAnalysisModelInstanceEntryGuid).Select(s => s.Json).Take(limit).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public void Delete()
+        public Task DeleteAsync(CancellationToken token = default)
         {
-            dbContext.MockArchive.Delete();
+            return dbContext.MockArchive.DeleteAsync(token);
         }
     }
 }

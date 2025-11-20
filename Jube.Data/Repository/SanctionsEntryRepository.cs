@@ -14,32 +14,32 @@
 namespace Jube.Data.Repository
 {
     using System.Collections.Generic;
-    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class SanctionsEntryRepository(DbContext dbContext)
     {
-
-        public IEnumerable<SanctionEntry> Get()
+        public async Task<IEnumerable<SanctionEntry>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.SanctionEntry;
+            return await dbContext.SanctionEntry.ToListAsync(token).ConfigureAwait(false);
         }
 
-        public SanctionEntry Upsert(SanctionEntry model)
+        public async Task<SanctionEntry> UpsertAsync(SanctionEntry model, CancellationToken token = default)
         {
             var existing =
-                dbContext.SanctionEntry.FirstOrDefault(w =>
+                await dbContext.SanctionEntry.FirstOrDefaultAsync(w =>
                     w.SanctionEntryHash == model.SanctionEntryHash
-                    && w.SanctionEntrySourceId == model.SanctionEntrySourceId);
+                    && w.SanctionEntrySourceId == model.SanctionEntrySourceId, token);
 
             if (existing != null)
             {
                 return existing;
             }
 
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
     }

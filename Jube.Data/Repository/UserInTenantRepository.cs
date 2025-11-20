@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -33,10 +35,10 @@ namespace Jube.Data.Repository
             this.userName = userName;
         }
 
-        public void Update(string user, int tenantRegistryId)
+        public async Task UpdateAsync(string user, int tenantRegistryId, CancellationToken token = default)
         {
-            var existing = dbContext.UserInTenant
-                .FirstOrDefault(w => w.User == user);
+            var existing = await dbContext.UserInTenant
+                .FirstOrDefaultAsync(w => w.User == user, token);
 
             if (existing != null)
             {
@@ -44,7 +46,7 @@ namespace Jube.Data.Repository
                 existing.SwitchedUser = userName;
                 existing.SwitchedDate = DateTime.Now;
 
-                dbContext.Update(existing);
+                await dbContext.UpdateAsync(existing, token: token);
 
                 var userInTenantSwitchLog = new UserInTenantSwitchLog
                 {
@@ -54,16 +56,16 @@ namespace Jube.Data.Repository
                     UserInTenantId = existing.Id
                 };
 
-                dbContext.Insert(userInTenantSwitchLog);
+                await dbContext.InsertAsync(userInTenantSwitchLog, token: token);
             }
             else
             {
-                dbContext.Insert(new UserInTenant
+                await dbContext.InsertAsync(new UserInTenant
                 {
                     TenantRegistryId = tenantRegistryId,
                     SwitchedUser = userName,
                     SwitchedDate = DateTime.Now
-                });
+                }, token: token);
             }
         }
 
@@ -72,10 +74,10 @@ namespace Jube.Data.Repository
             return userInTenant;
         }
 
-        public IEnumerable<UserInTenant> Get()
+        public async Task<IEnumerable<UserInTenant>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.UserInTenant.Where(w =>
-                w.TenantRegistryId == userInTenant.TenantRegistryId);
+            return await dbContext.UserInTenant.Where(w =>
+                w.TenantRegistryId == userInTenant.TenantRegistryId).ToListAsync(token);
         }
     }
 }

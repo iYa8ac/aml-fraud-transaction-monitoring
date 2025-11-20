@@ -15,57 +15,58 @@ namespace Jube.Data.Repository
 {
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class EntityAnalysisModelSearchKeyCalculationInstanceRepository(DbContext dbContext)
     {
-
-        public EntityAnalysisModelSearchKeyCalculationInstance Insert(
-            EntityAnalysisModelSearchKeyCalculationInstance model)
+        public async Task<EntityAnalysisModelSearchKeyCalculationInstance> InsertAsync(
+            EntityAnalysisModelSearchKeyCalculationInstance model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
 
-        public void UpdateDistinctValuesCount(int id,
-            int distinctValuesCount)
+        public Task UpdateDistinctValuesCountAsync(int id,
+            int distinctValuesCount, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelSearchKeyCalculationInstance
+            return dbContext.EntityAnalysisModelSearchKeyCalculationInstance
                 .Where(d => d.Id == id)
                 .Set(s => s.DistinctValuesCount, distinctValuesCount)
                 .Set(s => s.DistinctValuesUpdatedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public void UpdateExpiredSearchKeyCacheCount(int id,
-            int expiredSearchKeyCacheCount)
+        public Task UpdateExpiredSearchKeyCacheCountAsync(int id,
+            int expiredSearchKeyCacheCount, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelSearchKeyCalculationInstance
+            return dbContext.EntityAnalysisModelSearchKeyCalculationInstance
                 .Where(d => d.Id == id)
                 .Set(s => s.ExpiredSearchKeyCacheCount, expiredSearchKeyCacheCount)
                 .Set(s => s.ExpiredSearchKeyCacheDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public void UpdateDistinctValuesProcessedValuesCount(int id,
-            int distinctValuesProcessedValuesCount)
+        public Task UpdateDistinctValuesProcessedValuesCountAsync(int id,
+            int distinctValuesProcessedValuesCount, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelSearchKeyCalculationInstance
+            return dbContext.EntityAnalysisModelSearchKeyCalculationInstance
                 .Where(d => d.Id == id)
                 .Set(s => s.DistinctValuesProcessedValuesCount, distinctValuesProcessedValuesCount)
                 .Set(s => s.DistinctValuesProcessedValuesUpdatedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public void UpdateCompleted(int id)
+        public Task UpdateCompletedAsync(int id, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelSearchKeyCalculationInstance
+            return dbContext.EntityAnalysisModelSearchKeyCalculationInstance
                 .Where(d => d.Id == id)
                 .Set(s => s.Completed, (byte)1)
                 .Set(s => s.CompletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

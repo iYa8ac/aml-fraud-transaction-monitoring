@@ -14,19 +14,20 @@
 namespace Jube.Data.Repository
 {
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class SessionCaseSearchCompiledSqlExecutionRepository(DbContext dbContext, string userName)
     {
-
-        public SessionCaseSearchCompiledSqlExecution Insert(SessionCaseSearchCompiledSqlExecution model)
+        public async Task<SessionCaseSearchCompiledSqlExecution> InsertAsync(SessionCaseSearchCompiledSqlExecution model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
 
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
 
             return model;
         }

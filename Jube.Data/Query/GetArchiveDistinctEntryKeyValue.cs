@@ -2,20 +2,21 @@ namespace Jube.Data.Query
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using log4net;
     using Npgsql;
 
     public class GetArchiveDistinctEntryKeyValue(ILog log, string connectionString)
     {
-        public async Task<List<string>> Execute(Guid entityAnalysisModelGuid,
-            string key, DateTime dateFrom, DateTime dateTo)
+        public async Task<List<string>> ExecuteAsync(Guid entityAnalysisModelGuid,
+            string key, DateTime dateFrom, DateTime dateTo, CancellationToken token = default)
         {
             var connection = new NpgsqlConnection(connectionString);
             var value = new List<string>();
             try
             {
-                await connection.OpenAsync().ConfigureAwait(false);
+                await connection.OpenAsync(token).ConfigureAwait(false);
 
                 const string sql = "select distinct \"Json\" -> 'payload' ->> (@key)" +
                                    " from \"Archive\" a inner join \"EntityAnalysisModel\" e on a.\"EntityAnalysisModelId\" = e.\"Id\"" +
@@ -29,12 +30,12 @@ namespace Jube.Data.Query
                 command.Parameters.AddWithValue("dateFrom", dateFrom);
                 command.Parameters.AddWithValue("dateTo", dateTo);
                 command.Parameters.AddWithValue("entityAnalysisModelGuid", entityAnalysisModelGuid);
-                await command.PrepareAsync().ConfigureAwait(false);
+                await command.PrepareAsync(token).ConfigureAwait(false);
 
-                var reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
-                while (await reader.ReadAsync().ConfigureAwait(false))
+                var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
-                    if (!reader.IsDBNull(0))
+                    if (!await reader.IsDBNullAsync(0, token))
                     {
                         value.Add(reader.GetValue(0).ToString());
                     }
@@ -57,14 +58,14 @@ namespace Jube.Data.Query
             return value;
         }
 
-        public async Task<List<string>> Execute(Guid entityAnalysisModelGuid,
-            string key)
+        public async Task<List<string>> ExecuteAsync(Guid entityAnalysisModelGuid,
+            string key, CancellationToken token = default)
         {
             var connection = new NpgsqlConnection(connectionString);
             var value = new List<string>();
             try
             {
-                await connection.OpenAsync().ConfigureAwait(false);
+                await connection.OpenAsync(token).ConfigureAwait(false);
 
                 const string sql = "select distinct \"Json\" -> 'payload' ->> (@key)" +
                                    " from \"Archive\" a inner join \"EntityAnalysisModel\" e on a.\"EntityAnalysisModelId\" = e.\"Id\"" +
@@ -74,12 +75,12 @@ namespace Jube.Data.Query
                 command.Connection = connection;
                 command.Parameters.AddWithValue("entityAnalysisModelGuid", entityAnalysisModelGuid);
                 command.Parameters.AddWithValue("key", key);
-                await command.PrepareAsync().ConfigureAwait(false);
+                await command.PrepareAsync(token).ConfigureAwait(false);
 
-                var reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
-                while (await reader.ReadAsync().ConfigureAwait(false))
+                var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
-                    if (!reader.IsDBNull(0))
+                    if (!await reader.IsDBNullAsync(0, token))
                     {
                         value.Add(reader.GetValue(0).ToString());
                     }

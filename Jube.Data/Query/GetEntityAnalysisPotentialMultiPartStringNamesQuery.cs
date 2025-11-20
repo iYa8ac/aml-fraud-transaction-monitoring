@@ -16,7 +16,10 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetEntityAnalysisPotentialMultiPartStringNamesQuery
     {
@@ -30,9 +33,9 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<string> Execute(Guid entityAnalysisModelGuid)
+        public async Task<IEnumerable<string>> ExecuteAsync(Guid entityAnalysisModelGuid, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelRequestXpath
+            return await dbContext.EntityAnalysisModelRequestXpath
                 .Where(w => w.EntityAnalysisModel.Guid == entityAnalysisModelGuid
                             && w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && (w.Deleted == 0 || w.Deleted == null)
@@ -43,12 +46,12 @@ namespace Jube.Data.Query
                                 && w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                                 && (w.Deleted == 0 || w.Deleted == null)
                                 && w.ReturnDataTypeId == 1)
-                    .Select(s => s.Name));
+                    .Select(s => s.Name)).ToListAsync(token);
         }
 
-        public IEnumerable<string> Execute(int entityAnalysisModelId)
+        public async Task<IEnumerable<string>> ExecuteAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelRequestXpath
+            return await dbContext.EntityAnalysisModelRequestXpath
                 .Where(w => w.EntityAnalysisModelId == entityAnalysisModelId
                             && w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && (w.Deleted == 0 || w.Deleted == null)
@@ -59,7 +62,7 @@ namespace Jube.Data.Query
                                 && w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                                 && (w.Deleted == 0 || w.Deleted == null)
                                 && w.ReturnDataTypeId == 1)
-                    .Select(s => s.Name));
+                    .Select(s => s.Name)).ToListAsync(token);
         }
     }
 }

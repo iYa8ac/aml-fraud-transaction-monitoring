@@ -15,7 +15,10 @@ namespace Jube.Data.Query
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetRoleRegistryPermissionByRoleRegistryIdQuery
     {
@@ -29,9 +32,9 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute(int roleRegistryId)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(int roleRegistryId, CancellationToken token = default)
         {
-            return dbContext.RoleRegistryPermission
+            return await dbContext.RoleRegistryPermission
                 .Where(w => w.RoleRegistryId == roleRegistryId
                             && w.RoleRegistry.TenantRegistryId == tenantRegistryId
                             && (w.Deleted == 0 || w.Deleted == null))
@@ -41,7 +44,7 @@ namespace Jube.Data.Query
                     Id = s.Id,
                     Active = s.Active == 1,
                     RoleRegistryId = s.RoleRegistryId.Value
-                }).ToList();
+                }).ToListAsync(token);
         }
 
         public class Dto

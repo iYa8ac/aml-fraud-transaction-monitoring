@@ -15,6 +15,7 @@ namespace Jube.Data.Query
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Dictionary;
     using Extension;
@@ -23,14 +24,14 @@ namespace Jube.Data.Query
 
     public class GetArchiveSqlByKeyValueLimitQuery(string connectionString, ILog log)
     {
-        public async Task<List<DictionaryNoBoxing>> Execute(string sql,
-            string key, string value, string order, int limit)
+        public async Task<List<DictionaryNoBoxing>> ExecuteAsync(string sql,
+            string key, string value, string order, int limit, CancellationToken token = default)
         {
             var connection = new NpgsqlConnection(connectionString);
             var values = new List<DictionaryNoBoxing>();
             try
             {
-                await connection.OpenAsync().ConfigureAwait(false);
+                await connection.OpenAsync(token).ConfigureAwait(false);
 
                 var command = new NpgsqlCommand(sql);
                 command.Connection = connection;
@@ -38,19 +39,19 @@ namespace Jube.Data.Query
                 command.Parameters.AddWithValue("value", value);
                 command.Parameters.AddWithValue("order", order);
                 command.Parameters.AddWithValue("limit", limit);
-                await command.PrepareAsync().ConfigureAwait(false);
+                await command.PrepareAsync(token).ConfigureAwait(false);
 
-                var reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
-                while (await reader.ReadAsync().ConfigureAwait(false))
+                var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
                     var document = new DictionaryNoBoxing();
                     for (var index = 0; index < reader.FieldCount; index++)
                     {
-                        if (reader.IsDBNull(index))
+                        if (await reader.IsDBNullAsync(index, token))
                         {
                             continue;
                         }
-                        
+
                         if (document.ContainsKey(reader.GetName(index)))
                         {
                             continue;

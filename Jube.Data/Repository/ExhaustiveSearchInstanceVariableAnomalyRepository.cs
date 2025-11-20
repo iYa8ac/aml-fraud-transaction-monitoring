@@ -14,7 +14,10 @@
 namespace Jube.Data.Repository
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using Interface;
     using LinqToDB;
@@ -22,23 +25,22 @@ namespace Jube.Data.Repository
 
     public class ExhaustiveSearchInstanceVariableAnomalyRepository(DbContext dbContext) : IGenericRepository
     {
-
-        public int Insert(object arg)
+        public Task<int> InsertAsync(object arg, CancellationToken token = default)
         {
-            return dbContext.InsertWithInt32Identity((ExhaustiveSearchInstanceVariableAnomaly)arg);
+            return dbContext.InsertWithInt32IdentityAsync((ExhaustiveSearchInstanceVariableAnomaly)arg, token: token);
         }
 
-        public IQueryable<ExhaustiveSearchInstanceVariableAnomaly> GetByExhaustiveSearchInstanceVariableIdOrderById(
-            int exhaustiveSearchInstanceVariableId)
+        public async Task<IEnumerable<ExhaustiveSearchInstanceVariableAnomaly>> GetByExhaustiveSearchInstanceVariableIdOrderByIdAsync(
+            int exhaustiveSearchInstanceVariableId, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstanceVariableAnomaly.Where(w =>
+            return await dbContext.ExhaustiveSearchInstanceVariableAnomaly.Where(w =>
                     w.ExhaustiveSearchInstanceVariableId == exhaustiveSearchInstanceVariableId)
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstanceVariableAnomaly
+            return dbContext.ExhaustiveSearchInstanceVariableAnomaly
                 .Where(d =>
                     d.ExhaustiveSearchInstanceVariable.ExhaustiveSearchInstance.EntityAnalysisModel.TenantRegistryId ==
                     tenantRegistryIdOutsideOfInstance
@@ -46,7 +48,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

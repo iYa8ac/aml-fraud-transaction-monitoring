@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Context;
     using LinqToDB;
@@ -46,39 +48,39 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<EntityAnalysisModel> Get()
+        public async Task<IEnumerable<EntityAnalysisModel>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModel.Where(w =>
+            return await dbContext.EntityAnalysisModel.Where(w =>
                 (w.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
-                && (w.Deleted == null || w.Deleted == 0));
+                && (w.Deleted == null || w.Deleted == 0)).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public EntityAnalysisModel GetById(int id)
+        public Task<EntityAnalysisModel> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModel.FirstOrDefault(w
+            return dbContext.EntityAnalysisModel.FirstOrDefaultAsync(w
                 => (w.TenantRegistryId == tenantRegistryId || !w.TenantRegistryId.HasValue)
-                   && w.Id == id && (w.Deleted == null || w.Deleted == 0));
+                   && w.Id == id && (w.Deleted == null || w.Deleted == 0), token);
         }
 
-        public EntityAnalysisModel Insert(EntityAnalysisModel model)
+        public async Task<EntityAnalysisModel> InsertAsync(EntityAnalysisModel model, CancellationToken token = default)
         {
             model.CreatedUser = userName ?? model.CreatedUser;
             model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
             model.TenantRegistryId = tenantRegistryId;
             model.Version = 1;
             model.CreatedDate = DateTime.Now;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public EntityAnalysisModel Update(EntityAnalysisModel model)
+        public async Task<EntityAnalysisModel> UpdateAsync(EntityAnalysisModel model, CancellationToken token = default)
         {
-            var existing = dbContext.EntityAnalysisModel
-                .FirstOrDefault(w => w.Id
-                                     == model.Id
-                                     && (w.TenantRegistryId == tenantRegistryId || !w.TenantRegistryId.HasValue)
-                                     && (w.Deleted == 0 || w.Deleted == null)
-                                     && (w.Locked == 0 || w.Locked == null));
+            var existing = await dbContext.EntityAnalysisModel
+                .FirstOrDefaultAsync(w => w.Id
+                                          == model.Id
+                                          && (w.TenantRegistryId == tenantRegistryId || !w.TenantRegistryId.HasValue)
+                                          && (w.Deleted == 0 || w.Deleted == null)
+                                          && (w.Locked == 0 || w.Locked == null), token);
 
             if (existing == null)
             {
@@ -91,25 +93,24 @@ namespace Jube.Data.Repository
             model.Version = existing.Version + 1;
             model.Guid = existing.Guid;
 
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token);
 
-            var config = new MapperConfiguration(cfg =>
+            var mapper = new Mapper(new MapperConfiguration(cfg =>
             {
                 cfg.CreateMap<EntityAnalysisModel, EntityAnalysisModelVersion>();
-            });
-            var mapper = new Mapper(config);
+            }));
 
             var audit = mapper.Map<EntityAnalysisModelVersion>(existing);
             audit.EntityAnalysisModelId = existing.Id;
 
-            dbContext.Insert(audit);
+            await dbContext.InsertAsync(audit, token: token);
 
             return model;
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.EntityAnalysisModel
+            var records = await dbContext.EntityAnalysisModel
                 .Where(d => (d.TenantRegistryId == tenantRegistryId || !d.TenantRegistryId.HasValue)
                             && d.Id == id
                             && (d.Deleted == 0 || d.Deleted == null)
@@ -117,7 +118,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {
@@ -125,15 +126,15 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModel
+            return dbContext.EntityAnalysisModel
                 .Where(d => d.TenantRegistryId == tenantRegistryIdOutsideOfInstance
                             && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

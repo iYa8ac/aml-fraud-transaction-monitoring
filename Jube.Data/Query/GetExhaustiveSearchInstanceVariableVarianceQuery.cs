@@ -15,7 +15,10 @@ namespace Jube.Data.Query
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstanceVariableVarianceQuery
     {
@@ -29,10 +32,10 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute(
-            int exhaustiveSearchInstanceVariableId)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(
+            int exhaustiveSearchInstanceVariableId, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstanceVariableMultiCollinearity
+            return await dbContext.ExhaustiveSearchInstanceVariableMultiCollinearity
                 .Where(w => w.ExhaustiveSearchInstanceVariable
                                 .ExhaustiveSearchInstance.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && w.ExhaustiveSearchInstanceVariableId == exhaustiveSearchInstanceVariableId)
@@ -42,7 +45,7 @@ namespace Jube.Data.Query
                     Name = s.TestExhaustiveSearchInstanceVariable.Name,
                     Correlation = s.Correlation.Value,
                     CorrelationAbsRank = s.CorrelationAbsRank.Value
-                });
+                }).ToListAsync(token);
         }
 
         public class Dto

@@ -15,7 +15,10 @@ namespace Jube.Data.Query
 {
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstancePromotedTrialInstanceConfusionQuery
     {
@@ -29,10 +32,10 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public Dto Execute(
-            int exhaustiveSearchInstanceId)
+        public async Task<Dto> ExecuteAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            var confusion = dbContext
+            var confusion = await dbContext
                 .ExhaustiveSearchInstancePromotedTrialInstance
                 .Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance.Id == exhaustiveSearchInstanceId
@@ -48,7 +51,7 @@ namespace Jube.Data.Query
                         TrueNegative = s.TrueNegative.Value,
                         TruePositive = s.TruePositive.Value
                     })
-                .FirstOrDefault();
+                .FirstOrDefaultAsync(token);
 
             var tableTotal = 0;
             var positiveRowTotal = 0;

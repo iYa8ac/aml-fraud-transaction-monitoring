@@ -14,15 +14,17 @@
 namespace Jube.Data.Repository
 {
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
     using Poco;
 
     public class RuleScriptTokenRepository(DbContext dbContext)
     {
-
-        public IEnumerable<RuleScriptToken> Get()
+        public async Task<IEnumerable<RuleScriptToken>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.RuleScriptToken;
+            return await dbContext.RuleScriptToken.ToListAsync(token).ConfigureAwait(false);
         }
     }
 }

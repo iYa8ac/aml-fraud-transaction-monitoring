@@ -15,44 +15,45 @@ namespace Jube.Data.Repository
 {
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class EntityAnalysisModelSearchKeyDistinctValueCalculationInstanceRepository(DbContext dbContext)
     {
-
-        public EntityAnalysisModelSearchKeyDistinctValueCalculationInstance Insert(
-            EntityAnalysisModelSearchKeyDistinctValueCalculationInstance model)
+        public async Task<EntityAnalysisModelSearchKeyDistinctValueCalculationInstance> InsertAsync(
+            EntityAnalysisModelSearchKeyDistinctValueCalculationInstance model, CancellationToken token)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public void UpdateEntriesCount(int id,
-            int entriesCount)
+        public Task UpdateEntriesCountAsync(int id,
+            int entriesCount, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelSearchKeyDistinctValueCalculationInstance
+            return dbContext.EntityAnalysisModelSearchKeyDistinctValueCalculationInstance
                 .Where(d => d.Id == id)
                 .Set(s => s.EntryCount, entriesCount)
                 .Set(s => s.EntryCountUpdatedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public void UpdateAbstractionRuleMatches(int id)
+        public Task UpdateAbstractionRuleMatchesAsync(int id, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelSearchKeyDistinctValueCalculationInstance
+            return dbContext.EntityAnalysisModelSearchKeyDistinctValueCalculationInstance
                 .Where(d => d.Id == id)
                 .Set(s => s.AbstractionRulesMatchesUpdatedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public void UpdateCompleted(int id)
+        public Task UpdateCompletedAsync(int id, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelSearchKeyDistinctValueCalculationInstance
+            return dbContext.EntityAnalysisModelSearchKeyDistinctValueCalculationInstance
                 .Where(d => d.Id == id)
                 .Set(s => s.CompletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

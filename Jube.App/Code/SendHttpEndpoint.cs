@@ -22,7 +22,7 @@ namespace Jube.App.Code
 
     public class SendHttpEndpoint
     {
-        public void Send(string httpEndpoint, byte httpEndpointTypeId, Dictionary<string, string> values)
+        public async Task SendAsync(string httpEndpoint, byte httpEndpointTypeId, Dictionary<string, string> values)
         {
             if (String.IsNullOrEmpty(httpEndpoint))
             {
@@ -31,36 +31,34 @@ namespace Jube.App.Code
 
             var tokenization = new Tokenisation();
             var urlTokens = tokenization.ReturnTokens(httpEndpoint);
+
             var replacedUrl = httpEndpoint;
             foreach (var token in urlTokens)
             {
-                if (!values.ContainsKey(token))
+                if (values.TryGetValue(token, out var replacement))
                 {
-                    continue;
+                    replacedUrl = replacedUrl.Replace($"[@{token}@]", replacement);
                 }
-
-                var replaceToken = $"[@{token}@]";
-                replacedUrl = replacedUrl.Replace(replaceToken, values[token]);
             }
+
+            using var client = new HttpClient();
 
             if (httpEndpointTypeId == 1)
             {
-                var stringContent = new StringContent(
-                    JsonConvert.SerializeObject(values),
-                    Encoding.UTF8,
-                    "application/json");
+                var json = JsonConvert.SerializeObject(values);
+                using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var client = new HttpClient();
-                var response = client.PostAsync(replacedUrl, stringContent);
-                var valueTask = Task.Run(() => response.Result.Content.ReadAsStringAsync());
-                valueTask.Wait();
+                using var response = await client.PostAsync(replacedUrl, content).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             }
             else
             {
-                var client = new HttpClient();
-                var response = client.GetAsync(replacedUrl);
+                using var response = await client.GetAsync(replacedUrl).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
 
-                Task.Run(() => response.Result.Content.ReadAsStringAsync());
+                await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             }
         }
     }

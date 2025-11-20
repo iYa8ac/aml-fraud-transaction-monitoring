@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -34,45 +36,47 @@ namespace Jube.Data.Repository
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<EntityAnalysisModelListCsvFileUpload> Get()
+        public async Task<IEnumerable<EntityAnalysisModelListCsvFileUpload>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelListCsvFileUpload
-                .Where(w => w.EntityAnalysisModelList.EntityAnalysisModel.TenantRegistryId == tenantRegistryId);
+            return await dbContext.EntityAnalysisModelListCsvFileUpload
+                .Where(w => w.EntityAnalysisModelList.EntityAnalysisModel.TenantRegistryId == tenantRegistryId)
+                .ToListAsync(token);
         }
 
-        public IEnumerable<EntityAnalysisModelListCsvFileUpload> GetByEntityAnalysisModelListId(
-            int entityAnalysisModelListId)
+        public async Task<IEnumerable<EntityAnalysisModelListCsvFileUpload>> GetByEntityAnalysisModelListIdAsync(
+            int entityAnalysisModelListId, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelListCsvFileUpload
+            return await dbContext.EntityAnalysisModelListCsvFileUpload
                 .Where(w => w.EntityAnalysisModelList.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && w.EntityAnalysisModelList.Id == entityAnalysisModelListId &&
-                            (w.EntityAnalysisModelList.Deleted == 0 || w.EntityAnalysisModelList.Deleted == null));
+                            (w.EntityAnalysisModelList.Deleted == 0 || w.EntityAnalysisModelList.Deleted == null))
+                .ToListAsync(token);
         }
 
-        public EntityAnalysisModelListCsvFileUpload GetById(int id)
+        public Task<EntityAnalysisModelListCsvFileUpload> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelListCsvFileUpload.FirstOrDefault(w =>
+            return dbContext.EntityAnalysisModelListCsvFileUpload.FirstOrDefaultAsync(w =>
                 w.EntityAnalysisModelList.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                 && w.EntityAnalysisModelList.Id == id &&
-                (w.EntityAnalysisModelList.Deleted == 0 || w.EntityAnalysisModelList.Deleted == null));
+                (w.EntityAnalysisModelList.Deleted == 0 || w.EntityAnalysisModelList.Deleted == null), token);
         }
 
-        public EntityAnalysisModelListCsvFileUpload Insert(EntityAnalysisModelListCsvFileUpload model)
+        public async Task<EntityAnalysisModelListCsvFileUpload> InsertAsync(EntityAnalysisModelListCsvFileUpload model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
-            model.InheritedId = dbContext.InsertWithInt32Identity(model);
+            model.InheritedId = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public EntityAnalysisModelListCsvFileUpload
-            Update(EntityAnalysisModelListCsvFileUpload model)
+        public async Task<EntityAnalysisModelListCsvFileUpload>
+            UpdateAsync(EntityAnalysisModelListCsvFileUpload model, CancellationToken token = default)
         {
-            var existing = dbContext.EntityAnalysisModelListCsvFileUpload
-                .FirstOrDefault(w => w.Id == model.Id
-                                     && w.EntityAnalysisModelList.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
-                                     && (w.EntityAnalysisModelList.Deleted == 0 ||
-                                         w.EntityAnalysisModelList.Deleted == null));
+            var existing = await dbContext.EntityAnalysisModelListCsvFileUpload
+                .FirstOrDefaultAsync(w => w.Id == model.Id
+                                          && w.EntityAnalysisModelList.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                                          && (w.EntityAnalysisModelList.Deleted == 0 ||
+                                              w.EntityAnalysisModelList.Deleted == null), token);
 
             if (existing == null)
             {
@@ -84,25 +88,25 @@ namespace Jube.Data.Repository
             model.CreatedDate = DateTime.Now;
             model.InheritedId = existing.Id;
 
-            Delete(existing.Id);
+            await DeleteAsync(existing.Id, token);
 
-            var id = dbContext.InsertWithInt32Identity(model);
+            var id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
 
             model.Id = id;
 
             return model;
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.EntityAnalysisModelListCsvFileUpload
+            var records = await dbContext.EntityAnalysisModelListCsvFileUpload
                 .Where(d => d.EntityAnalysisModelList.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && d.Id == id
                             && (d.EntityAnalysisModelList.Deleted == 0 || d.EntityAnalysisModelList.Deleted == null))
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {

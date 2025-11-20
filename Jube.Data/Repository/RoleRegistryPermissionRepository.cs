@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Context;
     using LinqToDB;
@@ -35,37 +37,37 @@ namespace Jube.Data.Repository
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<RoleRegistryPermission> Get()
+        public async Task<IEnumerable<RoleRegistryPermission>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.RoleRegistryPermission.Where(w => w.RoleRegistry.TenantRegistryId == tenantRegistryId
-                                                               && (w.Deleted == 0 || w.Deleted == null));
+            return await dbContext.RoleRegistryPermission.Where(w => w.RoleRegistry.TenantRegistryId == tenantRegistryId
+                                                                     && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
         }
 
-        public RoleRegistryPermission GetById(int id)
+        public Task<RoleRegistryPermission> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.RoleRegistryPermission.FirstOrDefault(w => w.Id == id
-                                                                        && w.RoleRegistry.TenantRegistryId ==
-                                                                        tenantRegistryId
-                                                                        && (w.Deleted == 0 || w.Deleted == null));
+            return dbContext.RoleRegistryPermission.FirstOrDefaultAsync(w => w.Id == id
+                                                                             && w.RoleRegistry.TenantRegistryId ==
+                                                                             tenantRegistryId
+                                                                             && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public RoleRegistryPermission Insert(RoleRegistryPermission model)
+        public async Task<RoleRegistryPermission> InsertAsync(RoleRegistryPermission model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.Version = 1;
             model.CreatedDate = DateTime.Now;
             model.Guid = Guid.NewGuid();
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public RoleRegistryPermission Update(RoleRegistryPermission model)
+        public async Task<RoleRegistryPermission> UpdateAsync(RoleRegistryPermission model, CancellationToken token = default)
         {
-            var existing = dbContext.RoleRegistryPermission
-                .FirstOrDefault(u => u.RoleRegistry.TenantRegistryId == tenantRegistryId
-                                     && u.Id == model.Id
-                                     && (u.Deleted == 0 || u.Deleted == null)
-                                     && (u.Locked == 0 || u.Locked == null));
+            var existing = await dbContext.RoleRegistryPermission
+                .FirstOrDefaultAsync(u => u.RoleRegistry.TenantRegistryId == tenantRegistryId
+                                          && u.Id == model.Id
+                                          && (u.Deleted == 0 || u.Deleted == null)
+                                          && (u.Locked == 0 || u.Locked == null), token);
 
             if (existing == null)
             {
@@ -77,25 +79,24 @@ namespace Jube.Data.Repository
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
 
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token);
 
-            var config = new MapperConfiguration(cfg =>
+            var mapper = new Mapper(new MapperConfiguration(cfg =>
             {
                 cfg.CreateMap<RoleRegistryPermission, RoleRegistryPermissionVersion>();
-            });
-            var mapper = new Mapper(config);
+            }));
 
             var audit = mapper.Map<RoleRegistryPermissionVersion>(existing);
             audit.RoleRegistryPermissionId = existing.Id;
 
-            dbContext.Insert(audit);
+            await dbContext.InsertAsync(audit, token: token);
 
             return model;
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.RoleRegistryPermission
+            var records = await dbContext.RoleRegistryPermission
                 .Where(d =>
                     d.RoleRegistry.TenantRegistryId == tenantRegistryId
                     && d.Id == id
@@ -104,7 +105,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {

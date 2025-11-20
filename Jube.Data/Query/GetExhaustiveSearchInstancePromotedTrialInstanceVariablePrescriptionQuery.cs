@@ -15,13 +15,15 @@ namespace Jube.Data.Query
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstancePromotedTrialInstanceVariablePrescriptionQuery(DbContext dbContext)
     {
-
-        public IEnumerable<Dto> Execute(
-            int exhaustiveSearchInstancePromotedTrialInstanceId)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(
+            int exhaustiveSearchInstancePromotedTrialInstanceId, CancellationToken token = default)
         {
             var variables =
                 from t in dbContext.ExhaustiveSearchInstanceTrialInstanceVariable
@@ -57,7 +59,7 @@ namespace Jube.Data.Query
                     Sensitivity = s.Sensitivity ?? 0
                 };
 
-            return variables;
+            return await variables.ToListAsync(token);
         }
 
         public class Dto

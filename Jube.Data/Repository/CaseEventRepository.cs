@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using LinqToDB.Data;
@@ -46,40 +48,40 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<CaseEvent> Get()
+        public async Task<IEnumerable<CaseEvent>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.CaseEvent.Where(w =>
+            return await dbContext.CaseEvent.Where(w =>
                 w.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
-                !tenantRegistryId.HasValue);
+                !tenantRegistryId.HasValue).ToListAsync(token);
         }
 
-        public CaseEvent GetById(int id)
+        public Task<CaseEvent> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.CaseEvent.FirstOrDefault(w
+            return dbContext.CaseEvent.FirstOrDefaultAsync(w
                 => (w.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                     !tenantRegistryId.HasValue)
-                   && w.Id == id);
+                   && w.Id == id, token);
         }
 
-        public void UpdateAbstractionRuleMatches(int id)
+        public Task UpdateAbstractionRuleMatchesAsync(int id, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelSearchKeyDistinctValueCalculationInstance
+            return dbContext.EntityAnalysisModelSearchKeyDistinctValueCalculationInstance
                 .Where(d => d.EntityAnalysisModelSearchKeyCalculationInstanceId == id)
                 .Set(s => s.AbstractionRulesMatchesUpdatedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public CaseEvent Insert(CaseEvent model)
+        public async Task<CaseEvent> InsertAsync(CaseEvent model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
 
-        public void BulkInsert(IEnumerable<CaseEvent> models)
+        public Task BulkInsertAsync(IEnumerable<CaseEvent> models, CancellationToken token = default)
         {
-            dbContext.BulkCopy(models);
+            return dbContext.BulkCopyAsync(models, token);
         }
     }
 }

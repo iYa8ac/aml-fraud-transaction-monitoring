@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -62,9 +64,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<TenantRegistry, TenantRegistryDto>();
                 cfg.CreateMap<TenantRegistryDto, TenantRegistry>();
-                cfg.CreateMap<List<TenantRegistry>, List<TenantRegistryDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new TenantRegistryRepository(dbContext, userName);
             validator = new TenantRegistryDtoValidator();
@@ -81,7 +82,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<TenantRegistryDto>> Get()
+        public async Task<ActionResult<List<TenantRegistryDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -90,7 +91,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<TenantRegistryDto>>(repository.Get()));
+                return Ok(mapper.Map<List<TenantRegistryDto>>(await repository.GetAsync(token)));
             }
             catch (Exception e)
             {
@@ -100,7 +101,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByFilter")]
-        public ActionResult<List<TenantRegistryDto>> GetByFilter()
+        public async Task<ActionResult<List<TenantRegistryDto>>> GetByFilterAsync(CancellationToken token = default)
         {
             try
             {
@@ -111,7 +112,7 @@ namespace Jube.App.Controllers.Repository
 
                 var filter = Request.Query["filter[filters][0][value]"].ToString().ToLower();
 
-                return Ok(mapper.Map<List<TenantRegistryDto>>(repository.GetByFilter(filter)));
+                return Ok(mapper.Map<List<TenantRegistryDto>>(await repository.GetByFilterAsync(filter, token)));
             }
             catch (Exception e)
             {
@@ -121,7 +122,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("{id:int}")]
-        public ActionResult<TenantRegistryDto> GetById(int id)
+        public async Task<ActionResult<TenantRegistryDto>> GetByIdAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -130,7 +131,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<TenantRegistryDto>(repository.GetById(id)));
+                return Ok(mapper.Map<TenantRegistryDto>(await repository.GetByIdAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -142,7 +143,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(TenantRegistryDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<TenantRegistryDto> Create([FromBody] TenantRegistryDto model)
+        public async Task<ActionResult<TenantRegistryDto>> CreateAsync([FromBody] TenantRegistryDto model, CancellationToken token = default)
         {
             try
             {
@@ -151,10 +152,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Insert(mapper.Map<TenantRegistry>(model)));
+                    return Ok(await repository.InsertAsync(mapper.Map<TenantRegistry>(model), token));
                 }
 
                 return BadRequest(results);
@@ -169,7 +170,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPut]
         [ProducesResponseType(typeof(TenantRegistryDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<TenantRegistryDto> Update([FromBody] TenantRegistryDto model)
+        public async Task<ActionResult<TenantRegistryDto>> UpdateAsync([FromBody] TenantRegistryDto model, CancellationToken token = default)
         {
             try
             {
@@ -178,10 +179,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Update(mapper.Map<TenantRegistry>(model)));
+                    return Ok(await repository.UpdateAsync(mapper.Map<TenantRegistry>(model), token));
                 }
 
                 return BadRequest(results);
@@ -199,7 +200,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpDelete]
         [Route("{id:int}")]
-        public ActionResult<List<TenantRegistryDto>> Get(int id)
+        public async Task<ActionResult<List<TenantRegistryDto>>> GetAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -208,7 +209,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.Delete(id);
+                await repository.DeleteAsync(id, token);
                 return Ok();
             }
             catch (KeyNotFoundException)

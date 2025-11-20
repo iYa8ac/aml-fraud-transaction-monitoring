@@ -13,13 +13,13 @@ Most of the procedures in this documentation makes use of synchronous HTTP reque
 
 As the HTTP requests are handled by the Kestrel web server embedded into Jube, this translates to a request being made of a Thread from the .Net managed Thread Pool. 
 
-The .Net Thread Pool is exceptionally good at sizing itself, however in periods of burst, thread load or saturation can occur,  which may lead to inconsistent - yet not necessarily unreasonable - response times.  The manageability and maintainability of the application becomes difficult should unmarshalled requests be made of the thread pool,  especially in burst.  Henceforth,  as a philosophy, it is a preferred approach to queue work on in the instances internal concurrent queues and manually size thread counts, having detailed knowledge of the underlying hardware infrastructure.  A further benefit of the manual thread sizing approach is to allow for asynchronicity in the client integration, without having to relying on asynchronous methods and thread pools client side,  which may bring about many of the same challenges that this architecture sets out to solve.
+The .Net Thread Pool is perfect at sizing itself, however in periods of burst, thread load or saturation can occur,  which may lead to inconsistent - yet not necessarily unreasonable - response times.  The manageability and maintainability of the application becomes difficult should unmarshalled requests be made of the thread pool,  especially in burst.  Henceforth,  as a philosophy, it is a preferred approach to queue work on in the instances internal concurrent queues and manually size thread counts, having detailed knowledge of the underlying hardware infrastructure.  A further benefit of the manual thread sizing approach is to allow for asynchronicity in the client integration, without having to relying on asynchronous methods and thread pools client side,  which may bring about many of the same challenges that this architecture sets out to solve.
 
 There exists a switch in the model invocation endpoint which will instruct the asynchronous processing of a transaction or event:
 
-[https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc](https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc)/async
+[https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc](https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc/async)
 
-![Image](LocationOfAsyncSwitch.png)
+![Image](ExampleAsync.png)
 
 By adding the Async switch to the endpoint url the request payload is only processed up to the conclusion of Request XPath,  after which the remainder of the processing is instructed via internal asynchronous queue, with a partial response payload being returned by HTTP.  There are a predefined number of threads available for the remaining model invocation, specified as an Environment Variable called ModelInvokeAsynchronousThreads:
 
@@ -39,19 +39,13 @@ Returning the following data:
 
 Queue balances are captured roughly evey minute. In burst,  queues backing up are to be expected,  and will clear assuming that the threads are sized slightly ahead of demand.
 
-Post the example Json to [https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc/async](https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc/async):
-
-![Image](OnlyHeadCheck.png)
-
-The payload returned for asynchronous processing is identical to the synchronous processing,  except only the existence of the Request XPath can be assured. Although the processing will stop at the point the Request XPath has been extracted, the head check, the pickup of the instruction from the background process may be so rapid that processing begins,  henceforth there may be additional elements having been processed beyond just the Request XPath being echoed back.  While race conditions might provide for more data in the initial payload,  it should not be relied upon without a callback.
-
-Even though processing will have taken place in the background,  the response payload can be called back via the invocation of the GET HTTP method Callback HTTP endpoint using the entityAnalysisModelInstanceEntryGuid element value taken from the initial HTTP response as key:
+The response payload can be called back via the invocation of the GET HTTP method Callback HTTP endpoint using the entityAnalysisModelInstanceEntryGuid element value taken from the initial HTTP response as key:
 
 [https://localhost:5001/api/invoke/EntityAnalysisModel/Callback/de1119dc-dda0-4916-a716-bbd39c69a17e](https://localhost:5001/api/invoke/EntityAnalysisModel/Callback/de1119dc-dda0-4916-a716-bbd39c69a17e)
 
 ![Image](Callback.png)
 
-The response payload will be identical to that returned synchronously having been stored in an instance buffer once it is complete,  and communicated via notification to other running instances.  The default timeout is three seconds which implies that should background processing not have concluded, and made available within three seconds,  a HTTP status 404 will be returned.  The presence of timeouts would imply that that the threads are not handling burst adequately and not able to reach requests within tolerance.
+The response payload will be identical to that returned synchronously having been stored in an instance buffer once it is complete,  and communicated via notification to other running instances.  The default timeout is three seconds which implies that should background processing not have concluded, and made available within thirty seconds,  a HTTP status 408 will be returned.  The presence of timeouts would imply that that the threads are not handling burst adequately and not able to reach requests within tolerance.
 
 ![Image](CallbackResponse.png)
 

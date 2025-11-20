@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -39,55 +41,56 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<EntityAnalysisModelReprocessingRuleInstance> Get()
+        public async Task<IEnumerable<EntityAnalysisModelReprocessingRuleInstance>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelReprocessingRuleInstance
+            return await dbContext.EntityAnalysisModelReprocessingRuleInstance
                 .Where(w =>
                     w.EntityAnalysisModelReprocessingRule.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
-                    || !tenantRegistryId.HasValue);
+                    || !tenantRegistryId.HasValue)
+                .ToListAsync(token);
         }
 
-        public IEnumerable<EntityAnalysisModelReprocessingRuleInstance> GetByEntityAnalysisModelsReprocessingRuleId(
-            int entityAnalysisModelsReprocessingRuleId)
+        public async Task<IEnumerable<EntityAnalysisModelReprocessingRuleInstance>> GetByEntityAnalysisModelsReprocessingRuleIdAsync(
+            int entityAnalysisModelsReprocessingRuleId, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelReprocessingRuleInstance
+            return await dbContext.EntityAnalysisModelReprocessingRuleInstance
                 .Where(w =>
                     (w.EntityAnalysisModelReprocessingRule.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                      || !tenantRegistryId.HasValue)
                     && w.EntityAnalysisModelReprocessingRuleId == entityAnalysisModelsReprocessingRuleId &&
                     (w.Deleted == 0 || w.Deleted == null))
-                .OrderByDescending(o => o.Id);
+                .OrderByDescending(o => o.Id).ToListAsync(token);
         }
 
-        public EntityAnalysisModelReprocessingRuleInstance GetById(int id)
+        public Task<EntityAnalysisModelReprocessingRuleInstance> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelReprocessingRuleInstance.FirstOrDefault(w =>
+            return dbContext.EntityAnalysisModelReprocessingRuleInstance.FirstOrDefaultAsync(w =>
                 (w.EntityAnalysisModelReprocessingRule.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                  || !tenantRegistryId.HasValue)
-                && w.Id == id && (w.Deleted == 0 || w.Deleted == null));
+                && w.Id == id && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public EntityAnalysisModelReprocessingRuleInstance Insert(EntityAnalysisModelReprocessingRuleInstance model)
+        public async Task<EntityAnalysisModelReprocessingRuleInstance> InsertAsync(EntityAnalysisModelReprocessingRuleInstance model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
             model.Version = 1;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public EntityAnalysisModelReprocessingRuleInstance InsertByExistingUpdateUncompleted(
-            EntityAnalysisModelReprocessingRuleInstance model)
+        public async Task<EntityAnalysisModelReprocessingRuleInstance> InsertByExistingUpdateUncompletedAsync(
+            EntityAnalysisModelReprocessingRuleInstance model, CancellationToken token = default)
         {
-            var existing = dbContext.EntityAnalysisModelReprocessingRuleInstance
-                .FirstOrDefault(w =>
-                    (w.EntityAnalysisModelReprocessingRule.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
-                     || !tenantRegistryId.HasValue)
-                    && w.EntityAnalysisModelReprocessingRuleId
-                    == model.EntityAnalysisModelReprocessingRuleId
-                    && (w.Deleted == 0 || w.Deleted == null)
-                    && w.StatusId != 4
-                );
+            var existing = await dbContext.EntityAnalysisModelReprocessingRuleInstance
+                .FirstOrDefaultAsync(w =>
+                        (w.EntityAnalysisModelReprocessingRule.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                         || !tenantRegistryId.HasValue)
+                        && w.EntityAnalysisModelReprocessingRuleId
+                        == model.EntityAnalysisModelReprocessingRuleId
+                        && (w.Deleted == 0 || w.Deleted == null)
+                        && w.StatusId != 4
+                    , token);
 
             if (existing != null)
             {
@@ -98,16 +101,16 @@ namespace Jube.Data.Repository
             model.CreatedDate = DateTime.Now;
             model.Version = 1;
             model.StatusId = 0;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public EntityAnalysisModelReprocessingRuleInstance UpdateCounts
-            (int id, int sampledCount, int matchedCount, int processedCount, int errorCount, DateTime referenceDate)
+        public async Task<EntityAnalysisModelReprocessingRuleInstance> UpdateCountsAsync
+            (int id, int sampledCount, int matchedCount, int processedCount, int errorCount, DateTime referenceDate, CancellationToken token = default)
         {
-            var existing = dbContext.EntityAnalysisModelReprocessingRuleInstance
-                .FirstOrDefault(w => w.Id
-                    == id && (w.Deleted == 0 || w.Deleted == null));
+            var existing = await dbContext.EntityAnalysisModelReprocessingRuleInstance
+                .FirstOrDefaultAsync(w => w.Id
+                    == id && (w.Deleted == 0 || w.Deleted == null), token);
 
             if (existing == null)
             {
@@ -122,20 +125,20 @@ namespace Jube.Data.Repository
             existing.UpdatedDate = DateTime.Now;
             existing.StatusId = 3;
 
-            dbContext.Update(existing);
+            await dbContext.UpdateAsync(existing, token: token);
 
             return existing;
         }
 
-        public EntityAnalysisModelReprocessingRuleInstance Update(EntityAnalysisModelReprocessingRuleInstance model)
+        public async Task<EntityAnalysisModelReprocessingRuleInstance> UpdateAsync(EntityAnalysisModelReprocessingRuleInstance model, CancellationToken token = default)
         {
-            var existing = dbContext.EntityAnalysisModelReprocessingRuleInstance
-                .FirstOrDefault(w => w.Id
-                                     == model.Id
-                                     && (w.EntityAnalysisModelReprocessingRule.EntityAnalysisModel.TenantRegistryId ==
-                                         tenantRegistryId
-                                         || !tenantRegistryId.HasValue)
-                                     && (w.Deleted == 0 || w.Deleted == null));
+            var existing = await dbContext.EntityAnalysisModelReprocessingRuleInstance
+                .FirstOrDefaultAsync(w => w.Id
+                                          == model.Id
+                                          && (w.EntityAnalysisModelReprocessingRule.EntityAnalysisModel.TenantRegistryId ==
+                                              tenantRegistryId
+                                              || !tenantRegistryId.HasValue)
+                                          && (w.Deleted == 0 || w.Deleted == null), token).ConfigureAwait(false);
 
             if (existing == null)
             {
@@ -147,50 +150,40 @@ namespace Jube.Data.Repository
             model.CreatedDate = DateTime.Now;
             model.Id = existing.Id;
 
-            var id = dbContext
-                .InsertWithInt32Identity(model);
+            var id = await dbContext
+                .InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
 
-            Delete(existing.Id);
+            await DeleteAsync(existing.Id, token).ConfigureAwait(false);
 
             model.Id = id;
 
             return model;
         }
 
-        public void UpdateReferenceDateCount(int id, long availableCount, DateTime referenceDate)
+        public Task UpdateReferenceDateCountAsync(int id, long availableCount, DateTime referenceDate, CancellationToken token = default)
         {
-            var records = dbContext.EntityAnalysisModelReprocessingRuleInstance
+            return dbContext.EntityAnalysisModelReprocessingRuleInstance
                 .Where(d =>
                     d.Id == id)
                 .Set(s => s.AvailableCount, availableCount)
                 .Set(s => s.StatusId, (byte)2)
                 .Set(s => s.ReferenceDate, referenceDate)
-                .Update();
-
-            if (records == 0)
-            {
-                throw new KeyNotFoundException();
-            }
+                .UpdateAsync(token);
         }
 
-        public void UpdateCompleted(int id)
+        public Task UpdateCompletedAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.EntityAnalysisModelReprocessingRuleInstance
+            return dbContext.EntityAnalysisModelReprocessingRuleInstance
                 .Where(d =>
                     d.Id == id)
                 .Set(s => s.CompletedDate, DateTime.Now)
                 .Set(s => s.StatusId, (byte)4)
-                .Update();
-
-            if (records == 0)
-            {
-                throw new KeyNotFoundException();
-            }
+                .UpdateAsync(token);
         }
 
-        public void Delete(int id)
+        public Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.EntityAnalysisModelReprocessingRuleInstance
+            return dbContext.EntityAnalysisModelReprocessingRuleInstance
                 .Where(d =>
                     (d.EntityAnalysisModelReprocessingRule.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                      || !tenantRegistryId.HasValue)
@@ -199,12 +192,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
-
-            if (records == 0)
-            {
-                throw new KeyNotFoundException();
-            }
+                .UpdateAsync(token);
         }
     }
 }

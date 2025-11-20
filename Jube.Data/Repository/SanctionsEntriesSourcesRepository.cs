@@ -14,15 +14,17 @@
 namespace Jube.Data.Repository
 {
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
     using Poco;
 
     public class SanctionsEntriesSourcesRepository(DbContext dbContext)
     {
-
-        public IEnumerable<SanctionEntrySource> Get()
+        public async Task<IEnumerable<SanctionEntrySource>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.SanctionEntrySource;
+            return await dbContext.SanctionEntrySource.ToListAsync(token).ConfigureAwait(false);
         }
     }
 }

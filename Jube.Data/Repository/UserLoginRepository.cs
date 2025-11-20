@@ -14,18 +14,19 @@
 namespace Jube.Data.Repository
 {
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class UserLoginRepository(DbContext dbContext, string userName = null)
     {
-
-        public UserLogin Insert(UserLogin model)
+        public async Task<UserLogin> InsertAsync(UserLogin model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
     }

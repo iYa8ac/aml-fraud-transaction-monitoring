@@ -14,61 +14,57 @@
 namespace Jube.Data.Repository
 {
     using System;
-    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class EntityAnalysisModelSyncronisationNodeStatusEntryRepository(DbContext dbContext)
     {
-
-        public EntityAnalysisModelSynchronisationNodeStatusEntry UpsertSynchronisation(
-            EntityAnalysisModelSynchronisationNodeStatusEntry model)
+        public async Task UpsertSynchronisationAsync(
+            EntityAnalysisModelSynchronisationNodeStatusEntry model, CancellationToken token = default)
         {
-            var existing =
+            var existing = await
                 dbContext.EntityAnalysisModelSynchronisationNodeStatusEntry
-                    .FirstOrDefault(w
+                    .FirstOrDefaultAsync(w
                         => w.TenantRegistryId == model.TenantRegistryId
-                           && w.Instance == model.Instance);
+                           && w.Instance == model.Instance, token).ConfigureAwait(false);
 
             if (existing == null)
             {
                 model.SynchronisedDate = DateTime.Now;
                 model.HeartbeatDate = DateTime.Now;
-                model.Id = dbContext.InsertWithInt32Identity(model);
+                model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.SynchronisedDate = DateTime.Now;
                 existing.HeartbeatDate = DateTime.Now;
-                dbContext.Update(existing);
+                await dbContext.UpdateAsync(existing, token: token).ConfigureAwait(false);
             }
-
-            return model;
         }
 
-        public EntityAnalysisModelSynchronisationNodeStatusEntry UpsertHeartbeat(
-            EntityAnalysisModelSynchronisationNodeStatusEntry model)
+        public async Task UpsertHeartbeatAsync(
+            EntityAnalysisModelSynchronisationNodeStatusEntry model, CancellationToken token = default)
         {
             var existing =
-                dbContext.EntityAnalysisModelSynchronisationNodeStatusEntry
-                    .FirstOrDefault(w
+                await dbContext.EntityAnalysisModelSynchronisationNodeStatusEntry
+                    .FirstOrDefaultAsync(w
                         => w.TenantRegistryId == model.TenantRegistryId
-                           && w.Instance == model.Instance);
+                           && w.Instance == model.Instance, token).ConfigureAwait(false);
 
             if (existing == null)
             {
                 model.SynchronisedDate = DateTime.Now;
                 model.HeartbeatDate = DateTime.Now;
-                model.Id = dbContext.InsertWithInt32Identity(model);
+                model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.HeartbeatDate = DateTime.Now;
-                dbContext.Update(existing);
+                await dbContext.UpdateAsync(existing, token: token).ConfigureAwait(false);
             }
-
-            return model;
         }
     }
 }

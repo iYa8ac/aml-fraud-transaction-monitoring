@@ -15,7 +15,10 @@ namespace Jube.Data.Query
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstancePromotedTrialInstanceRocQuery
     {
@@ -29,10 +32,10 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute(
-            int exhaustiveSearchInstanceId)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            var promotedExhaustiveSearchInstanceTrialInstanceId = dbContext
+            var promotedExhaustiveSearchInstanceTrialInstanceId = await dbContext
                 .ExhaustiveSearchInstancePromotedTrialInstance
                 .Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance.Id == exhaustiveSearchInstanceId
@@ -41,9 +44,9 @@ namespace Jube.Data.Query
                         .EntityAnalysisModel.TenantRegistryId == tenantRegistryId)
                 .OrderByDescending(o => o.Id)
                 .Select(s => s.ExhaustiveSearchInstanceTrialInstanceId)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync(token);
 
-            return dbContext.ExhaustiveSearchInstancePromotedTrialInstanceRoc
+            return await dbContext.ExhaustiveSearchInstancePromotedTrialInstanceRoc
                 .Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstanceId == promotedExhaustiveSearchInstanceTrialInstanceId)
                 .OrderBy(o => o.Id)
@@ -53,7 +56,7 @@ namespace Jube.Data.Query
                     Score = s.Score.Value,
                     Fpr = (double)s.FalsePositive.Value / (s.FalsePositive.Value + s.TrueNegative.Value),
                     Tpr = (double)s.TruePositive.Value / (s.TruePositive.Value + s.FalseNegative.Value)
-                });
+                }).ToListAsync(token);
         }
 
         public class Dto

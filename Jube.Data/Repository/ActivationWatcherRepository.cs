@@ -16,7 +16,10 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
     using LinqToDB.Data;
     using Poco;
 
@@ -37,29 +40,29 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public ActivationWatcher GetLast()
+        public Task<ActivationWatcher> GetLastAsync(CancellationToken token = default)
         {
-            return dbContext.ActivationWatcher.OrderByDescending(s => s.Id).FirstOrDefault();
+            return dbContext.ActivationWatcher.OrderByDescending(s => s.Id).FirstOrDefaultAsync(token);
         }
 
-        public IEnumerable<ActivationWatcher> GetAllSinceId(int id, int limit)
+        public async Task<IEnumerable<ActivationWatcher>> GetAllSinceIdAsync(int id, int limit, CancellationToken token = default)
         {
-            return dbContext.ActivationWatcher
+            return await dbContext.ActivationWatcher
                 .Where(w => w.Id > id)
-                .OrderByDescending(s => s.Id).Take(limit);
+                .OrderByDescending(s => s.Id).Take(limit).ToListAsync(token);
         }
 
-        public IEnumerable<ActivationWatcher> GetByDateRangeAscending(DateTime dateFrom, DateTime dateTo, int limit)
+        public async Task<IEnumerable<ActivationWatcher>> GetByDateRangeAscendingAsync(DateTime dateFrom, DateTime dateTo, int limit, CancellationToken token = default)
         {
-            return dbContext.ActivationWatcher
+            return await dbContext.ActivationWatcher
                 .Where(w => w.CreatedDate > dateFrom && w.CreatedDate <= dateTo
                                                      && w.TenantRegistryId == tenantRegistryId)
-                .OrderBy(s => s.Id).Take(limit);
+                .OrderBy(s => s.Id).Take(limit).ToListAsync(token);
         }
 
-        public void BulkCopy(List<ActivationWatcher> models)
+        public Task BulkCopyAsync(List<ActivationWatcher> models, CancellationToken token = default)
         {
-            dbContext.BulkCopy(models);
+            return dbContext.BulkCopyAsync(models, token);
         }
     }
 }

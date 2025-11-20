@@ -16,6 +16,8 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
 
@@ -23,7 +25,7 @@ namespace Jube.Data.Query
     {
 
 
-        public IEnumerable<Dto> Execute(string key, string value)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(string key, string value, CancellationToken token = default)
         {
             var query = from c in dbContext.Case
                 from n in dbContext.CaseNote.InnerJoin(w => w.CaseId == c.Id)
@@ -48,7 +50,7 @@ namespace Jube.Data.Query
                     Priority = ConvertPriorityIdToString(n.PriorityId.GetValueOrDefault())
                 };
 
-            return query;
+            return await query.ToListAsync(token);
         }
 
         private string ConvertPriorityIdToString(int id)

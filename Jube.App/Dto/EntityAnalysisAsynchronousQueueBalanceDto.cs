@@ -11,16 +11,18 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using System;
-
 namespace Jube.App.Dto
 {
+    using System;
+
     public class EntityAnalysisAsynchronousQueueBalanceDto
     {
         public string Name { get; set; }
         public string Instance { get; set; }
         public DateTime CreatedDate { get; set; }
-        public int Tagging { get; set; }
         public int AsynchronousEntityInvoke { get; set; }
+        public int CaseCreation { get; set; }
+        public int Tagging { get; set; }
+        public int Notification { get; set; }
     }
 }

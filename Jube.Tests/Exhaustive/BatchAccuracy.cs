@@ -19,6 +19,7 @@ namespace Jube.Test.Exhaustive
     using System.Linq;
     using System.Net.Http;
     using System.Text;
+    using System.Threading.Tasks;
     using FluentAssertions;
     using Newtonsoft.Json;
     using Xunit;
@@ -30,7 +31,7 @@ namespace Jube.Test.Exhaustive
         [Theory]
         [InlineData("https://localhost:5001/api/Invoke/ExhaustiveSearchInstance/111c17f5-01d8-46a6-a940-273660a93a17",
             10000000, 0.8)]
-        public async void BatchAccuracy(string uriString, int httpTimeout, double passThreshold)
+        public async Task BatchAccuracyAsync(string uriString, int httpTimeout, double passThreshold)
         {
             try
             {

@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -34,50 +36,50 @@ namespace Jube.Data.Repository
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<EntityAnalysisModelDictionaryCsvFileUpload> Get()
+        public async Task<IEnumerable<EntityAnalysisModelDictionaryCsvFileUpload>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelDictionaryCsvFileUpload
-                .Where(w => w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId);
+            return await dbContext.EntityAnalysisModelDictionaryCsvFileUpload
+                .Where(w => w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId)
+                .ToListAsync(token);
         }
 
-        public IEnumerable<EntityAnalysisModelDictionaryCsvFileUpload> GetByEntityAnalysisModelDictionaryId(
-            int entityAnalysisModelDictionaryId)
+        public async Task<IEnumerable<EntityAnalysisModelDictionaryCsvFileUpload>> GetByEntityAnalysisModelDictionaryIdAsync(
+            int entityAnalysisModelDictionaryId, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelDictionaryCsvFileUpload
+            return await dbContext.EntityAnalysisModelDictionaryCsvFileUpload
                 .Where(w => w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && w.EntityAnalysisModelDictionary.Id == entityAnalysisModelDictionaryId &&
                             (w.EntityAnalysisModelDictionary.Deleted == 0 ||
-                             w.EntityAnalysisModelDictionary.Deleted == null));
+                             w.EntityAnalysisModelDictionary.Deleted == null)).ToListAsync(token);
         }
 
-        public EntityAnalysisModelDictionaryCsvFileUpload GetById(int id)
+        public Task<EntityAnalysisModelDictionaryCsvFileUpload> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelDictionaryCsvFileUpload.FirstOrDefault(w =>
+            return dbContext.EntityAnalysisModelDictionaryCsvFileUpload.FirstOrDefaultAsync(w =>
                 w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                 && w.EntityAnalysisModelDictionary.Id == id && (w.EntityAnalysisModelDictionary.Deleted == 0 ||
-                                                                w.EntityAnalysisModelDictionary.Deleted == null));
+                                                                w.EntityAnalysisModelDictionary.Deleted == null), token);
         }
 
-        public EntityAnalysisModelDictionaryCsvFileUpload Insert(EntityAnalysisModelDictionaryCsvFileUpload model)
+        public async Task<EntityAnalysisModelDictionaryCsvFileUpload> InsertAsync(EntityAnalysisModelDictionaryCsvFileUpload model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
-            model.InheritedId = dbContext.InsertWithInt32Identity(model);
+            model.InheritedId = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
-        
-        public EntityAnalysisModelDictionaryCsvFileUpload
-            Update(
-                EntityAnalysisModelDictionaryCsvFileUpload
-                    model)
+
+        public async Task<EntityAnalysisModelDictionaryCsvFileUpload> UpdateAsync(
+            EntityAnalysisModelDictionaryCsvFileUpload
+                model, CancellationToken token = default)
         {
-            var existing = dbContext.EntityAnalysisModelDictionaryCsvFileUpload
-                .FirstOrDefault(w => w.Id
-                                     == model.Id
-                                     && w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId ==
-                                     tenantRegistryId
-                                     && (w.EntityAnalysisModelDictionary.Deleted == 0 ||
-                                         w.EntityAnalysisModelDictionary.Deleted == null));
+            var existing = await dbContext.EntityAnalysisModelDictionaryCsvFileUpload
+                .FirstOrDefaultAsync(w => w.Id
+                                          == model.Id
+                                          && w.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId ==
+                                          tenantRegistryId
+                                          && (w.EntityAnalysisModelDictionary.Deleted == 0 ||
+                                              w.EntityAnalysisModelDictionary.Deleted == null), token);
 
             if (existing == null)
             {
@@ -89,18 +91,18 @@ namespace Jube.Data.Repository
             model.CreatedDate = DateTime.Now;
             model.InheritedId = existing.Id;
 
-            Delete(existing.Id);
+            await DeleteAsync(existing.Id, token);
 
-            var id = dbContext.InsertWithInt32Identity(model);
+            var id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
 
             model.Id = id;
 
             return model;
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.EntityAnalysisModelDictionaryCsvFileUpload
+            var records = await dbContext.EntityAnalysisModelDictionaryCsvFileUpload
                 .Where(d => d.EntityAnalysisModelDictionary.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && d.Id == id
                             && (d.EntityAnalysisModelDictionary.Deleted == 0 ||
@@ -108,7 +110,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {

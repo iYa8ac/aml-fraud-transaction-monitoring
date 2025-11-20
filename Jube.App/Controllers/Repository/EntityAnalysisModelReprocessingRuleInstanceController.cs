@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -64,10 +66,8 @@ namespace Jube.App.Controllers.Repository
                     EntityAnalysisModelReprocessingRuleInstance>();
                 cfg.CreateMap<EntityAnalysisModelReprocessingRuleInstance,
                     EntityAnalysisModelReprocessingRuleInstanceDto>();
-                cfg.CreateMap<List<EntityAnalysisModelReprocessingRuleInstance>,
-                        List<EntityAnalysisModelReprocessingRuleInstanceDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new EntityAnalysisModelReprocessingRuleInstanceRepository(dbContext, userName);
             validator = new EntityAnalysisModelReprocessingRuleInstanceDtoValidator();
@@ -84,7 +84,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<EntityAnalysisModelReprocessingRuleInstanceDto>> Get()
+        public async Task<ActionResult<List<EntityAnalysisModelReprocessingRuleInstanceDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -96,7 +96,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<EntityAnalysisModelReprocessingRuleInstanceDto>>(repository.Get()));
+                return Ok(mapper.Map<List<EntityAnalysisModelReprocessingRuleInstanceDto>>(await repository.GetAsync(token)));
             }
             catch (Exception e)
             {
@@ -106,8 +106,8 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByEntityAnalysisModelReprocessingId")]
-        public ActionResult<List<EntityAnalysisModelReprocessingRuleInstanceDto>>
-            GetByEntityAnalysisModelReprocessingId(int entityAnalysisModelReprocessingId)
+        public async Task<ActionResult<List<EntityAnalysisModelReprocessingRuleInstanceDto>>>
+            GetByEntityAnalysisModelReprocessingIdAsync(int entityAnalysisModelReprocessingId, CancellationToken token = default)
         {
             try
             {
@@ -120,7 +120,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<List<EntityAnalysisModelReprocessingRuleInstanceDto>>(
-                    repository.GetByEntityAnalysisModelsReprocessingRuleId(entityAnalysisModelReprocessingId)));
+                    await repository.GetByEntityAnalysisModelsReprocessingRuleIdAsync(entityAnalysisModelReprocessingId, token)));
             }
             catch (Exception e)
             {
@@ -130,7 +130,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("{id:int}")]
-        public ActionResult<EntityAnalysisModelReprocessingRuleInstanceDto> GetById(int id)
+        public async Task<ActionResult<EntityAnalysisModelReprocessingRuleInstanceDto>> GetByIdAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -142,7 +142,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<EntityAnalysisModelReprocessingRuleInstanceDto>(repository.GetById(id)));
+                return Ok(mapper.Map<EntityAnalysisModelReprocessingRuleInstanceDto>(await repository.GetByIdAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -155,8 +155,8 @@ namespace Jube.App.Controllers.Repository
         [Route("ByExistingUpdateUncompleted")]
         [ProducesResponseType(typeof(EntityAnalysisModelReprocessingRuleInstanceDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<EntityAnalysisModelReprocessingRuleInstanceDto> CreateByExistingUpdateUncompleted(
-            [FromBody] EntityAnalysisModelReprocessingRuleInstanceDto model)
+        public async Task<ActionResult<EntityAnalysisModelReprocessingRuleInstanceDto>> CreateByExistingUpdateUncompletedAsync(
+            [FromBody] EntityAnalysisModelReprocessingRuleInstanceDto model, CancellationToken token = default)
         {
             try
             {
@@ -168,11 +168,11 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.InsertByExistingUpdateUncompleted(
-                        mapper.Map<EntityAnalysisModelReprocessingRuleInstance>(model)));
+                    return Ok(await repository.InsertByExistingUpdateUncompletedAsync(
+                        mapper.Map<EntityAnalysisModelReprocessingRuleInstance>(model), token));
                 }
 
                 return BadRequest(results);
@@ -188,8 +188,8 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(EntityAnalysisModelReprocessingRuleInstanceDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<EntityAnalysisModelReprocessingRuleInstanceDto> Create(
-            [FromBody] EntityAnalysisModelReprocessingRuleInstanceDto model)
+        public async Task<ActionResult<EntityAnalysisModelReprocessingRuleInstanceDto>> CreateAsync(
+            [FromBody] EntityAnalysisModelReprocessingRuleInstanceDto model, CancellationToken token = default)
         {
             try
             {
@@ -201,10 +201,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Insert(mapper.Map<EntityAnalysisModelReprocessingRuleInstance>(model)));
+                    return Ok(await repository.InsertAsync(mapper.Map<EntityAnalysisModelReprocessingRuleInstance>(model), token));
                 }
 
                 return BadRequest(results);
@@ -219,8 +219,8 @@ namespace Jube.App.Controllers.Repository
         [HttpPut]
         [ProducesResponseType(typeof(EntityAnalysisModelReprocessingRuleInstanceDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<EntityAnalysisModelReprocessingRuleInstanceDto> Update(
-            [FromBody] EntityAnalysisModelReprocessingRuleInstanceDto model)
+        public async Task<ActionResult<EntityAnalysisModelReprocessingRuleInstanceDto>> UpdateAsync(
+            [FromBody] EntityAnalysisModelReprocessingRuleInstanceDto model, CancellationToken token = default)
         {
             try
             {
@@ -232,10 +232,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token).ConfigureAwait(false);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Update(mapper.Map<EntityAnalysisModelReprocessingRuleInstance>(model)));
+                    return Ok(await repository.UpdateAsync(mapper.Map<EntityAnalysisModelReprocessingRuleInstance>(model), token).ConfigureAwait(false));
                 }
 
                 return BadRequest(results);
@@ -253,7 +253,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpDelete]
         [Route("{id:int}")]
-        public ActionResult<List<EntityAnalysisModelReprocessingRuleInstanceDto>> Delete(int id)
+        public async Task<ActionResult<List<EntityAnalysisModelReprocessingRuleInstanceDto>>> DeleteAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -265,7 +265,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.Delete(id);
+                await repository.DeleteAsync(id, token).ConfigureAwait(false);
                 return Ok();
             }
             catch (KeyNotFoundException)

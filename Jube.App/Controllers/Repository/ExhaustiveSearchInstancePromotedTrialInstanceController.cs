@@ -15,6 +15,8 @@ namespace Jube.App.Controllers.Repository
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Repository;
@@ -64,7 +66,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpPut]
-        public ActionResult Update([FromBody] ExhaustiveSearchInstancePromotedTrialInstanceDto model)
+        public async Task<ActionResult> UpdateAsync([FromBody] ExhaustiveSearchInstancePromotedTrialInstanceDto model, CancellationToken token = default)
         {
             try
             {
@@ -76,7 +78,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.UpdateActive(model.Id, model.Active);
+                await repository.UpdateActiveAsync(model.Id, model.Active, token).ConfigureAwait(false);
 
                 return Ok();
             }

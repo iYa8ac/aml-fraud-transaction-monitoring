@@ -20,7 +20,6 @@ namespace Jube.Data.Messaging
 
     public class Messaging(string connectionString, ILog log)
     {
-
         public void SendActivation(byte[] json)
         {
             var connection = new NpgsqlConnection(connectionString);

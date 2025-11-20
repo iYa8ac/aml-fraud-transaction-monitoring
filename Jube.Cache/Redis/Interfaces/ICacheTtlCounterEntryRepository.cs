@@ -17,13 +17,13 @@ namespace Jube.Cache.Redis.Interfaces
 
     public interface ICacheTtlCounterEntryRepository
     {
-        Task<List<ExpiredTtlCounterEntry>> GetExpiredTtlCounterCacheCountsAsync(
+        Task<List<ExpiredTtlCounterEntry>> GetAllExpiredByTtlCounterAsync(
             int tenantRegistryId,
             Guid entityAnalysisModelGuid,
             Guid entityAnalysisModelTtlCounterGuid,
             string dataName, DateTime referenceDate);
 
-        Task<int> GetAsync(int tenantRegistryId,
+        Task<long> GetAggregationAsync(int tenantRegistryId,
             Guid entityAnalysisModelGuid, Guid entityAnalysisModelTtlCounterGuid,
             string dataName, string dataValue,
             DateTime referenceDateFrom, DateTime referenceDateTo);

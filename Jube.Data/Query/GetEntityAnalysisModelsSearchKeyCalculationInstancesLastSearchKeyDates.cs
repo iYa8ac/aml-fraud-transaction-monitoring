@@ -16,14 +16,16 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetEntityAnalysisModelsSearchKeyCalculationInstancesLastSearchKeyDates(DbContext dbContext)
     {
-
-        public IEnumerable<Dto> Execute(Guid entityAnalysisModelGuid)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(Guid entityAnalysisModelGuid, CancellationToken token = default)
         {
-            return from c
+            var query = from c
                     in dbContext.EntityAnalysisModelSearchKeyCalculationInstance
                 where c.EntityAnalysisModelGuid == entityAnalysisModelGuid
                 group c by c.SearchKey
@@ -33,6 +35,8 @@ namespace Jube.Data.Query
                     SearchKey = g.Key,
                     DistinctFetchToDate = g.Max(s => s.DistinctFetchToDate)
                 };
+
+            return await query.ToListAsync(token);
         }
 
         public class Dto

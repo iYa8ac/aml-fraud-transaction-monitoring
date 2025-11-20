@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -58,9 +60,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<CaseFile, CaseFileDto>();
                 cfg.CreateMap<CaseFileDto, CaseFile>();
-                cfg.CreateMap<List<CaseFile>, List<CaseFileDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new CaseFileRepository(dbContext, userName);
         }
@@ -76,8 +77,8 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpPost("Upload")]
-        public ActionResult<CaseFileDto> FileUpload(IEnumerable<IFormFile> files, string caseKey, string caseKeyValue,
-            int caseId)
+        public async Task<ActionResult<CaseFileDto>> FileUploadAsync(IEnumerable<IFormFile> files, string caseKey, string caseKeyValue,
+            int caseId, CancellationToken token = default)
         {
             if (!permissionValidation.Validate(new[]
                 {
@@ -93,9 +94,9 @@ namespace Jube.App.Controllers.Repository
                 {
                     continue;
                 }
-                
+
                 var ms = new MemoryStream();
-                file.CopyTo(ms);
+                await file.CopyToAsync(ms, token);
 
                 var model = new CaseFile
                 {
@@ -109,14 +110,14 @@ namespace Jube.App.Controllers.Repository
                     ContentType = file.ContentType
                 };
 
-                return Ok(mapper.Map<CaseFileDto>(repository.Insert(model)));
+                return Ok(mapper.Map<CaseFileDto>(await repository.InsertAsync(model, token)));
             }
 
             return Ok();
         }
 
         [HttpPost("Remove")]
-        public ActionResult FileRemove(int id)
+        public async Task<ActionResult> FileRemoveAsync(int id, CancellationToken token = default)
         {
             if (!permissionValidation.Validate(new[]
                 {
@@ -126,13 +127,13 @@ namespace Jube.App.Controllers.Repository
                 return Forbid();
             }
 
-            repository.Delete(id);
+            await repository.DeleteAsync(id, token);
 
             return Ok();
         }
 
         [HttpGet]
-        public ActionResult Generate(int id)
+        public async Task<ActionResult> GenerateAsync(int id, CancellationToken token = default)
         {
             if (!permissionValidation.Validate(new[]
                 {
@@ -142,12 +143,12 @@ namespace Jube.App.Controllers.Repository
                 return Forbid();
             }
 
-            var model = repository.GetById(id);
+            var model = await repository.GetByIdAsync(id, token);
             return new FileContentResult(model.Object, model.ContentType);
         }
 
         [HttpGet("ByCaseKeyValue")]
-        public ActionResult<List<CaseFileDto>> GetByCaseKeyValue(string key, string value)
+        public async Task<ActionResult<List<CaseFileDto>>> GetByCaseKeyValueAsync(string key, string value, CancellationToken token = default)
         {
             try
             {
@@ -159,7 +160,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseFile>>(repository.GetByCaseKeyValue(key, value)));
+                return Ok(mapper.Map<List<CaseFile>>(await repository.GetByCaseKeyValueAsync(key, value, token)));
             }
             catch (Exception e)
             {

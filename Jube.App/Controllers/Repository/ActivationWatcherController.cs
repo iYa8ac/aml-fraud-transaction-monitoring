@@ -14,6 +14,8 @@
 namespace Jube.App.Controllers.Repository
 {
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Code.signalr;
     using Data.Context;
@@ -71,7 +73,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("Replay")]
-        public ActionResult Replay(DateTime dateFrom, DateTime dateTo)
+        public async Task<ActionResult> ReplayAsync(DateTime dateFrom, DateTime dateTo, CancellationToken token = default)
         {
             try
             {
@@ -83,14 +85,14 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                foreach (var activationWatcher in repository.GetByDateRangeAscending(dateFrom, dateTo, 1000))
+                foreach (var activationWatcher in await repository.GetByDateRangeAscendingAsync(dateFrom, dateTo, 1000, token))
                 {
                     var stringRepresentationOfObj = JsonConvert.SerializeObject(activationWatcher, new JsonSerializerSettings
                     {
                         ContractResolver = contractResolver
                     });
 
-                    watcherHub.Clients.Group("Tenant_" + activationWatcher.TenantRegistryId).SendAsync("ReceiveMessage", "Replay", stringRepresentationOfObj);
+                    await watcherHub.Clients.Group("Tenant_" + activationWatcher.TenantRegistryId).SendAsync("ReceiveMessage", "Replay", stringRepresentationOfObj, token);
                 }
 
                 return Ok();

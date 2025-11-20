@@ -17,6 +17,7 @@ namespace Jube.App.Controllers.Query
     using System.Collections.Generic;
     using System.IO;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Code;
     using Data.Context;
@@ -75,7 +76,7 @@ namespace Jube.App.Controllers.Query
         // ReSharper disable once RouteTemplates.RouteParameterIsNotPassedToMethod
         [HttpPost("{id}")]
         // ReSharper disable once RouteTemplates.MethodMissingRouteParameters
-        public async Task<ActionResult<dynamic>> ExecuteAsync()
+        public async Task<ActionResult<dynamic>> ExecuteAsync(CancellationToken token = default)
         {
             try
             {
@@ -97,7 +98,7 @@ namespace Jube.App.Controllers.Query
                 var idParsedToInt = Int32.Parse(idFromRoute);
 
                 var ms = new MemoryStream();
-                await Request.Body.CopyToAsync(ms).ConfigureAwait(false);
+                await Request.Body.CopyToAsync(ms, token).ConfigureAwait(false);
 
                 var payloadString = Encoding.UTF8.GetString(ms.ToArray());
                 var jArray = JsonConvert.DeserializeObject<JArray>(payloadString);
@@ -106,7 +107,7 @@ namespace Jube.App.Controllers.Query
 
                 if (jArray == null)
                 {
-                    return Ok(await query.ExecuteAsync(idParsedToInt, parameters).ConfigureAwait(false));
+                    return Ok(await query.ExecuteAsync(idParsedToInt, parameters, token).ConfigureAwait(false));
                 }
 
                 foreach (var param in jArray)
@@ -161,7 +162,7 @@ namespace Jube.App.Controllers.Query
                     }
                 }
 
-                return Ok(await query.ExecuteAsync(idParsedToInt, parameters).ConfigureAwait(false));
+                return Ok(await query.ExecuteAsync(idParsedToInt, parameters, token).ConfigureAwait(false));
             }
             catch (Exception e)
             {

@@ -26,115 +26,124 @@ namespace Jube.Engine.Exhaustive
     using Accord.Statistics.Kernels;
     using Accord.Statistics.Visualizations;
     using Algorithms;
-    using Data;
+    using Algorithms.Models;
+    using Data.Context;
+    using Data.Poco;
+    using Data.Query;
+    using Data.Repository;
+    using Data.Repository.Interface;
     using Dictionary;
     using DynamicEnvironment;
-    using Jube.Data.Context;
-    using Jube.Data.Poco;
-    using Jube.Data.Query;
-    using Jube.Data.Repository;
-    using Jube.Data.Repository.Interface;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Helpers;
     using log4net;
-    using Model.Processing.Payload;
-    using Newtonsoft.Json.Serialization;
-    using Variables;
+    using Utilities;
     using Performance=Algorithms.Performance;
 
-    public class Training
+    public class Training(
+        ILog log,
+        DynamicEnvironment environment,
+        JsonSerializationHelper jsonSerializationHelper)
     {
-        private static DefaultContractResolver contractResolver;
-        private readonly DynamicEnvironment environment;
-        private readonly ILog log;
-        private readonly Random seeded;
-        public bool Stopped;
+        private readonly Random seeded = new Random(Environment.TickCount ^ Guid.NewGuid().GetHashCode());
 
-        public Training(ILog log, Random seeded, DynamicEnvironment environment,
-            DefaultContractResolver contractResolver)
+        public async Task StartAsync(CancellationToken token = default)
         {
-            this.log = log;
-            this.seeded = seeded;
-            this.environment = environment;
-            Training.contractResolver = contractResolver;
-        }
-
-        public async Task StartAsync()
-        {
-            while (!Stopped)
+            try
             {
-                var dbContext =
-                    DataConnectionDbContext.GetDbContextDataConnection(environment.AppSettings("ConnectionString"));
-
-                if (log.IsInfoEnabled)
+                while (!token.IsCancellationRequested)
                 {
-                    log.Info("Exhaustive Training: Opening a database connection.");
-                }
-
-                try
-                {
-                    var queryNext = new GetNextExhaustiveSearchInstanceQuery(dbContext);
+                    var dbContext =
+                        DataConnectionDbContext.GetDbContextDataConnection(environment.AppSettings("ConnectionString"));
 
                     if (log.IsInfoEnabled)
                     {
-                        log.Info(
-                            "Exhaustive Training: Opened a database connection. " +
-                            "Will proceed to lookup a request for an Exhaustive Instance,  " +
-                            "or in the absence of an Exhaustive Instance to create one.");
+                        log.Info("Exhaustive Training: Opening a database connection.");
                     }
 
-                    var exhaustiveSearchInstance = queryNext.Execute();
-
-                    if (exhaustiveSearchInstance != null)
+                    try
                     {
-                        if (!await Execute(exhaustiveSearchInstance, dbContext).ConfigureAwait(false))
+                        var queryNext = new GetNextExhaustiveSearchInstanceQuery(dbContext);
+
+                        if (log.IsInfoEnabled)
                         {
-                            if (log.IsInfoEnabled)
-                            {
-                                log.Info(
-                                    $"Exhaustive Training: ExhaustiveSearchInstanceId:{exhaustiveSearchInstance.Id} has exited in an uncompleted state.");
-                            }
-                            else
+                            log.Info(
+                                "Exhaustive Training: Opened a database connection. " +
+                                "Will proceed to lookup a request for an Exhaustive Instance,  " +
+                                "or in the absence of an Exhaustive Instance to create one.");
+                        }
+
+                        var exhaustiveSearchInstance = await queryNext.ExecuteAsync(token).ConfigureAwait(false);
+
+                        if (exhaustiveSearchInstance != null)
+                        {
+                            if (!await ExecuteAsync(exhaustiveSearchInstance, dbContext, token).ConfigureAwait(false))
                             {
                                 if (log.IsInfoEnabled)
                                 {
                                     log.Info(
-                                        $"Exhaustive Training: ExhaustiveSearchInstanceId:{exhaustiveSearchInstance.Id} has exited in a completed state.");
+                                        $"Exhaustive Training: ExhaustiveSearchInstanceId:{exhaustiveSearchInstance.Id} has exited in an uncompleted state.");
+                                }
+                                else
+                                {
+                                    if (log.IsInfoEnabled)
+                                    {
+                                        log.Info(
+                                            $"Exhaustive Training: ExhaustiveSearchInstanceId:{exhaustiveSearchInstance.Id} has exited in a completed state.");
+                                    }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        if (log.IsInfoEnabled)
+                        else
                         {
-                            log.Info(
-                                "Exhaustive Training: Has not found anything that needs training.  Waiting.");
+                            if (log.IsInfoEnabled)
+                            {
+                                log.Info(
+                                    "Exhaustive Training: Has not found anything that needs training.");
+                            }
                         }
 
-                        Thread.Sleep(60000);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    log.Error(
-                        $"Exhaustive Training: Has experienced an error as {ex}  waiting to poll again.");
+                        if (log.IsInfoEnabled)
+                        {
+                            log.Info("Exhaustive Training: Finished and closing database context.  Waiting.");
+                        }
 
-                    Thread.Sleep(60000);
-                }
-                finally
-                {
-                    if (log.IsInfoEnabled)
+                        await dbContext.CloseAsync(token).ConfigureAwait(false);
+                        await dbContext.DisposeAsync(token).ConfigureAwait(false);
+
+                        await Task.Delay(60000, token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
                     {
-                        log.Info("Exhaustive Training: Finished and closing database context.");
-                    }
+                        await dbContext.CloseAsync(token).ConfigureAwait(false);
+                        await dbContext.DisposeAsync(token).ConfigureAwait(false);
 
-                    await dbContext.CloseAsync().ConfigureAwait(false);
-                    await dbContext.DisposeAsync().ConfigureAwait(false);
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        await dbContext.CloseAsync(token).ConfigureAwait(false);
+                        await dbContext.DisposeAsync(token).ConfigureAwait(false);
+
+                        log.Error(
+                            $"Exhaustive Training: Has experienced an error as {ex}  waiting to poll again.  Closing database context.");
+
+                        await Task.Delay(60000, token).ConfigureAwait(false);
+                    }
                 }
+            }
+            catch (OperationCanceledException ex)
+            {
+                log.Info($"Graceful Cancellation StartAsync: has produced an error {ex}");
+            }
+            catch (Exception ex)
+            {
+                log.Error($"StartAsync: has produced an error {ex}");
             }
         }
 
-        private async Task<bool> Execute(GetNextExhaustiveSearchInstanceQuery.Dto exhaustiveSearchInstance,
-            DbContext dbContext)
+        private async Task<bool> ExecuteAsync(GetNextExhaustiveSearchInstanceQuery.Dto exhaustiveSearchInstance,
+            DbContext dbContext, CancellationToken token = default)
         {
             var repositoryExhaustiveSearchInstance = new ExhaustiveSearchInstanceRepository(dbContext);
 
@@ -158,7 +167,7 @@ namespace Jube.Engine.Exhaustive
             if (environment.AppSettings("UseMockDataExhaustive")
                 .Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                LoadMockData(dbContext, exhaustiveSearchInstance.EntityAnalysisModelId);
+                await LoadMockDataAsync(dbContext, exhaustiveSearchInstance.EntityAnalysisModelId, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
@@ -181,24 +190,22 @@ namespace Jube.Engine.Exhaustive
                     $"Exhaustive Training: Set status to 1 for {exhaustiveSearchInstance.Id}. Starting");
             }
 
-            if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+            if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
             {
                 return false;
             }
 
-            repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 1);
+            await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 1, token).ConfigureAwait(false);
 
             double[][] data;
             Dictionary<int, Variable> variables;
 
             if (exhaustiveSearchInstance.Anomaly)
             {
-                Extraction.GetSampleDataAsync(dbContext,
+                (variables, data) = await Extraction.GetSampleDataAsync(dbContext,
                     exhaustiveSearchInstance.TenantRegistryId,
                     exhaustiveSearchInstance.EntityAnalysisModelId,
-                    mockData,
-                    out variables,
-                    out data);
+                    mockData, token).ConfigureAwait(false);
             }
             else
             {
@@ -207,7 +214,7 @@ namespace Jube.Engine.Exhaustive
                     exhaustiveSearchInstance.EntityAnalysisModelId,
                     exhaustiveSearchInstance.FilterSql,
                     exhaustiveSearchInstance.FilterTokens,
-                    mockData).ConfigureAwait(false);
+                    mockData, token).ConfigureAwait(false);
 
                 variables = getSampleDataResponse.Item1;
                 data = getSampleDataResponse.Item2;
@@ -220,16 +227,16 @@ namespace Jube.Engine.Exhaustive
                     $"for {exhaustiveSearchInstance.Id} updating status to 2 for calculating base statistics.");
             }
 
-            if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+            if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
             {
                 return false;
             }
 
-            repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 2);
+            await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 2, token).ConfigureAwait(false);
 
-            CalculateStatistics(exhaustiveSearchInstance.Id, ref variables, data,
+            await CalculateStatisticsAsync(exhaustiveSearchInstance.Id, variables, data,
                 repositoryExhaustiveSearchInstanceVariables,
-                repositoryExhaustiveSearchInstanceVariableHistograms);
+                repositoryExhaustiveSearchInstanceVariableHistograms, token).ConfigureAwait(false);
 
             double[] outputs = null;
             double[] cloneOfOutputsFromAnomaly = null;
@@ -243,12 +250,12 @@ namespace Jube.Engine.Exhaustive
                         $"for {exhaustiveSearchInstance.Id} updating status to 3 for unsupervised training data normalisation.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 3);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 3, token).ConfigureAwait(false);
 
                 var copyOfDataForUnsupervised = NormaliseData(variables, data.Copy());
 
@@ -259,12 +266,12 @@ namespace Jube.Engine.Exhaustive
                         $"for {exhaustiveSearchInstance.Id} updating status to 4 for unsupervised training.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 4);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 4, token).ConfigureAwait(false);
 
                 var anomaly = Unsupervised.Learn(copyOfDataForUnsupervised, log);
 
@@ -275,12 +282,12 @@ namespace Jube.Engine.Exhaustive
                         $"for {exhaustiveSearchInstance.Id} updating status to 5 for unsupervised training recall.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 5);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 5, token).ConfigureAwait(false);
 
                 outputs = GetClassVariableByAnomaly(anomaly, copyOfDataForUnsupervised,
                     exhaustiveSearchInstance.AnomalyProbability);
@@ -316,17 +323,17 @@ namespace Jube.Engine.Exhaustive
                         $"training recall statistics calculation.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 6);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 6, token).ConfigureAwait(false);
 
-                CalculateStatistics(exhaustiveSearchInstance.Id, ref variables,
+                await CalculateStatisticsAsync(exhaustiveSearchInstance.Id, variables,
                     onlyOutputWithClassificationForData,
                     repositoryExhaustiveSearchInstanceVariablesAnomaly,
-                    repositoryExhaustiveSearchInstanceVariableHistogramsAnomaly);
+                    repositoryExhaustiveSearchInstanceVariableHistogramsAnomaly, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
@@ -352,12 +359,12 @@ namespace Jube.Engine.Exhaustive
                         $"from data for {exhaustiveSearchInstance.Id} updating status to 7 for filtering.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 7);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 7, token).ConfigureAwait(false);
 
                 var (dataClassificationFilter, outputsClassificationFilter) =
                     await Extraction.GetClassDataAsync(dbContext,
@@ -365,7 +372,7 @@ namespace Jube.Engine.Exhaustive
                         exhaustiveSearchInstance.FilterSql,
                         exhaustiveSearchInstance.FilterTokens,
                         variables,
-                        mockData).ConfigureAwait(false);
+                        mockData, token).ConfigureAwait(false);
 
                 var repositoryExhaustiveSearchInstanceVariablesClassification =
                     new ExhaustiveSearchInstanceVariableClassificationRepository(dbContext);
@@ -381,16 +388,16 @@ namespace Jube.Engine.Exhaustive
                         $"for filtering statistics calculation.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 8);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 8, token).ConfigureAwait(false);
 
-                CalculateStatistics(exhaustiveSearchInstance.Id, ref variables, dataClassificationFilter,
+                await CalculateStatisticsAsync(exhaustiveSearchInstance.Id, variables, dataClassificationFilter,
                     repositoryExhaustiveSearchInstanceVariablesClassification,
-                    repositoryExhaustiveSearchInstanceVariableHistogramsClassification);
+                    repositoryExhaustiveSearchInstanceVariableHistogramsClassification, token).ConfigureAwait(false);
 
                 Append(data, dataClassificationFilter, out data, out outputs);
 
@@ -404,12 +411,12 @@ namespace Jube.Engine.Exhaustive
                     $"class for {exhaustiveSearchInstance.Id} updating status to 9 for shuffling.");
             }
 
-            if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+            if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
             {
                 return false;
             }
 
-            repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 9);
+            await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 9, token).ConfigureAwait(false);
 
             if (classCount > 0)
             {
@@ -422,12 +429,12 @@ namespace Jube.Engine.Exhaustive
                         $"updating status to 10 for normalising.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 10);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 10, token).ConfigureAwait(false);
 
                 data = NormaliseData(variables, data);
 
@@ -438,12 +445,12 @@ namespace Jube.Engine.Exhaustive
                         $"for over sampling.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 11);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 11, token).ConfigureAwait(false);
 
                 DatasetSymmetry(data, outputs, out data, out outputs);
 
@@ -455,29 +462,29 @@ namespace Jube.Engine.Exhaustive
                         $"Dataset has a length of {outputs.Length} with {outputs.Sum()} class value of 1. Is about to store final training data.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 12);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 12, token).ConfigureAwait(false);
 
-                StoreData(dbContext, outputs, exhaustiveSearchInstance, data, cloneOfOutputsFromAnomaly);
+                await StoreDataAsync(dbContext, outputs, exhaustiveSearchInstance, data, cloneOfOutputsFromAnomaly, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
                     log.Info("Has stored final training data.  Updating status to 13 for correlation analysis.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 13);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 13, token).ConfigureAwait(false);
 
-                CalculateCorrelations(variables, data, outputs,
-                    repositoryExhaustiveSearchInstanceVariables);
+                await CalculateCorrelationsAsync(variables, data, outputs,
+                    repositoryExhaustiveSearchInstanceVariables, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
@@ -486,15 +493,15 @@ namespace Jube.Engine.Exhaustive
                         $"updating status to 14 for multi-co-linearity.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 14);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 14, token).ConfigureAwait(false);
 
-                variables = CalculateMulticollinearity(variables, data,
-                    repositoryExhaustiveSearchInstanceVariableMultiCollinearities);
+                variables = await CalculateMulticollinearityAsync(variables, data,
+                    repositoryExhaustiveSearchInstanceVariableMultiCollinearities, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
@@ -503,19 +510,19 @@ namespace Jube.Engine.Exhaustive
                         $"for {exhaustiveSearchInstance.Id} updating status to 15 for supervised learning.");
                 }
 
-                if (IsStoppingOrStopped(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id))
+                if (await IsStoppingOrStoppedOrCancelledAsync(repositoryExhaustiveSearchInstance, exhaustiveSearchInstance.Id, token).ConfigureAwait(false))
                 {
                     return false;
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 15);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 15, token).ConfigureAwait(false);
 
                 var supervised = new Supervised(environment, repositoryExhaustiveSearchInstance,
-                    exhaustiveSearchInstance.Id,
+                    exhaustiveSearchInstance.Id, jsonSerializationHelper,
                     seeded,
                     variables, data, outputs, dbContext, log);
 
-                if (await supervised.Train().ConfigureAwait(false))
+                if (await supervised.TrainAsync(token).ConfigureAwait(false))
                 {
                     if (log.IsInfoEnabled)
                     {
@@ -524,7 +531,7 @@ namespace Jube.Engine.Exhaustive
                             $"updating status to 16 for finished.");
                     }
 
-                    repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 16);
+                    await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 16, token).ConfigureAwait(false);
                 }
                 else
                 {
@@ -535,7 +542,7 @@ namespace Jube.Engine.Exhaustive
                             $"updating status to 19 for stopped.");
                     }
 
-                    repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 19);
+                    await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 19, token).ConfigureAwait(false);
                 }
             }
             else
@@ -547,29 +554,30 @@ namespace Jube.Engine.Exhaustive
                         $"which denotes a zero class count.");
                 }
 
-                repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstance.Id, 17);
+                await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstance.Id, 17, token).ConfigureAwait(false);
             }
 
-            repositoryExhaustiveSearchInstance.UpdateCompleted(exhaustiveSearchInstance.Id);
+            await repositoryExhaustiveSearchInstance.UpdateCompletedAsync(exhaustiveSearchInstance.Id, token).ConfigureAwait(false);
             return true;
         }
 
-        private bool IsStoppingOrStopped(ExhaustiveSearchInstanceRepository repositoryExhaustiveSearchInstance,
-            int exhaustiveSearchInstanceId)
+        private static async Task<bool> IsStoppingOrStoppedOrCancelledAsync(ExhaustiveSearchInstanceRepository repositoryExhaustiveSearchInstance,
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            if (repositoryExhaustiveSearchInstance.IsStoppingOrStopped(exhaustiveSearchInstanceId))
+            token.ThrowIfCancellationRequested();
+
+            if (await repositoryExhaustiveSearchInstance.IsStoppingOrStoppedAsync(exhaustiveSearchInstanceId, token).ConfigureAwait(false))
             {
                 return false;
             }
 
-            repositoryExhaustiveSearchInstance.UpdateStatus(exhaustiveSearchInstanceId, 19);
-            Stopped = true;
-            return Stopped;
+            await repositoryExhaustiveSearchInstance.UpdateStatusAsync(exhaustiveSearchInstanceId, 19, token).ConfigureAwait(false);
+            return true;
         }
 
-        private static void StoreData(DbContext dbContext, double[] outputs,
+        private static async Task StoreDataAsync(DbContext dbContext, double[] outputs,
             GetNextExhaustiveSearchInstanceQuery.Dto exhaustiveSearchInstance, double[][] data,
-            double[] cloneOfOutputsFromAnomaly)
+            double[] cloneOfOutputsFromAnomaly, CancellationToken token = default)
         {
             var exhaustiveSearchInstanceDataRepository = new ExhaustiveSearchInstanceDataRepository(dbContext);
             for (var i = 0; i < outputs.Length; i++)
@@ -581,12 +589,13 @@ namespace Jube.Engine.Exhaustive
                     Independent = data[i],
                     Anomaly = cloneOfOutputsFromAnomaly != null ? cloneOfOutputsFromAnomaly[i] : 0
                 };
-                exhaustiveSearchInstanceDataRepository.Insert(exhaustiveSearchInstanceData);
+
+                await exhaustiveSearchInstanceDataRepository.InsertAsync(exhaustiveSearchInstanceData, token).ConfigureAwait(false);
             }
         }
 
-        private void CalculateCorrelations(IReadOnlyDictionary<int, Variable> variables, double[][] data,
-            double[] outputs, ExhaustiveSearchInstanceVariableRepository repository)
+        private async Task CalculateCorrelationsAsync(Dictionary<int, Variable> variables, double[][] data,
+            double[] outputs, ExhaustiveSearchInstanceVariableRepository repository, CancellationToken token = default)
         {
             for (var i = 0; i < variables.Count - 1; i++)
             {
@@ -597,9 +606,7 @@ namespace Jube.Engine.Exhaustive
                 }
 
                 var independent = data.GetColumn(i);
-
-                var performance = new Performance();
-                variables[i].Correlation = performance.SpearmansCoeff(outputs, independent);
+                variables[i].Correlation = Performance.SpearmansCoeff(outputs, independent);
 
                 if (log.IsInfoEnabled)
                 {
@@ -624,8 +631,8 @@ namespace Jube.Engine.Exhaustive
                 log.Info(
                     $"Exhaustive Training: Ranked correlations.  Will proceed to store the correlation for Exhaustive Search Instance Variable Id {value.ExhaustiveSearchInstanceVariableId}.");
 
-                repository.UpdateCorrelation(value.ExhaustiveSearchInstanceVariableId,
-                    value.Correlation, variableSequence);
+                await repository.UpdateCorrelationAsync(value.ExhaustiveSearchInstanceVariableId,
+                    value.Correlation, variableSequence, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
@@ -637,7 +644,7 @@ namespace Jube.Engine.Exhaustive
             }
         }
 
-        private void DatasetSymmetry(IReadOnlyList<double[]> inData, double[] inOutputs, out double[][] outData,
+        private void DatasetSymmetry(double[][] inData, double[] inOutputs, out double[][] outData,
             out double[] outOutputs)
         {
             var countPositive = (int)inOutputs.Sum();
@@ -764,7 +771,7 @@ namespace Jube.Engine.Exhaustive
             return outputs;
         }
 
-        private double[][] NormaliseData(IReadOnlyDictionary<int, Variable> variables, double[][] data)
+        private double[][] NormaliseData(Dictionary<int, Variable> variables, double[][] data)
         {
             for (var i = 0; i < data.Length - 1; i++)
             {
@@ -825,10 +832,11 @@ namespace Jube.Engine.Exhaustive
             return value;
         }
 
-        private void CalculateStatistics(int exhaustiveSearchInstanceId, ref Dictionary<int, Variable> variables,
+        private async Task CalculateStatisticsAsync(int exhaustiveSearchInstanceId, Dictionary<int, Variable> variables,
             double[][] data,
             IGenericRepository repositoryVariables,
-            IGenericRepository repositoryHistogram
+            IGenericRepository repositoryHistogram,
+            CancellationToken token
         )
         {
             if (log.IsInfoEnabled)
@@ -1006,7 +1014,7 @@ namespace Jube.Engine.Exhaustive
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     numberOfBins = maxBins;
 
@@ -1131,7 +1139,7 @@ namespace Jube.Engine.Exhaustive
                     }
 
                     variables[i].ExhaustiveSearchInstanceVariableId =
-                        repositoryVariables.Insert(modelExhaustiveSearchInstanceVariable);
+                        await repositoryVariables.InsertAsync(modelExhaustiveSearchInstanceVariable, token).ConfigureAwait(false);
 
                     foreach (var histogramBin in histogram.Bins)
                     {
@@ -1151,7 +1159,7 @@ namespace Jube.Engine.Exhaustive
                                 $"Exhaustive Training: Exhaustive Search Instance Variable ID {modelExhaustiveSearchInstanceVariableClassification.Id} bin {binSequence} has start: {modelExhaustiveSearchInstanceVariableHistogram.BinRangeStart}, end {modelExhaustiveSearchInstanceVariableHistogram.BinRangeEnd} and frequency of {modelExhaustiveSearchInstanceVariableHistogram.Frequency}.");
                         }
 
-                        repositoryHistogram.Insert(modelExhaustiveSearchInstanceVariableHistogram);
+                        await repositoryHistogram.InsertAsync(modelExhaustiveSearchInstanceVariableHistogram, token).ConfigureAwait(false);
 
                         if (log.IsInfoEnabled)
                         {
@@ -1168,7 +1176,7 @@ namespace Jube.Engine.Exhaustive
                         = variables[i].ExhaustiveSearchInstanceVariableId;
 
                     var exhaustiveSearchInstanceVariableClassificationId =
-                        repositoryVariables.Insert(modelExhaustiveSearchInstanceVariableClassification);
+                        await repositoryVariables.InsertAsync(modelExhaustiveSearchInstanceVariableClassification, token).ConfigureAwait(false);
 
                     foreach (var histogramBin in histogram.Bins)
                     {
@@ -1189,7 +1197,7 @@ namespace Jube.Engine.Exhaustive
                                 $"Exhaustive Training: Exhaustive Search Instance Variable ID {modelExhaustiveSearchInstanceVariableClassification.Id} bin {binSequence} has start: {modelExhaustiveSearchInstanceVariableHistogram.BinRangeStart}, end {modelExhaustiveSearchInstanceVariableHistogram.BinRangeEnd} and frequency of {modelExhaustiveSearchInstanceVariableHistogram.Frequency}.");
                         }
 
-                        repositoryHistogram.Insert(modelExhaustiveSearchInstanceVariableHistogram);
+                        await repositoryHistogram.InsertAsync(modelExhaustiveSearchInstanceVariableHistogram, token).ConfigureAwait(false);
 
                         if (log.IsInfoEnabled)
                         {
@@ -1218,7 +1226,7 @@ namespace Jube.Engine.Exhaustive
                     };
 
                     var exhaustiveSearchInstanceVariableAnomalyId =
-                        repositoryVariables.Insert(modelExhaustiveSearchInstanceVariableAnomaly);
+                        await repositoryVariables.InsertAsync(modelExhaustiveSearchInstanceVariableAnomaly, token).ConfigureAwait(false);
 
                     foreach (var histogramBin in histogram.Bins)
                     {
@@ -1238,7 +1246,7 @@ namespace Jube.Engine.Exhaustive
                                 $"Exhaustive Training: Exhaustive Search Instance Variable ID {modelExhaustiveSearchInstanceVariableClassification.Id} bin {binSequence} has start: {modelExhaustiveSearchInstanceVariableHistogram.BinRangeStart}, end {modelExhaustiveSearchInstanceVariableHistogram.BinRangeEnd} and frequency of {modelExhaustiveSearchInstanceVariableHistogram.Frequency}.");
                         }
 
-                        repositoryHistogram.Insert(modelExhaustiveSearchInstanceVariableHistogram);
+                        await repositoryHistogram.InsertAsync(modelExhaustiveSearchInstanceVariableHistogram, token).ConfigureAwait(false);
 
                         if (log.IsInfoEnabled)
                         {
@@ -1252,8 +1260,8 @@ namespace Jube.Engine.Exhaustive
             }
         }
 
-        private Dictionary<int, Variable> CalculateMulticollinearity(Dictionary<int, Variable> variables, double[][] data,
-            ExhaustiveSearchInstanceVariableMultiColiniarityRepository repository)
+        private async Task<Dictionary<int, Variable>> CalculateMulticollinearityAsync(Dictionary<int, Variable> variables, double[][] data,
+            ExhaustiveSearchInstanceVariableMultiColiniarityRepository repository, CancellationToken token = default)
         {
             for (var i = 0; i < variables.Count - 1; i++)
             {
@@ -1274,8 +1282,7 @@ namespace Jube.Engine.Exhaustive
                                 $"Exhaustive Training: Exhaustive Search Instance Variable ID {variables[i].ExhaustiveSearchInstanceVariableId} will evaluate correlation against {variables[j].ExhaustiveSearchInstanceVariableId}.");
                         }
 
-                        var performance = new Performance();
-                        var correlation = performance.SpearmansCoeff(data.GetColumn(i), data.GetColumn(j));
+                        var correlation = Performance.SpearmansCoeff(data.GetColumn(i), data.GetColumn(j));
                         crossCorrelations.Add(j, correlation);
 
                         if (log.IsInfoEnabled)
@@ -1327,7 +1334,7 @@ namespace Jube.Engine.Exhaustive
                             $"Exhaustive Training: Exhaustive Search Instance Variable ID {variables[i].ExhaustiveSearchInstanceVariableId} will insert correlation for test key {variables[key].ExhaustiveSearchInstanceVariableId}.");
                     }
 
-                    repository.Insert(model);
+                    await repository.InsertAsync(model, token).ConfigureAwait(false);
 
                     if (log.IsInfoEnabled)
                     {
@@ -1348,7 +1355,7 @@ namespace Jube.Engine.Exhaustive
             return variables;
         }
 
-        private void LoadMockData(DbContext dbContext, int entityAnalysisModelId)
+        private async Task LoadMockDataAsync(DbContext dbContext, int entityAnalysisModelId, CancellationToken token = default)
         {
             var repository = new MockArchiveRepository(dbContext);
 
@@ -1357,7 +1364,7 @@ namespace Jube.Engine.Exhaustive
                 log.Info("Exhaustive Training: Will delete the MockArchive table for mock data.");
             }
 
-            repository.Delete();
+            await repository.DeleteAsync(token).ConfigureAwait(false);
 
             if (log.IsInfoEnabled)
             {
@@ -1393,7 +1400,7 @@ namespace Jube.Engine.Exhaustive
                             Tag = new PooledDictionary<string, double>(splitsString.Length),
                             Abstraction = new PooledDictionary<string, double>(splitsString.Length)
                         };
-                        
+
                         for (var i = 0; i < splitsString.Length - 1; i++)
                         {
                             splitsDouble[i] = Double.Parse(splitsString[i]);
@@ -1408,8 +1415,6 @@ namespace Jube.Engine.Exhaustive
                             }
                         }
 
-                        var json = new EntityAnalysisModelInstanceEntryPayloadJson();
-
                         var model = new MockArchive
                         {
                             EntityAnalysisModelId = entityAnalysisModelId,
@@ -1422,17 +1427,17 @@ namespace Jube.Engine.Exhaustive
                             EntityAnalysisModelInstanceEntryGuid = Guid.NewGuid()
                         };
 
-                        var sr = new StreamReader(json.BuildJson(row, contractResolver));
-                        model.Json = sr.ReadToEnd();
+                        var sr = new StreamReader(BuildJsonResponses.BuildJson(row, jsonSerializationHelper.ArchiveJsonSerializer));
+                        model.Json = await sr.ReadToEndAsync(token).ConfigureAwait(false);
 
-                        repository.Insert(model);
+                        await repository.InsertAsync(model, token).ConfigureAwait(false);
 
                         if (log.IsInfoEnabled)
                         {
                             log.Info($"Exhaustive Training:Found line {line} has been added to the array.");
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OperationCanceledException)
                     {
                         log.Error($"Exhaustive Training: Line {iRow} has caused an exception {ex}.");
                     }

@@ -16,35 +16,36 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class ExhaustiveSearchInstanceTrialInstanceVariableRepository(DbContext dbContext)
     {
-
-        public ExhaustiveSearchInstanceTrialInstanceVariable Insert(ExhaustiveSearchInstanceTrialInstanceVariable model)
+        public async Task<ExhaustiveSearchInstanceTrialInstanceVariable> InsertAsync(ExhaustiveSearchInstanceTrialInstanceVariable model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
 
-        public void DeleteAllByExhaustiveSearchInstanceTrialInstanceId(int id)
+        public Task DeleteAllByExhaustiveSearchInstanceTrialInstanceIdAsync(int id, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstanceTrialInstanceVariable
+            return dbContext.ExhaustiveSearchInstanceTrialInstanceVariable
                 .Where(w => w.ExhaustiveSearchInstanceTrialInstanceId == id)
-                .Delete();
+                .DeleteAsync(token);
         }
 
-        public void UpdateAsRemovedByExhaustiveSearchInstanceVariableId(int exhaustiveSearchInstanceVariableId,
-            int exhaustiveSearchInstanceTrialInstanceId)
+        public async Task UpdateAsRemovedByExhaustiveSearchInstanceVariableIdAsync(int exhaustiveSearchInstanceVariableId,
+            int exhaustiveSearchInstanceTrialInstanceId, CancellationToken token = default)
         {
-            var records = dbContext.ExhaustiveSearchInstanceTrialInstanceVariable
+            var records = await dbContext.ExhaustiveSearchInstanceTrialInstanceVariable
                 .Where(u =>
                     u.ExhaustiveSearchInstanceVariableId == exhaustiveSearchInstanceVariableId
                     && u.ExhaustiveSearchInstanceTrialInstanceId == exhaustiveSearchInstanceTrialInstanceId)
                 .Set(s => s.Removed, 1)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {
@@ -52,18 +53,18 @@ namespace Jube.Data.Repository
             }
         }
 
-        public IQueryable<ExhaustiveSearchInstanceTrialInstanceVariable>
-            GetByExhaustiveSearchInstanceTrialInstanceIdOrderById(
-                int exhaustiveSearchInstanceTrialInstanceId)
+        public async Task<IEnumerable<ExhaustiveSearchInstanceTrialInstanceVariable>>
+            GetByExhaustiveSearchInstanceTrialInstanceIdOrderByIdAsync(
+                int exhaustiveSearchInstanceTrialInstanceId, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstanceTrialInstanceVariable.Where(w =>
+            return await dbContext.ExhaustiveSearchInstanceTrialInstanceVariable.Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstanceId == exhaustiveSearchInstanceTrialInstanceId)
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token);
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstanceTrialInstanceVariable
+            return dbContext.ExhaustiveSearchInstanceTrialInstanceVariable
                 .Where(d =>
                     d.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance.EntityAnalysisModel
                         .TenantRegistryId == tenantRegistryIdOutsideOfInstance
@@ -71,7 +72,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

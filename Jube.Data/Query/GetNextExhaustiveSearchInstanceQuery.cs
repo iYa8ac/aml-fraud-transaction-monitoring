@@ -16,17 +16,19 @@ namespace Jube.Data.Query
     using System;
     using System.Data;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
 
     public class GetNextExhaustiveSearchInstanceQuery(DbContext dbContext)
     {
-        public Dto Execute()
+        public async Task<Dto> ExecuteAsync(CancellationToken token = default)
         {
-            dbContext.BeginTransaction(IsolationLevel.Serializable);
+            await dbContext.BeginTransactionAsync(IsolationLevel.Serializable, token).ConfigureAwait(false);
             try
             {
-                var query = dbContext.ExhaustiveSearchInstance
+                var query = await dbContext.ExhaustiveSearchInstance
                     .Where(w => w.StatusId == 0
                                 && (w.Deleted == 0 || w.Deleted == null))
                     .OrderBy(o => o.Id)
@@ -44,26 +46,26 @@ namespace Jube.Data.Query
                             Filter = s.Filter == 1
                         }
                     )
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync(token).ConfigureAwait(false);
 
                 if (query != null)
                 {
-                    dbContext.ExhaustiveSearchInstance
+                    await dbContext.ExhaustiveSearchInstance
                         .Where(d =>
                             d.Id ==
                             query.Id)
                         .Set(s => s.StatusId, Convert.ToByte(1))
                         .Set(s => s.UpdatedDate, DateTime.Now)
-                        .Update();
+                        .UpdateAsync(token).ConfigureAwait(false);
                 }
 
-                dbContext.CommitTransaction();
+                await dbContext.CommitTransactionAsync(token).ConfigureAwait(false);
 
                 return query;
             }
             catch
             {
-                dbContext.RollbackTransaction();
+                await dbContext.RollbackTransactionAsync(token).ConfigureAwait(false);
                 throw;
             }
         }

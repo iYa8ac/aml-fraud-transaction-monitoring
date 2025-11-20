@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -45,42 +47,42 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<CaseEvent> Get()
+        public async Task<IEnumerable<CaseEvent>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.CaseEvent.Where(w =>
+            return await dbContext.CaseEvent.Where(w =>
                 w.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
-                !tenantRegistryId.HasValue);
+                !tenantRegistryId.HasValue).ToListAsync(token);
         }
 
-        public IEnumerable<CaseFile> GetByCaseKeyValue(string key, string value)
+        public async Task<IEnumerable<CaseFile>> GetByCaseKeyValueAsync(string key, string value, CancellationToken token = default)
         {
-            return dbContext.CaseFile.Where(w
+            return await dbContext.CaseFile.Where(w
                     => (w.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                         !tenantRegistryId.HasValue)
                        && (w.Case.CaseWorkflow.EntityAnalysisModel.Deleted == 0 ||
                            w.Case.CaseWorkflow.EntityAnalysisModel.Deleted == null)
                        && w.CaseKey == key && w.CaseKeyValue == value && (w.Deleted == 0 || w.Deleted == null))
-                .OrderByDescending(o => o.Id);
+                .OrderByDescending(o => o.Id).ToListAsync(token);
         }
 
-        public CaseFile GetById(int id)
+        public Task<CaseFile> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.CaseFile.FirstOrDefault(w
+            return dbContext.CaseFile.FirstOrDefaultAsync(w
                 => (w.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                     !tenantRegistryId.HasValue)
-                   && w.Id == id && (w.Deleted == 0 || w.Deleted == null));
+                   && w.Id == id && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.CaseFile
+            var records = await dbContext.CaseFile
                 .Where(d => d.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && d.Id == id
                             && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {
@@ -88,11 +90,11 @@ namespace Jube.Data.Repository
             }
         }
 
-        public CaseFile Insert(CaseFile model)
+        public async Task<CaseFile> InsertAsync(CaseFile model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
     }

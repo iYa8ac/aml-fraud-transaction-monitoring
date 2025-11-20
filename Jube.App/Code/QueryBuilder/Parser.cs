@@ -16,38 +16,42 @@ namespace Jube.App.Code.QueryBuilder
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Data.Context;
     using Data.Query;
     using Data.Repository;
 
     public class Parser
     {
-        private readonly List<GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery.Dto> completionDto;
         public readonly List<Rule> Rules = new List<Rule>();
         public readonly List<object> Tokens = new List<object>();
+        private IEnumerable<GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery.Dto> completionDto;
         public string Sql;
 
-        public Parser(Rule rule, DbContext dbContext, Guid caseWorkflowGuid, string userName)
+        public static async Task<Parser> CreateAsync(Rule rule, DbContext dbContext, Guid caseWorkflowGuid, string userName, CancellationToken token = default)
         {
-            completionDto = GetCompletions(dbContext, caseWorkflowGuid, userName);
-            ExtractRule(rule);
+            var parser = new Parser();
+            parser.completionDto = await parser.GetCompletionsAsync(dbContext, caseWorkflowGuid, userName, token).ConfigureAwait(false);
+            parser.ExtractRule(rule);
+            return parser;
         }
 
-        private List<GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery.Dto> GetCompletions(DbContext dbContext,
-            Guid caseWorkflowGuid, string userName)
+        private async Task<IEnumerable<GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery.Dto>> GetCompletionsAsync(DbContext dbContext,
+            Guid caseWorkflowGuid, string userName, CancellationToken token = default)
         {
             var caseWorkflowRepository = new CaseWorkflowRepository(dbContext, userName);
 
             var entityAnalysisModelId =
-                caseWorkflowRepository.GetByGuidIncludingDeleted(caseWorkflowGuid).EntityAnalysisModelId;
+                (await caseWorkflowRepository.GetByGuidIncludingDeletedAsync(caseWorkflowGuid, token)).EntityAnalysisModelId;
 
             var getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
                 = new GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery(dbContext, userName);
 
             if (entityAnalysisModelId != null)
             {
-                return getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
-                    .Execute(entityAnalysisModelId.Value, 5, true).ToList();
+                return await getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
+                    .ExecuteAsync(entityAnalysisModelId.Value, 5, true, token).ConfigureAwait(false);
             }
 
             throw new Exception(

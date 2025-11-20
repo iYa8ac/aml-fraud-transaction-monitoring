@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Context;
     using LinqToDB;
@@ -46,40 +48,41 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<ExhaustiveSearchInstance> Get()
+        public async Task<IEnumerable<ExhaustiveSearchInstance>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstance
-                .Where(w => w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId);
+            return await dbContext.ExhaustiveSearchInstance
+                .Where(w => w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public IEnumerable<ExhaustiveSearchInstance> GetByEntityAnalysisModelIdOrderById(int entityAnalysisModelId)
+        public async Task<IEnumerable<ExhaustiveSearchInstance>> GetByEntityAnalysisModelIdOrderByIdAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstance.Where(w =>
+            return await dbContext.ExhaustiveSearchInstance.Where(w =>
                     (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && w.EntityAnalysisModelId == entityAnalysisModelId
                     && (w.Deleted == 0 || w.Deleted == null))
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public ExhaustiveSearchInstance GetById(int id)
+        public Task<ExhaustiveSearchInstance> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstance.FirstOrDefault(w =>
+            return dbContext.ExhaustiveSearchInstance.FirstOrDefaultAsync(w =>
                 (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
-                && w.Id == id && (w.Deleted == 0 || w.Deleted == null));
+                && w.Id == id && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public ExhaustiveSearchInstance Insert(ExhaustiveSearchInstance model)
+        public async Task<ExhaustiveSearchInstance> InsertAsync(ExhaustiveSearchInstance model, CancellationToken token = default)
         {
             model.CreatedUser = userName ?? model.CreatedUser;
             model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
             model.CreatedDate = DateTime.Now;
             model.UpdatedDate = DateTime.Now;
             model.Version = 1;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
+
             return model;
         }
 
-        public ExhaustiveSearchInstance Update(ExhaustiveSearchInstance model)
+        public async Task<ExhaustiveSearchInstance> UpdateAsync(ExhaustiveSearchInstance model, CancellationToken token = default)
         {
             var existing = dbContext.ExhaustiveSearchInstance
                 .FirstOrDefault(w => w.Id
@@ -101,26 +104,25 @@ namespace Jube.Data.Repository
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
 
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token).ConfigureAwait(false);
 
-            var config = new MapperConfiguration(cfg =>
+            var mapper = new Mapper(new MapperConfiguration(cfg =>
             {
                 cfg.CreateMap<ExhaustiveSearchInstance, ExhaustiveSearchInstanceVersion>();
-            });
-            var mapper = new Mapper(config);
+            }));
 
             var audit = mapper.Map<ExhaustiveSearchInstanceVersion>(existing);
             audit.ExhaustiveSearchInstanceId = existing.Id;
 
-            dbContext.Insert(audit);
+            await dbContext.InsertAsync(audit, token: token).ConfigureAwait(false);
 
             return model;
         }
 
 
-        public void Stop(Guid exhaustiveSearchInstanceGuid)
+        public Task StopAsync(Guid exhaustiveSearchInstanceGuid, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstance
+            return dbContext.ExhaustiveSearchInstance
                 .Where(d =>
                     (d.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && d.Guid == exhaustiveSearchInstanceGuid
@@ -128,27 +130,27 @@ namespace Jube.Data.Repository
                     && d.StatusId != 19)
                 .Set(s => s.UpdatedDate, DateTime.Now)
                 .Set(s => s.StatusId, (byte)18)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public bool IsStoppingOrStopped(int id)
+        public async Task<bool> IsStoppingOrStoppedAsync(int id, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstance.FirstOrDefault(w =>
+            return await dbContext.ExhaustiveSearchInstance.FirstOrDefaultAsync(w =>
                 (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                 && (w.StatusId == 18 || w.StatusId == 19)
-                && w.Id == id && (w.Deleted == 0 || w.Deleted == null)) == null;
+                && w.Id == id && (w.Deleted == 0 || w.Deleted == null), token).ConfigureAwait(false) == null;
         }
 
-        public void UpdateStatus(int id, byte statusId)
+        public async Task UpdateStatusAsync(int id, byte statusId, CancellationToken token = default)
         {
-            var records = dbContext.ExhaustiveSearchInstance
+            var records = await dbContext.ExhaustiveSearchInstance
                 .Where(d =>
                     (d.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && d.Id == id
                     && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.UpdatedDate, DateTime.Now)
                 .Set(s => s.StatusId, statusId)
-                .Update();
+                .UpdateAsync(token).ConfigureAwait(false);
 
             if (records == 0)
             {
@@ -156,16 +158,16 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void UpdateCompleted(int id)
+        public async Task UpdateCompletedAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.ExhaustiveSearchInstance
+            var records = await dbContext.ExhaustiveSearchInstance
                 .Where(d =>
                     (d.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && d.Id == id
                     && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.UpdatedDate, DateTime.Now)
                 .Set(s => s.CompletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token).ConfigureAwait(false);
 
             if (records == 0)
             {
@@ -173,16 +175,16 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void UpdateModels(int id, int models)
+        public async Task UpdateModelsAsync(int id, int models, CancellationToken token = default)
         {
-            var records = dbContext.ExhaustiveSearchInstance
+            var records = await dbContext.ExhaustiveSearchInstance
                 .Where(d =>
                     (d.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && d.Id == id
                     && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.Models, models)
                 .Set(s => s.UpdatedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token).ConfigureAwait(false);
 
             if (records == 0)
             {
@@ -190,16 +192,16 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void UpdateModelsSinceBest(int id, int modelsSinceBest)
+        public async Task UpdateModelsSinceBestAsync(int id, int modelsSinceBest, CancellationToken token = default)
         {
-            var records = dbContext.ExhaustiveSearchInstance
+            var records = await dbContext.ExhaustiveSearchInstance
                 .Where(d =>
                     (d.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && d.Id == id
                     && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.ModelsSinceBest, modelsSinceBest)
                 .Set(s => s.UpdatedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token).ConfigureAwait(false);
 
             if (records == 0)
             {
@@ -207,9 +209,9 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void UpdateBestScore(int id, double score, int topologyComplexity)
+        public async Task UpdateBestScoreAsync(int id, double score, int topologyComplexity, CancellationToken token = default)
         {
-            var records = dbContext.ExhaustiveSearchInstance
+            var records = await dbContext.ExhaustiveSearchInstance
                 .Where(d =>
                     (d.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && d.Id == id
@@ -217,7 +219,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.Score, score)
                 .Set(s => s.TopologyComplexity, topologyComplexity)
                 .Set(s => s.UpdatedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token).ConfigureAwait(false);
 
             if (records == 0)
             {
@@ -225,9 +227,9 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.ExhaustiveSearchInstance
+            var records = await dbContext.ExhaustiveSearchInstance
                 .Where(d =>
                     (d.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && d.Id == id
@@ -236,7 +238,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token).ConfigureAwait(false);
 
             if (records == 0)
             {
@@ -244,16 +246,16 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstance
+            return dbContext.ExhaustiveSearchInstance
                 .Where(d =>
                     d.EntityAnalysisModel.TenantRegistryId == tenantRegistryIdOutsideOfInstance
                     && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

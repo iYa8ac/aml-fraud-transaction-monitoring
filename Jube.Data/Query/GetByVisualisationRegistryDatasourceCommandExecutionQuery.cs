@@ -16,6 +16,7 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Context;
     using FluentMigrator.Runner;
@@ -28,12 +29,12 @@ namespace Jube.Data.Query
         string connectionString,
         string user)
     {
-        public async Task<dynamic> ExecuteAsync(int id, Dictionary<int, object> parametersById)
+        public async Task<dynamic> ExecuteAsync(int id, Dictionary<int, object> parametersById, CancellationToken token = default)
         {
             var values = new List<IDictionary<string, object>>();
             var visualisationRegistryDatasourceRepository =
                 new VisualisationRegistryDatasourceRepository(dbContext, user);
-            var visualisationRegistryDatasource = visualisationRegistryDatasourceRepository.GetById(id);
+            var visualisationRegistryDatasource = await visualisationRegistryDatasourceRepository.GetByIdAsync(id, token);
 
             var visualisationRegistryParameterRepository =
                 new VisualisationRegistryParameterRepository(dbContext, user);
@@ -44,8 +45,8 @@ namespace Jube.Data.Query
             }
 
             var visualisationRegistryParameter
-                = visualisationRegistryParameterRepository
-                    .GetByVisualisationRegistryIdOrderById(visualisationRegistryDatasource.VisualisationRegistryId.Value);
+                = await visualisationRegistryParameterRepository
+                    .GetByVisualisationRegistryIdOrderByIdAsync(visualisationRegistryDatasource.VisualisationRegistryId.Value, token);
 
             var parametersByName = visualisationRegistryParameter.ToDictionary(
                 parameter => parameter.Name.Replace(" ", "_"), parameter =>
@@ -61,7 +62,7 @@ namespace Jube.Data.Query
             {
                 var postgres = new Postgres(connectionString);
                 values = await postgres.ExecuteByNamedParametersAsync(visualisationRegistryDatasource.Command,
-                    parametersByName).ConfigureAwait(false);
+                    parametersByName, token).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -85,8 +86,8 @@ namespace Jube.Data.Query
                 = new VisualisationRegistryDatasourceExecutionLogRepository(dbContext);
 
             visualisationRegistryDatasourceExecutionLog =
-                visualisationRegistryDatasourceExecutionLogRepository.Insert(
-                    visualisationRegistryDatasourceExecutionLog);
+                await visualisationRegistryDatasourceExecutionLogRepository.InsertAsync(
+                    visualisationRegistryDatasourceExecutionLog, token);
 
             var visualisationRegistryDatasourceExecutionLogParameterRepository
                 = new VisualisationRegistryDatasourceExecutionLogParameterRepository(dbContext);
@@ -100,8 +101,8 @@ namespace Jube.Data.Query
                              VisualisationRegistryParameterId = parameter.Key
                          }))
             {
-                visualisationRegistryDatasourceExecutionLogParameterRepository
-                    .Insert(visualisationRegistryDatasourceExecutionLogParameter);
+                await visualisationRegistryDatasourceExecutionLogParameterRepository
+                    .InsertAsync(visualisationRegistryDatasourceExecutionLogParameter, token);
             }
 
             return values;

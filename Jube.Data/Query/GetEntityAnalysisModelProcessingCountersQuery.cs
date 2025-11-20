@@ -11,20 +11,23 @@
 * see <https://www.gnu.org/licenses/>.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Jube.Data.Context;
-
 namespace Jube.Data.Query
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Context;
+    using LinqToDB;
+
     public class GetEntityAnalysisModelProcessingCountersQuery(DbContext dbContext)
     {
-        public IEnumerable<Dto> Execute(int limit)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(int limit, CancellationToken token = default)
         {
-            var query = dbContext.EntityAnalysisModelProcessingCounter
-                .OrderByDescending(o => o.Id)
+            var query = await dbContext.EntityAnalysisModelProcessingCounter
                 .Take(limit)
+                .OrderByDescending(o => o.Id)
                 .Select(s => new Dto
                 {
                     Name = s.EntityAnalysisModel.Name,
@@ -39,7 +42,7 @@ namespace Jube.Data.Query
                     ResponseElevationValueLimit = s.ResponseElevationValueLimit,
                     ResponseElevationLimit = s.ResponseElevationLimit,
                     ResponseElevationValueGatewayLimit = s.ResponseElevationValueGatewayLimit
-                });
+                }).ToListAsync(token);
 
             return query;
         }

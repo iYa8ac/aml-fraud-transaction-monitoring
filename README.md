@@ -140,7 +140,7 @@ Copy and paste the full block of shell script above into the terminal. The Jube 
 
 ![Copy Paste Shell From GitHub](CopyPasteShellFromGitHub.png)
 
-The software will be built locally after it has been cloned (as there Jube is not available in Docker Hub, and is
+The software will be built locally after it has been cloned (Jube is not available in Docker Hub, and is
 instead built from source). Once the Jube Docker image has been built, Docker Compose will ensure that the remaining
 dependencies in the form of
 Postgres, RabbitMQ and Redis are available, and then orchestrate:

@@ -11,17 +11,19 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using Jube.Data.Context;
-using Jube.Data.Poco;
-using LinqToDB;
-
 namespace Jube.Data.Repository
 {
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Context;
+    using LinqToDB;
+    using Poco;
+
     public class EntityAnalysisModelProcessingCounterRepository(DbContext dbContext)
     {
-        public EntityAnalysisModelProcessingCounter Insert(EntityAnalysisModelProcessingCounter model)
+        public async Task<EntityAnalysisModelProcessingCounter> InsertAsync(EntityAnalysisModelProcessingCounter model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
     }

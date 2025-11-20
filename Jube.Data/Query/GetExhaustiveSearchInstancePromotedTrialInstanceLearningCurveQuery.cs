@@ -16,7 +16,10 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstancePromotedTrialInstanceLearningCurveQuery
     {
@@ -30,10 +33,10 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute(
-            int exhaustiveSearchInstanceId)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            return dbContext
+            return await dbContext
                 .ExhaustiveSearchInstancePromotedTrialInstance
                 .Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance.Id == exhaustiveSearchInstanceId
@@ -46,7 +49,7 @@ namespace Jube.Data.Query
                         Score = Math.Round(s.Score.Value, 2),
                         CreatedDate = s.CreatedDate.Value
                     }
-                );
+                ).ToListAsync(token);
         }
 
         public class Dto

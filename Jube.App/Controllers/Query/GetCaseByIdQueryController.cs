@@ -14,6 +14,8 @@
 namespace Jube.App.Controllers.Query
 {
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Poco;
@@ -68,7 +70,7 @@ namespace Jube.App.Controllers.Query
         }
 
         [HttpGet("{id:int}")]
-        public ActionResult<CaseQueryDto> Get(int id)
+        public async Task<ActionResult<CaseQueryDto>> GetAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -80,7 +82,7 @@ namespace Jube.App.Controllers.Query
                     return Forbid();
                 }
 
-                var queryResults = query.Execute(id);
+                var queryResults = await query.ExecuteAsync(id, token);
 
                 if (query == null)
                 {
@@ -95,7 +97,7 @@ namespace Jube.App.Controllers.Query
                     CaseKeyValue = queryResults.CaseKeyValue
                 };
 
-                repository.Insert(caseEvent);
+                await repository.InsertAsync(caseEvent, token).ConfigureAwait(false);
 
                 return Ok(queryResults);
 

@@ -13,7 +13,7 @@
     {
         private readonly string salt = salt ?? "";
 
-        public void Import(byte[] bytes, ImportExportOptions options)
+        public async Task ImportAsync(byte[] bytes, ImportExportOptions options, CancellationToken token = default)
         {
             var importRepository = new ImportRepository(dbContext, userName);
             var import = new Import
@@ -23,7 +23,7 @@
                 Guid = Guid.NewGuid()
             };
 
-            import = importRepository.Insert(import);
+            import = await importRepository.InsertAsync(import, token);
 
             try
             {
@@ -34,240 +34,240 @@
                     MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
                 var wrapper = MessagePackSerializer.Deserialize<Wrapper>(decryptedBytes, lz4Options);
 
-                dbContext.BeginTransaction();
+                await dbContext.BeginTransactionAsync(token).ConfigureAwait(false);
 
                 var entityAnalysisModelRepository = new EntityAnalysisModelRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelRequestXPathRepository =
                     new EntityAnalysisModelRequestXPathRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelRequestXPathRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelRequestXPathRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelInlineFunctionRepository =
                     new EntityAnalysisModelInlineFunctionRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelInlineFunctionRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelInlineFunctionRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelInlineScriptRepository =
                     new EntityAnalysisModelInlineScriptRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelInlineScriptRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelInlineScriptRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelGatewayRuleRepository =
                     new EntityAnalysisModelGatewayRuleRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelGatewayRuleRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelGatewayRuleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelSanctionRepository =
                     new EntityAnalysisModelSanctionRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelSanctionRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelSanctionRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelTagRepository =
                     new EntityAnalysisModelTagRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelTagRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelTagRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelTtlCounterRepository =
                     new EntityAnalysisModelTtlCounterRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelTtlCounterRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelTtlCounterRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelAbstractionRuleRepository =
                     new EntityAnalysisModelAbstractionRuleRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelAbstractionRuleRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelAbstractionRuleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelAbstractionCalculationRepository =
                     new EntityAnalysisModelAbstractionCalculationRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelAbstractionCalculationRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId,
-                    import.Id);
+                await entityAnalysisModelAbstractionCalculationRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId,
+                    import.Id, token);
 
                 var entityAnalysisModelHttpAdaptationRepository =
                     new EntityAnalysisModelHttpAdaptationRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelHttpAdaptationRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelHttpAdaptationRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelActivationRuleRepository =
                     new EntityAnalysisModelActivationRuleRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelActivationRuleRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelActivationRuleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var caseWorkflowRepository = new CaseWorkflowRepository(dbContext, import.TenantRegistryId);
-                caseWorkflowRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await caseWorkflowRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var caseWorkflowXPathRepository = new CaseWorkflowXPathRepository(dbContext, import.TenantRegistryId);
-                caseWorkflowXPathRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await caseWorkflowXPathRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var caseWorkflowStatusRepository = new CaseWorkflowStatusRepository(dbContext, import.TenantRegistryId);
-                caseWorkflowStatusRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await caseWorkflowStatusRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var caseWorkflowFormRepository = new CaseWorkflowFormRepository(dbContext, import.TenantRegistryId);
-                caseWorkflowFormRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await caseWorkflowFormRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var caseWorkflowActionRepository = new CaseWorkflowActionRepository(dbContext, import.TenantRegistryId);
-                caseWorkflowActionRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await caseWorkflowActionRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var caseWorkflowDisplayRepository = new CaseWorkflowDisplayRepository(dbContext, import.TenantRegistryId);
-                caseWorkflowDisplayRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await caseWorkflowDisplayRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var caseWorkflowMacro = new CaseWorkflowMacroRepository(dbContext, import.TenantRegistryId);
-                caseWorkflowMacro.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await caseWorkflowMacro.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var caseWorkflowFilterRepository = new CaseWorkflowFilterRepository(dbContext, import.TenantRegistryId);
-                caseWorkflowFilterRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await caseWorkflowFilterRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelSuppressionRepository =
                     new EntityAnalysisModelSuppressionRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelSuppressionRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId,
-                    import.Id);
+                await entityAnalysisModelSuppressionRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId,
+                    import.Id, token);
 
                 var entityAnalysisModelActivationRuleSuppressionRepository =
                     new EntityAnalysisModelActivationRuleSuppressionRepository(dbContext,
                         import.TenantRegistryId);
-                entityAnalysisModelActivationRuleSuppressionRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await entityAnalysisModelActivationRuleSuppressionRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token);
 
                 var exhaustiveSearchInstanceRepository =
                     new ExhaustiveSearchInstanceRepository(dbContext, import.TenantRegistryId);
-                exhaustiveSearchInstanceRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await exhaustiveSearchInstanceRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceDataRepository =
                     new ExhaustiveSearchInstanceDataRepository(dbContext);
-                exhaustiveSearchInstanceDataRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId,
-                    import.Id);
+                await exhaustiveSearchInstanceDataRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId,
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceTrialInstanceRepository =
                     new ExhaustiveSearchInstanceTrialInstanceRepository(dbContext);
-                exhaustiveSearchInstanceTrialInstanceRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstanceTrialInstanceRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceVariableRepository =
                     new ExhaustiveSearchInstanceVariableRepository(dbContext);
-                exhaustiveSearchInstanceVariableRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId,
-                    import.Id);
+                await exhaustiveSearchInstanceVariableRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId,
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceTrialInstanceVariableRepository =
                     new ExhaustiveSearchInstanceTrialInstanceVariableRepository(dbContext);
-                exhaustiveSearchInstanceTrialInstanceVariableRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstanceTrialInstanceVariableRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token);
 
                 var exhaustiveSearchInstancePromotedTrialInstanceRepository =
                     new ExhaustiveSearchInstancePromotedTrialInstanceRepository(dbContext,
                         import.TenantRegistryId);
-                exhaustiveSearchInstancePromotedTrialInstanceRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstancePromotedTrialInstanceRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository =
                     new ExhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository(dbContext);
-                exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository.DeleteByTenantRegistryIdOutsideOfInstance(
-                    import.TenantRegistryId, import.Id);
+                await exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
+                    import.TenantRegistryId, import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstancePromotedTrialInstanceRocRepository =
                     new ExhaustiveSearchInstancePromotedTrialInstanceRocRepository(dbContext);
-                exhaustiveSearchInstancePromotedTrialInstanceRocRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstancePromotedTrialInstanceRocRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token);
 
                 var exhaustiveSearchInstanceTrialInstanceTopologyTrialRepository =
                     new ExhaustiveSearchInstanceTrialInstanceTopologyTrialRepository(dbContext);
-                exhaustiveSearchInstanceTrialInstanceTopologyTrialRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstanceTrialInstanceTopologyTrialRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceTrialInstanceSensitivityRepository =
                     new ExhaustiveSearchInstanceTrialInstanceSensitivityRepository(dbContext);
-                exhaustiveSearchInstanceTrialInstanceSensitivityRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstanceTrialInstanceSensitivityRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository =
                     new ExhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository(dbContext);
-                exhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository.DeleteByTenantRegistryIdOutsideOfInstance(
-                    import.TenantRegistryId, import.Id);
+                await exhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
+                    import.TenantRegistryId, import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository =
                     new ExhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository(dbContext);
-                exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository.DeleteByTenantRegistryIdOutsideOfInstance(
-                    import.TenantRegistryId, import.Id);
+                await exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
+                    import.TenantRegistryId, import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstancePromotedTrialInstanceVariableRepository =
                     new ExhaustiveSearchInstancePromotedTrialInstanceVariableRepository(dbContext);
-                exhaustiveSearchInstancePromotedTrialInstanceVariableRepository.DeleteByTenantRegistryIdOutsideOfInstance(
-                    import.TenantRegistryId, import.Id);
+                await exhaustiveSearchInstancePromotedTrialInstanceVariableRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
+                    import.TenantRegistryId, import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceVariableAnomalyRepository =
                     new ExhaustiveSearchInstanceVariableAnomalyRepository(dbContext);
-                exhaustiveSearchInstanceVariableAnomalyRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstanceVariableAnomalyRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceVariableClassificationRepository =
                     new ExhaustiveSearchInstanceVariableClassificationRepository(dbContext);
-                exhaustiveSearchInstanceVariableClassificationRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstanceVariableClassificationRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceVariableHistogramRepository =
                     new ExhaustiveSearchInstanceVariableHistogramRepository(dbContext);
-                exhaustiveSearchInstanceVariableHistogramRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstanceVariableHistogramRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceVariableHistogramClassificationRepository =
                     new ExhaustiveSearchInstanceVariableHistogramClassificationRepository(dbContext);
-                exhaustiveSearchInstanceVariableHistogramClassificationRepository.DeleteByTenantRegistryIdOutsideOfInstance(
-                    import.TenantRegistryId, import.Id);
+                await exhaustiveSearchInstanceVariableHistogramClassificationRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
+                    import.TenantRegistryId, import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceVariableHistogramAnomalyRepository =
                     new ExhaustiveSearchInstanceVariableHistogramAnomalyRepository(dbContext);
-                exhaustiveSearchInstanceVariableHistogramAnomalyRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstanceVariableHistogramAnomalyRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token).ConfigureAwait(false);
 
                 var exhaustiveSearchInstanceVariableMulticollinearityRepository =
                     new ExhaustiveSearchInstanceVariableMultiColiniarityRepository(dbContext);
-                exhaustiveSearchInstanceVariableMulticollinearityRepository.DeleteByTenantRegistryIdOutsideOfInstance(
+                await exhaustiveSearchInstanceVariableMulticollinearityRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(
                     import.TenantRegistryId,
-                    import.Id);
+                    import.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelListRepository =
                     new EntityAnalysisModelListRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelListRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await entityAnalysisModelListRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var entityAnalysisModelListValueRepository =
                     new EntityAnalysisModelListValueRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelListValueRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId,
-                    import.Id);
+                await entityAnalysisModelListValueRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId,
+                    import.Id, token);
 
                 var entityAnalysisModelDictionaryRepository =
                     new EntityAnalysisModelDictionaryRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelDictionaryRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId,
-                    import.Id);
+                await entityAnalysisModelDictionaryRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId,
+                    import.Id, token);
 
                 var entityAnalysisModelDictionaryKvpRepository =
                     new EntityAnalysisModelDictionaryKvpRepository(dbContext, import.TenantRegistryId);
-                entityAnalysisModelDictionaryKvpRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId,
-                    import.Id);
+                await entityAnalysisModelDictionaryKvpRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId,
+                    import.Id, token);
 
                 var visualisationRegistryRepository =
                     new VisualisationRegistryRepository(dbContext, import.TenantRegistryId);
-                visualisationRegistryRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await visualisationRegistryRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var visualisationRegistryDatasourceRepository =
                     new VisualisationRegistryDatasourceRepository(dbContext, import.TenantRegistryId);
-                visualisationRegistryDatasourceRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await visualisationRegistryDatasourceRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 var visualisationRegistryParameterRepository =
                     new VisualisationRegistryParameterRepository(dbContext, import.TenantRegistryId);
-                visualisationRegistryParameterRepository.DeleteByTenantRegistryIdOutsideOfInstance(import.TenantRegistryId, import.Id);
+                await visualisationRegistryParameterRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 if (wrapper.Payload?.EntityAnalysisModel != null)
                 {
                     foreach (var oldEntityAnalysisModel in wrapper.Payload.EntityAnalysisModel)
                     {
-                        var newEntityAnalysisModel = entityAnalysisModelRepository.Insert(oldEntityAnalysisModel);
+                        var newEntityAnalysisModel = await entityAnalysisModelRepository.InsertAsync(oldEntityAnalysisModel, token);
 
                         foreach (var entityAnalysisModelRequestXpath in oldEntityAnalysisModel
                                      .EntityAnalysisModelRequestXpath)
                         {
                             entityAnalysisModelRequestXpath.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelRequestXPathRepository.Insert(entityAnalysisModelRequestXpath);
+                            await entityAnalysisModelRequestXPathRepository.InsertAsync(entityAnalysisModelRequestXpath, token);
                         }
 
                         if (options.Suppressions)
@@ -275,14 +275,14 @@
                             foreach (var entityAnalysisModelSuppression in oldEntityAnalysisModel
                                          .EntityAnalysisModelSuppression)
                             {
-                                entityAnalysisModelSuppressionRepository.Insert(entityAnalysisModelSuppression);
+                                await entityAnalysisModelSuppressionRepository.InsertAsync(entityAnalysisModelSuppression, token);
                             }
 
                             foreach (var entityAnalysisModelActivationRuleSuppression in oldEntityAnalysisModel
                                          .EntityAnalysisModelActivationRuleSuppression)
                             {
-                                entityAnalysisModelActivationRuleSuppressionRepository.Insert(
-                                    entityAnalysisModelActivationRuleSuppression);
+                                await entityAnalysisModelActivationRuleSuppressionRepository.InsertAsync(
+                                    entityAnalysisModelActivationRuleSuppression, token);
                             }
                         }
 
@@ -290,49 +290,49 @@
                                      .EntityAnalysisModelInlineFunction)
                         {
                             entityAnalysisModelInlineFunction.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelInlineFunctionRepository.Insert(entityAnalysisModelInlineFunction);
+                            await entityAnalysisModelInlineFunctionRepository.InsertAsync(entityAnalysisModelInlineFunction, token);
                         }
 
                         foreach (var entityAnalysisModelInlineScript in oldEntityAnalysisModel
                                      .EntityAnalysisModelInlineScript)
                         {
                             entityAnalysisModelInlineScript.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelInlineScriptRepository.Insert(entityAnalysisModelInlineScript);
+                            await entityAnalysisModelInlineScriptRepository.InsertAsync(entityAnalysisModelInlineScript, token);
                         }
 
                         foreach (var entityAnalysisModelGatewayRule in oldEntityAnalysisModel
                                      .EntityAnalysisModelGatewayRule)
                         {
                             entityAnalysisModelGatewayRule.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelGatewayRuleRepository.Insert(entityAnalysisModelGatewayRule);
+                            await entityAnalysisModelGatewayRuleRepository.InsertAsync(entityAnalysisModelGatewayRule, token);
                         }
 
                         foreach (var entityAnalysisModelSanction in oldEntityAnalysisModel
                                      .EntityAnalysisModelSanction)
                         {
                             entityAnalysisModelSanction.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelSanctionRepository.Insert(entityAnalysisModelSanction);
+                            await entityAnalysisModelSanctionRepository.InsertAsync(entityAnalysisModelSanction, token);
                         }
 
                         foreach (var entityAnalysisModelTag in oldEntityAnalysisModel
                                      .EntityAnalysisModelTag)
                         {
                             entityAnalysisModelTag.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelTagRepository.Insert(entityAnalysisModelTag);
+                            await entityAnalysisModelTagRepository.InsertAsync(entityAnalysisModelTag, token);
                         }
 
                         foreach (var entityAnalysisModelTtlCounter in oldEntityAnalysisModel
                                      .EntityAnalysisModelTtlCounter)
                         {
                             entityAnalysisModelTtlCounter.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelTtlCounterRepository.Insert(entityAnalysisModelTtlCounter);
+                            await entityAnalysisModelTtlCounterRepository.InsertAsync(entityAnalysisModelTtlCounter, token);
                         }
 
                         foreach (var entityAnalysisModelAbstractionRule in oldEntityAnalysisModel
                                      .EntityAnalysisModelAbstractionRule)
                         {
                             entityAnalysisModelAbstractionRule.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelAbstractionRuleRepository.Insert(entityAnalysisModelAbstractionRule);
+                            await entityAnalysisModelAbstractionRuleRepository.InsertAsync(entityAnalysisModelAbstractionRule, token);
                         }
 
                         foreach (var entityAnalysisModelAbstractionCalculations in oldEntityAnalysisModel
@@ -340,15 +340,15 @@
                         {
                             entityAnalysisModelAbstractionCalculations.EntityAnalysisModelId =
                                 newEntityAnalysisModel.Id;
-                            entityAnalysisModelAbstractionCalculationRepository.Insert(
-                                entityAnalysisModelAbstractionCalculations);
+                            await entityAnalysisModelAbstractionCalculationRepository.InsertAsync(
+                                entityAnalysisModelAbstractionCalculations, token);
                         }
 
                         foreach (var entityAnalysisModelHttpAdaptation in oldEntityAnalysisModel
                                      .EntityAnalysisModelHttpAdaptation)
                         {
                             entityAnalysisModelHttpAdaptation.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelHttpAdaptationRepository.Insert(entityAnalysisModelHttpAdaptation);
+                            await entityAnalysisModelHttpAdaptationRepository.InsertAsync(entityAnalysisModelHttpAdaptation, token);
                         }
 
                         if (options.Exhaustive)
@@ -359,8 +359,8 @@
                                 entityAnalysisModelExhaustiveSearchInstance.EntityAnalysisModelId =
                                     newEntityAnalysisModel.Id;
 
-                                var entityAnalysisModelExhaustiveSearchInstanceId = exhaustiveSearchInstanceRepository
-                                    .Insert(entityAnalysisModelExhaustiveSearchInstance).Id;
+                                var entityAnalysisModelExhaustiveSearchInstanceId = (await exhaustiveSearchInstanceRepository
+                                    .InsertAsync(entityAnalysisModelExhaustiveSearchInstance, token).ConfigureAwait(false)).Id;
 
                                 foreach (var exhaustiveSearchInstanceData in entityAnalysisModelExhaustiveSearchInstance
                                              .ExhaustiveSearchInstanceData)
@@ -368,8 +368,8 @@
                                     exhaustiveSearchInstanceData.ExhaustiveSearchInstanceId =
                                         entityAnalysisModelExhaustiveSearchInstanceId;
 
-                                    exhaustiveSearchInstanceDataRepository.Insert(
-                                        exhaustiveSearchInstanceData);
+                                    await exhaustiveSearchInstanceDataRepository.InsertAsync(
+                                        exhaustiveSearchInstanceData, token).ConfigureAwait(false);
                                 }
 
                                 foreach (var exhaustiveSearchInstanceTrialInstance in
@@ -380,8 +380,8 @@
                                         entityAnalysisModelExhaustiveSearchInstanceId;
 
                                     var exhaustiveSearchInstanceTrialInstanceId =
-                                        exhaustiveSearchInstanceTrialInstanceRepository.Insert(
-                                            exhaustiveSearchInstanceTrialInstance).Id;
+                                        (await exhaustiveSearchInstanceTrialInstanceRepository.InsertAsync(
+                                            exhaustiveSearchInstanceTrialInstance, token).ConfigureAwait(false)).Id;
 
                                     foreach (var exhaustiveSearchInstanceTrialInstanceVariable in
                                              exhaustiveSearchInstanceTrialInstance
@@ -392,8 +392,8 @@
                                             exhaustiveSearchInstanceTrialInstanceId;
 
                                         var exhaustiveSearchInstanceTrialInstanceVariableId =
-                                            exhaustiveSearchInstanceTrialInstanceVariableRepository.Insert(
-                                                exhaustiveSearchInstanceTrialInstanceVariable).Id;
+                                            (await exhaustiveSearchInstanceTrialInstanceVariableRepository.InsertAsync(
+                                                exhaustiveSearchInstanceTrialInstanceVariable, token).ConfigureAwait(false)).Id;
 
                                         foreach (var exhaustiveSearchInstancePromotedTrialInstanceSensitivity in
                                                  exhaustiveSearchInstanceTrialInstanceVariable
@@ -403,8 +403,8 @@
                                                     .ExhaustiveSearchInstanceTrialInstanceVariableId =
                                                 exhaustiveSearchInstanceTrialInstanceVariableId;
 
-                                            exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository.Insert(
-                                                exhaustiveSearchInstancePromotedTrialInstanceSensitivity);
+                                            await exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository.InsertAsync(
+                                                exhaustiveSearchInstancePromotedTrialInstanceSensitivity, token).ConfigureAwait(false);
                                         }
 
                                         foreach (var exhaustiveSearchInstancePromotedTrialInstanceVariable in
@@ -415,8 +415,8 @@
                                                     .ExhaustiveSearchInstanceTrialInstanceVariableId =
                                                 exhaustiveSearchInstanceTrialInstanceVariableId;
 
-                                            exhaustiveSearchInstancePromotedTrialInstanceVariableRepository.Insert(
-                                                exhaustiveSearchInstancePromotedTrialInstanceVariable);
+                                            await exhaustiveSearchInstancePromotedTrialInstanceVariableRepository.InsertAsync(
+                                                exhaustiveSearchInstancePromotedTrialInstanceVariable, token).ConfigureAwait(false);
                                         }
                                     }
 
@@ -428,8 +428,8 @@
                                                 .ExhaustiveSearchInstanceTrialInstanceId =
                                             exhaustiveSearchInstanceTrialInstanceId;
 
-                                        exhaustiveSearchInstancePromotedTrialInstanceRepository.Insert(
-                                            exhaustiveSearchInstancePromotedTrialInstance);
+                                        await exhaustiveSearchInstancePromotedTrialInstanceRepository.InsertAsync(
+                                            exhaustiveSearchInstancePromotedTrialInstance, token).ConfigureAwait(false);
                                     }
 
                                     foreach (var exhaustiveSearchInstancePromotedTrialInstancePredictedActual in
@@ -440,8 +440,8 @@
                                                 .ExhaustiveSearchInstanceTrialInstanceId =
                                             exhaustiveSearchInstanceTrialInstanceId;
 
-                                        exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository.Insert(
-                                            exhaustiveSearchInstancePromotedTrialInstancePredictedActual);
+                                        await exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository.InsertAsync(
+                                            exhaustiveSearchInstancePromotedTrialInstancePredictedActual, token).ConfigureAwait(false);
                                     }
 
                                     foreach (var exhaustiveSearchInstancePromotedTrialInstanceRoc in
@@ -452,8 +452,8 @@
                                                 .ExhaustiveSearchInstanceTrialInstanceId =
                                             exhaustiveSearchInstanceTrialInstanceId;
 
-                                        exhaustiveSearchInstancePromotedTrialInstanceRocRepository.Insert(
-                                            exhaustiveSearchInstancePromotedTrialInstanceRoc);
+                                        await exhaustiveSearchInstancePromotedTrialInstanceRocRepository.InsertAsync(
+                                            exhaustiveSearchInstancePromotedTrialInstanceRoc, token).ConfigureAwait(false);
                                     }
 
                                     foreach (var exhaustiveSearchInstanceTrialInstanceTopologyTrial in
@@ -464,8 +464,8 @@
                                                 .ExhaustiveSearchInstanceTrialInstanceId =
                                             exhaustiveSearchInstanceTrialInstanceId;
 
-                                        exhaustiveSearchInstanceTrialInstanceTopologyTrialRepository.Insert(
-                                            exhaustiveSearchInstanceTrialInstanceTopologyTrial);
+                                        await exhaustiveSearchInstanceTrialInstanceTopologyTrialRepository.InsertAsync(
+                                            exhaustiveSearchInstanceTrialInstanceTopologyTrial, token).ConfigureAwait(false);
                                     }
 
                                     foreach (var exhaustiveSearchInstanceTrialInstanceSensitivity in
@@ -476,8 +476,8 @@
                                                 .ExhaustiveSearchInstanceTrialInstanceId =
                                             exhaustiveSearchInstanceTrialInstanceId;
 
-                                        exhaustiveSearchInstanceTrialInstanceSensitivityRepository.Insert(
-                                            exhaustiveSearchInstanceTrialInstanceSensitivity);
+                                        await exhaustiveSearchInstanceTrialInstanceSensitivityRepository.InsertAsync(
+                                            exhaustiveSearchInstanceTrialInstanceSensitivity, token).ConfigureAwait(false);
                                     }
 
                                     foreach (var exhaustiveSearchInstanceTrialInstanceActivationFunctionTrial in
@@ -488,8 +488,8 @@
                                                 .ExhaustiveSearchInstanceTrialInstanceId =
                                             exhaustiveSearchInstanceTrialInstanceId;
 
-                                        exhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository.Insert(
-                                            exhaustiveSearchInstanceTrialInstanceActivationFunctionTrial);
+                                        await exhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository.InsertAsync(
+                                            exhaustiveSearchInstanceTrialInstanceActivationFunctionTrial, token).ConfigureAwait(false);
                                     }
                                 }
 
@@ -501,8 +501,8 @@
                                         entityAnalysisModelExhaustiveSearchInstanceId;
 
                                     var exhaustiveSearchInstanceVariableId =
-                                        exhaustiveSearchInstanceVariableRepository.Insert(
-                                            exhaustiveSearchInstanceVariable);
+                                        await exhaustiveSearchInstanceVariableRepository.InsertAsync(
+                                            exhaustiveSearchInstanceVariable, token).ConfigureAwait(false);
 
                                     foreach (var exhaustiveSearchInstanceVariableHistogram in
                                              exhaustiveSearchInstanceVariable.ExhaustiveSearchInstanceVariableHistogram)
@@ -510,8 +510,8 @@
                                         exhaustiveSearchInstanceVariableHistogram.ExhaustiveSearchInstanceVariableId =
                                             exhaustiveSearchInstanceVariableId;
 
-                                        exhaustiveSearchInstanceVariableHistogramRepository.Insert(
-                                            exhaustiveSearchInstanceVariableHistogram);
+                                        await exhaustiveSearchInstanceVariableHistogramRepository.InsertAsync(
+                                            exhaustiveSearchInstanceVariableHistogram, token).ConfigureAwait(false);
                                     }
 
                                     foreach (var exhaustiveSearchInstanceVariableAnomaly in
@@ -522,8 +522,8 @@
                                             exhaustiveSearchInstanceVariableId;
 
                                         var exhaustiveSearchInstanceVariableAnomalyId =
-                                            exhaustiveSearchInstanceVariableAnomalyRepository.Insert(
-                                                exhaustiveSearchInstanceVariableAnomaly);
+                                            await exhaustiveSearchInstanceVariableAnomalyRepository.InsertAsync(
+                                                exhaustiveSearchInstanceVariableAnomaly, token).ConfigureAwait(false);
 
                                         foreach (var exhaustiveSearchInstanceVariableHistogramAnomaly in
                                                  exhaustiveSearchInstanceVariable
@@ -533,8 +533,8 @@
                                                     .ExhaustiveSearchInstanceVariableAnomalyId =
                                                 exhaustiveSearchInstanceVariableAnomalyId;
 
-                                            exhaustiveSearchInstanceVariableHistogramAnomalyRepository.Insert(
-                                                exhaustiveSearchInstanceVariableHistogramAnomaly);
+                                            await exhaustiveSearchInstanceVariableHistogramAnomalyRepository.InsertAsync(
+                                                exhaustiveSearchInstanceVariableHistogramAnomaly, token).ConfigureAwait(false);
                                         }
                                     }
 
@@ -547,8 +547,8 @@
                                             exhaustiveSearchInstanceVariableId;
 
                                         var exhaustiveSearchInstanceVariableClassificationId =
-                                            exhaustiveSearchInstanceVariableClassificationRepository.Insert(
-                                                exhaustiveSearchInstanceVariableClassification);
+                                            await exhaustiveSearchInstanceVariableClassificationRepository.InsertAsync(
+                                                exhaustiveSearchInstanceVariableClassification, token).ConfigureAwait(false);
 
                                         foreach (var exhaustiveSearchInstanceVariableHistogramClassification in
                                                  exhaustiveSearchInstanceVariable
@@ -558,8 +558,8 @@
                                                     .ExhaustiveSearchInstanceVariableClassificationId =
                                                 exhaustiveSearchInstanceVariableClassificationId;
 
-                                            exhaustiveSearchInstanceVariableHistogramClassificationRepository.Insert(
-                                                exhaustiveSearchInstanceVariableHistogramClassification);
+                                            await exhaustiveSearchInstanceVariableHistogramClassificationRepository.InsertAsync(
+                                                exhaustiveSearchInstanceVariableHistogramClassification, token).ConfigureAwait(false);
                                         }
                                     }
 
@@ -571,8 +571,8 @@
                                                 .ExhaustiveSearchInstanceVariableId =
                                             exhaustiveSearchInstanceVariableId;
 
-                                        exhaustiveSearchInstanceVariableMulticollinearityRepository.Insert(
-                                            exhaustiveSearchInstanceVariableMultiCollinearity);
+                                        await exhaustiveSearchInstanceVariableMulticollinearityRepository.InsertAsync(
+                                            exhaustiveSearchInstanceVariableMultiCollinearity, token).ConfigureAwait(false);
                                     }
                                 }
                             }
@@ -582,7 +582,7 @@
                                      .EntityAnalysisModelActivationRule)
                         {
                             entityAnalysisModelActivationRule.EntityAnalysisModelId = newEntityAnalysisModel.Id;
-                            entityAnalysisModelActivationRuleRepository.Insert(entityAnalysisModelActivationRule);
+                            await entityAnalysisModelActivationRuleRepository.InsertAsync(entityAnalysisModelActivationRule, token);
                         }
 
                         foreach (var oldEntityAnalysisModelCaseWorkflow in oldEntityAnalysisModel
@@ -590,55 +590,55 @@
                         {
                             oldEntityAnalysisModelCaseWorkflow.EntityAnalysisModelId = newEntityAnalysisModel.Id;
                             var entityAnalysisModelCaseWorkflowId =
-                                caseWorkflowRepository.Insert(oldEntityAnalysisModelCaseWorkflow).Id;
+                                (await caseWorkflowRepository.InsertAsync(oldEntityAnalysisModelCaseWorkflow, token)).Id;
 
                             foreach (var oldCaseWorkflowsXPath in oldEntityAnalysisModelCaseWorkflow
                                          .CaseWorkflowXPath)
                             {
                                 oldCaseWorkflowsXPath.CaseWorkflowId = entityAnalysisModelCaseWorkflowId;
-                                caseWorkflowXPathRepository.Insert(oldCaseWorkflowsXPath);
+                                await caseWorkflowXPathRepository.InsertAsync(oldCaseWorkflowsXPath, token);
                             }
 
                             foreach (var oldCaseWorkflowsAction in oldEntityAnalysisModelCaseWorkflow
                                          .CaseWorkflowAction)
                             {
                                 oldCaseWorkflowsAction.CaseWorkflowId = entityAnalysisModelCaseWorkflowId;
-                                caseWorkflowActionRepository.Insert(oldCaseWorkflowsAction);
+                                await caseWorkflowActionRepository.InsertAsync(oldCaseWorkflowsAction, token);
                             }
 
                             foreach (var oldCaseWorkflowsDisplay in oldEntityAnalysisModelCaseWorkflow
                                          .CaseWorkflowDisplay)
                             {
                                 oldCaseWorkflowsDisplay.CaseWorkflowId = entityAnalysisModelCaseWorkflowId;
-                                caseWorkflowDisplayRepository.Insert(oldCaseWorkflowsDisplay);
+                                await caseWorkflowDisplayRepository.InsertAsync(oldCaseWorkflowsDisplay, token).ConfigureAwait(false);
                             }
 
                             foreach (var oldCaseWorkflowsForm in oldEntityAnalysisModelCaseWorkflow
                                          .CaseWorkflowForm)
                             {
                                 oldCaseWorkflowsForm.CaseWorkflowId = entityAnalysisModelCaseWorkflowId;
-                                caseWorkflowFormRepository.Insert(oldCaseWorkflowsForm);
+                                await caseWorkflowFormRepository.InsertAsync(oldCaseWorkflowsForm, token);
                             }
 
                             foreach (var oldCaseWorkflowsFilter in oldEntityAnalysisModelCaseWorkflow
                                          .CaseWorkflowFilter)
                             {
                                 oldCaseWorkflowsFilter.CaseWorkflowId = entityAnalysisModelCaseWorkflowId;
-                                caseWorkflowFilterRepository.Insert(oldCaseWorkflowsFilter);
+                                await caseWorkflowFilterRepository.InsertAsync(oldCaseWorkflowsFilter, token);
                             }
 
                             foreach (var oldCaseWorkflowsMacro in oldEntityAnalysisModelCaseWorkflow
                                          .CaseWorkflowMacro)
                             {
                                 oldCaseWorkflowsMacro.CaseWorkflowId = entityAnalysisModelCaseWorkflowId;
-                                caseWorkflowMacro.Insert(oldCaseWorkflowsMacro);
+                                await caseWorkflowMacro.InsertAsync(oldCaseWorkflowsMacro, token);
                             }
 
                             foreach (var caseWorkflowsStatus in oldEntityAnalysisModelCaseWorkflow
                                          .CaseWorkflowStatus)
                             {
                                 caseWorkflowsStatus.CaseWorkflowId = entityAnalysisModelCaseWorkflowId;
-                                caseWorkflowStatusRepository.Insert(caseWorkflowsStatus);
+                                await caseWorkflowStatusRepository.InsertAsync(caseWorkflowsStatus, token);
                             }
                         }
 
@@ -649,14 +649,14 @@
                             {
                                 oldEntityAnalysisModelList.EntityAnalysisModelGuid = newEntityAnalysisModel.Guid;
                                 var newEntityAnalysisModelListId =
-                                    entityAnalysisModelListRepository.Insert(oldEntityAnalysisModelList).Id;
+                                    (await entityAnalysisModelListRepository.InsertAsync(oldEntityAnalysisModelList, token)).Id;
 
                                 foreach (var entityAnalysisModelListValue in oldEntityAnalysisModelList
                                              .EntityAnalysisModelListValue)
                                 {
                                     entityAnalysisModelListValue.EntityAnalysisModelListId =
                                         newEntityAnalysisModelListId;
-                                    entityAnalysisModelListValueRepository.Insert(entityAnalysisModelListValue);
+                                    await entityAnalysisModelListValueRepository.InsertAsync(entityAnalysisModelListValue, token);
                                 }
                             }
                         }
@@ -668,16 +668,16 @@
                                          .EntityAnalysisModelDictionary)
                             {
                                 oldEntityAnalysisModelDictionary.Guid = newEntityAnalysisModel.Guid;
-                                var newEntityAnalysisModelDictionaryId = entityAnalysisModelDictionaryRepository
-                                    .Insert(oldEntityAnalysisModelDictionary).Id;
+                                var newEntityAnalysisModelDictionaryId = (await entityAnalysisModelDictionaryRepository
+                                    .InsertAsync(oldEntityAnalysisModelDictionary, token)).Id;
 
                                 foreach (var oldEntityAnalysisModelDictionaryKvp in oldEntityAnalysisModelDictionary
                                              .EntityAnalysisModelDictionaryKvp)
                                 {
                                     oldEntityAnalysisModelDictionaryKvp.EntityAnalysisModelDictionaryId =
                                         newEntityAnalysisModelDictionaryId;
-                                    entityAnalysisModelDictionaryKvpRepository.Insert(
-                                        oldEntityAnalysisModelDictionaryKvp);
+                                    await entityAnalysisModelDictionaryKvpRepository.InsertAsync(
+                                        oldEntityAnalysisModelDictionaryKvp, token);
                                 }
                             }
                         }
@@ -690,43 +690,45 @@
                     {
                         foreach (var visualisationRegistry in wrapper.Payload.VisualisationRegistry)
                         {
-                            var visualisationRegistryId = visualisationRegistryRepository.Insert(visualisationRegistry).Id;
+                            var visualisationRegistryId = (await visualisationRegistryRepository.InsertAsync(visualisationRegistry, token)).Id;
 
                             foreach (var visualisationRegistryDatasource in visualisationRegistry
                                          .VisualisationRegistryDatasource)
                             {
                                 visualisationRegistryDatasource.VisualisationRegistryId = visualisationRegistryId;
-                                visualisationRegistryDatasourceRepository.Insert(visualisationRegistryDatasource);
+                                await visualisationRegistryDatasourceRepository.InsertAsync(visualisationRegistryDatasource, token);
                             }
 
                             foreach (var visualisationRegistryParameter in visualisationRegistry
                                          .VisualisationRegistryParameter)
                             {
                                 visualisationRegistryParameter.VisualisationRegistryId = visualisationRegistryId;
-                                visualisationRegistryParameterRepository.Insert(visualisationRegistryParameter);
+                                await visualisationRegistryParameterRepository.InsertAsync(visualisationRegistryParameter, token);
                             }
                         }
                     }
                 }
 
-                dbContext.CommitTransaction();
+                await dbContext.CommitTransactionAsync(token).ConfigureAwait(false);
                 import.CompletedDate = DateTime.Now;
                 import.ExportGuid = wrapper.Guid;
                 import.ExportVersion = wrapper.Version;
 
-                importRepository.Update(import);
+                await importRepository.UpdateAsync(import, token);
             }
             catch (Exception ex)
             {
-                dbContext.RollbackTransaction();
+                await dbContext.RollbackTransactionAsync(token).ConfigureAwait(false);
+
                 import.InError = 1;
                 import.ErrorStack = ex.ToString();
-                importRepository.Update(import);
+
+                await importRepository.UpdateAsync(import, token);
                 throw;
             }
         }
 
-        public Export Export(ImportExportOptions options)
+        public async Task<Export> ExportAsync(ImportExportOptions options, CancellationToken token = default)
         {
             var exportRepository = new ExportRepository(dbContext, userName);
             var export = new Export
@@ -735,7 +737,7 @@
                 Guid = Guid.NewGuid()
             };
 
-            export = exportRepository.Insert(export);
+            export = await exportRepository.InsertAsync(export, token);
 
             try
             {
@@ -743,7 +745,7 @@
                 {
                     Guid = export.Guid,
                     Version = 1,
-                    Payload = ExportPayload(options, export.TenantRegistryId)
+                    Payload = await ExportPayloadAsync(options, export.TenantRegistryId, token).ConfigureAwait(false)
                 };
 
                 var lz4Options =
@@ -759,7 +761,7 @@
                 export.CompletedDate = DateTime.Now;
                 export.Version = wrapper.Version;
 
-                exportRepository.Update(export);
+                await exportRepository.UpdateAsync(export, token);
 
                 return export;
             }
@@ -767,12 +769,12 @@
             {
                 export.InError = 1;
                 export.ErrorStack = ex.ToString();
-                exportRepository.Update(export);
+                await exportRepository.UpdateAsync(export, token);
                 throw;
             }
         }
 
-        public ExportPeek ExportPeek(ImportExportOptions options)
+        public async Task<ExportPeek> ExportPeekAsync(ImportExportOptions options, CancellationToken token = default)
         {
             var exportPeekRepository = new ExportPeekRepository(dbContext, userName);
 
@@ -782,7 +784,7 @@
                 CreatedUser = userName
             };
 
-            exportPeek = exportPeekRepository.Insert(exportPeek);
+            exportPeek = await exportPeekRepository.InsertAsync(exportPeek, token).ConfigureAwait(false);
 
             try
             {
@@ -790,12 +792,12 @@
                     .WithNamingConvention(CamelCaseNamingConvention.Instance)
                     .Build();
 
-                var payload = ExportPayload(options, exportPeek.TenantRegistryId);
+                var payload = await ExportPayloadAsync(options, exportPeek.TenantRegistryId, token).ConfigureAwait(false);
 
                 exportPeek.Yaml = serializer.Serialize(payload);
                 exportPeek.CompletedDate = DateTime.Now;
 
-                exportPeekRepository.Update(exportPeek);
+                await exportPeekRepository.UpdateAsync(exportPeek, token);
 
                 return exportPeek;
             }
@@ -803,17 +805,17 @@
             {
                 exportPeek.InError = 1;
                 exportPeek.ErrorStack = ex.ToString();
-                exportPeekRepository.Update(exportPeek);
+                await exportPeekRepository.UpdateAsync(exportPeek, token);
                 throw;
             }
         }
 
-        private Payload ExportPayload(ImportExportOptions options, int tenantRegistryId)
+        private async Task<Payload> ExportPayloadAsync(ImportExportOptions options, int tenantRegistryId, CancellationToken token = default)
         {
             var payload = new Payload();
 
             var entityAnalysisModelRepository = new EntityAnalysisModelRepository(dbContext, tenantRegistryId);
-            payload.EntityAnalysisModel = entityAnalysisModelRepository.Get().ToList();
+            payload.EntityAnalysisModel = await entityAnalysisModelRepository.GetAsync(token).ConfigureAwait(false);
 
             foreach (var entityAnalysisModel in payload.EntityAnalysisModel)
             {
@@ -822,108 +824,96 @@
                     var entityAnalysisModelSuppressionRepository =
                         new EntityAnalysisModelSuppressionRepository(dbContext, tenantRegistryId);
                     entityAnalysisModel.EntityAnalysisModelSuppression
-                        = entityAnalysisModelSuppressionRepository
-                            .GetByEntityAnalysisModelGuidOrderById(entityAnalysisModel.Guid)
-                            .ToList();
+                        = await entityAnalysisModelSuppressionRepository
+                            .GetByEntityAnalysisModelGuidOrderByIdAsync(entityAnalysisModel.Guid, token);
 
                     var entityAnalysisModelActivationRuleSuppressionRepository =
                         new EntityAnalysisModelActivationRuleSuppressionRepository(dbContext, tenantRegistryId);
                     entityAnalysisModel.EntityAnalysisModelActivationRuleSuppression
-                        = entityAnalysisModelActivationRuleSuppressionRepository
-                            .GetByEntityAnalysisModelGuidOrderById(entityAnalysisModel.Guid).ToList();
+                        = await entityAnalysisModelActivationRuleSuppressionRepository
+                            .GetByEntityAnalysisModelGuidOrderByIdAsync(entityAnalysisModel.Guid, token).ConfigureAwait(false);
                 }
 
                 var entityAnalysisModelRequestXPathRepository =
                     new EntityAnalysisModelRequestXPathRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelRequestXpath
-                    = entityAnalysisModelRequestXPathRepository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelRequestXPathRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelInlineFunctionRepository =
                     new EntityAnalysisModelInlineFunctionRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelInlineFunction
-                    = entityAnalysisModelInlineFunctionRepository
-                        .GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelInlineFunctionRepository
+                        .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelInlineScriptRepository =
                     new EntityAnalysisModelInlineScriptRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelInlineScript
-                    = entityAnalysisModelInlineScriptRepository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelInlineScriptRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelGatewayRuleRepository =
                     new EntityAnalysisModelGatewayRuleRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelGatewayRule
-                    = entityAnalysisModelGatewayRuleRepository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelGatewayRuleRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelSanctionRepository =
                     new EntityAnalysisModelSanctionRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelSanction
-                    = entityAnalysisModelSanctionRepository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelSanctionRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelTagRepository =
                     new EntityAnalysisModelTagRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelTag
-                    = entityAnalysisModelTagRepository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id).ToList();
+                    = await entityAnalysisModelTagRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelTtlCounterRepository =
                     new EntityAnalysisModelTtlCounterRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelTtlCounter
-                    = entityAnalysisModelTtlCounterRepository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelTtlCounterRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelAbstractionRuleRepository =
                     new EntityAnalysisModelAbstractionRuleRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelAbstractionRule
-                    = entityAnalysisModelAbstractionRuleRepository
-                        .GetByEntityAnalysisModelIdOrderByIdDesc(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelAbstractionRuleRepository
+                        .GetByEntityAnalysisModelIdOrderByIdDescAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelAbstractionCalculationRepository =
                     new EntityAnalysisModelAbstractionCalculationRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelAbstractionCalculation
-                    = entityAnalysisModelAbstractionCalculationRepository
-                        .GetByEntityAnalysisModelIdOrderByIdDesc(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelAbstractionCalculationRepository
+                        .GetByEntityAnalysisModelIdOrderByIdDescAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 var entityAnalysisModelHttpAdaptationRepository =
                     new EntityAnalysisModelHttpAdaptationRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelHttpAdaptation
-                    = entityAnalysisModelHttpAdaptationRepository
-                        .GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelHttpAdaptationRepository
+                        .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                 if (options.Exhaustive)
                 {
                     var exhaustiveSearchInstanceRepository =
                         new ExhaustiveSearchInstanceRepository(dbContext, tenantRegistryId);
                     entityAnalysisModel.ExhaustiveSearchInstance
-                        = exhaustiveSearchInstanceRepository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                            .ToList();
+                        = await exhaustiveSearchInstanceRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                     foreach (var exhaustiveSearchInstance in entityAnalysisModel.ExhaustiveSearchInstance)
                     {
                         var exhaustiveSearchInstanceDataRepository =
                             new ExhaustiveSearchInstanceDataRepository(dbContext);
                         exhaustiveSearchInstance.ExhaustiveSearchInstanceData =
-                            exhaustiveSearchInstanceDataRepository.GetByExhaustiveSearchInstanceIdOrderById(
-                                exhaustiveSearchInstance.Id).ToList();
+                            await exhaustiveSearchInstanceDataRepository.GetByExhaustiveSearchInstanceIdOrderByIdAsync(
+                                exhaustiveSearchInstance.Id, token).ConfigureAwait(false);
 
                         var exhaustiveSearchInstanceTrialInstanceRepository =
                             new ExhaustiveSearchInstanceTrialInstanceRepository(dbContext);
                         exhaustiveSearchInstance.ExhaustiveSearchInstanceTrialInstance =
-                            exhaustiveSearchInstanceTrialInstanceRepository.GetByExhaustiveSearchInstanceIdOrderById(
-                                exhaustiveSearchInstance.Id).ToList();
+                            await exhaustiveSearchInstanceTrialInstanceRepository.GetByExhaustiveSearchInstanceIdOrderByIdAsync(
+                                exhaustiveSearchInstance.Id, token).ConfigureAwait(false);
 
                         var exhaustiveSearchInstanceVariableRepository =
                             new ExhaustiveSearchInstanceVariableRepository(dbContext);
                         exhaustiveSearchInstance.ExhaustiveSearchInstanceVariable =
-                            exhaustiveSearchInstanceVariableRepository.GetByExhaustiveSearchInstanceIdOrderById(
-                                exhaustiveSearchInstance
-                                    .Id).ToList();
+                            await exhaustiveSearchInstanceVariableRepository.GetByExhaustiveSearchInstanceIdOrderByIdAsync(
+                                exhaustiveSearchInstance.Id, token).ConfigureAwait(false);
 
                         foreach (var exhaustiveSearchInstanceTrialInstance in exhaustiveSearchInstance
                                      .ExhaustiveSearchInstanceTrialInstance)
@@ -931,59 +921,59 @@
                             var exhaustiveSearchInstanceTrialInstanceVariableRepository =
                                 new ExhaustiveSearchInstanceTrialInstanceVariableRepository(dbContext);
                             exhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstanceTrialInstanceVariable =
-                                exhaustiveSearchInstanceTrialInstanceVariableRepository
-                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderById(
+                                await exhaustiveSearchInstanceTrialInstanceVariableRepository
+                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderByIdAsync(
                                         exhaustiveSearchInstanceTrialInstance
-                                            .Id).ToList();
+                                            .Id, token);
 
                             var exhaustiveSearchInstancePromotedTrialInstanceRepository =
                                 new ExhaustiveSearchInstancePromotedTrialInstanceRepository(dbContext);
                             exhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstancePromotedTrialInstance =
-                                exhaustiveSearchInstancePromotedTrialInstanceRepository
-                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderById(
+                                await exhaustiveSearchInstancePromotedTrialInstanceRepository
+                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderByIdAsync(
                                         exhaustiveSearchInstanceTrialInstance
-                                            .Id).ToList();
+                                            .Id, token).ConfigureAwait(false);
 
                             var exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository =
                                 new ExhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository(dbContext);
                             exhaustiveSearchInstanceTrialInstance
                                     .ExhaustiveSearchInstancePromotedTrialInstancePredictedActual =
-                                exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository
-                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderById(
+                                await exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository
+                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderByIdAsync(
                                         exhaustiveSearchInstanceTrialInstance
-                                            .Id).ToList();
+                                            .Id, token).ConfigureAwait(false);
 
                             var exhaustiveSearchInstancePromotedTrialInstanceRocRepository =
                                 new ExhaustiveSearchInstancePromotedTrialInstanceRocRepository(dbContext);
                             exhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstancePromotedTrialInstanceRoc =
-                                exhaustiveSearchInstancePromotedTrialInstanceRocRepository
-                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderById(exhaustiveSearchInstance
-                                        .Id).ToList();
+                                await exhaustiveSearchInstancePromotedTrialInstanceRocRepository
+                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderByIdAsync(exhaustiveSearchInstance
+                                        .Id, token);
 
                             var exhaustiveSearchInstanceTrialInstanceTopologyTrialRepository =
                                 new ExhaustiveSearchInstanceTrialInstanceTopologyTrialRepository(dbContext);
                             exhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstanceTrialInstanceTopologyTrial =
-                                exhaustiveSearchInstanceTrialInstanceTopologyTrialRepository
-                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderById(
+                                await exhaustiveSearchInstanceTrialInstanceTopologyTrialRepository
+                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderByIdAsync(
                                         exhaustiveSearchInstanceTrialInstance
-                                            .Id).ToList();
+                                            .Id, token).ConfigureAwait(false);
 
                             var exhaustiveSearchInstanceTrialInstanceSensitivityRepository =
                                 new ExhaustiveSearchInstanceTrialInstanceSensitivityRepository(dbContext);
                             exhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstanceTrialInstanceSensitivity =
-                                exhaustiveSearchInstanceTrialInstanceSensitivityRepository
-                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderById(
+                                await exhaustiveSearchInstanceTrialInstanceSensitivityRepository
+                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderByIdAsync(
                                         exhaustiveSearchInstanceTrialInstance
-                                            .Id).ToList();
+                                            .Id, token).ConfigureAwait(false);
 
                             var exhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository =
                                 new ExhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository(dbContext);
                             exhaustiveSearchInstanceTrialInstance
                                     .ExhaustiveSearchInstanceTrialInstanceActivationFunctionTrial =
-                                exhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository
-                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderById(
+                                await exhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository
+                                    .GetByExhaustiveSearchInstanceTrialInstanceIdOrderByIdAsync(
                                         exhaustiveSearchInstanceTrialInstance
-                                            .Id).ToList();
+                                            .Id, token).ConfigureAwait(false);
 
                             foreach (var exhaustiveSearchInstanceTrialInstanceVariable in
                                      exhaustiveSearchInstanceTrialInstance
@@ -993,17 +983,17 @@
                                     new ExhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository(dbContext);
                                 exhaustiveSearchInstanceTrialInstanceVariable
                                         .ExhaustiveSearchInstancePromotedTrialInstanceSensitivity =
-                                    exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository
-                                        .GetByExhaustiveSearchInstanceTrialInstanceVariableIdOrderById(
-                                            exhaustiveSearchInstanceTrialInstanceVariable.Id).ToList();
+                                    await exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository
+                                        .GetByExhaustiveSearchInstanceTrialInstanceVariableIdOrderByIdAsync(
+                                            exhaustiveSearchInstanceTrialInstanceVariable.Id, token).ConfigureAwait(false);
 
                                 var exhaustiveSearchInstancePromotedTrialInstanceVariableRepository =
                                     new ExhaustiveSearchInstancePromotedTrialInstanceVariableRepository(dbContext);
                                 exhaustiveSearchInstanceTrialInstanceVariable
                                         .ExhaustiveSearchInstancePromotedTrialInstanceVariable =
-                                    exhaustiveSearchInstancePromotedTrialInstanceVariableRepository
-                                        .GetByExhaustiveSearchInstanceTrialInstanceVariableIdOrderById(
-                                            exhaustiveSearchInstanceTrialInstanceVariable.Id).ToList();
+                                    await exhaustiveSearchInstancePromotedTrialInstanceVariableRepository
+                                        .GetByExhaustiveSearchInstanceTrialInstanceVariableIdOrderByIdAsync(
+                                            exhaustiveSearchInstanceTrialInstanceVariable.Id, token).ConfigureAwait(false);
                             }
                         }
 
@@ -1013,46 +1003,46 @@
                             var exhaustiveSearchInstanceVariableAnomalyRepository =
                                 new ExhaustiveSearchInstanceVariableAnomalyRepository(dbContext);
                             exhaustiveSearchInstanceVariable.ExhaustiveSearchInstanceVariableAnomaly =
-                                exhaustiveSearchInstanceVariableAnomalyRepository
-                                    .GetByExhaustiveSearchInstanceVariableIdOrderById(
+                                await exhaustiveSearchInstanceVariableAnomalyRepository
+                                    .GetByExhaustiveSearchInstanceVariableIdOrderByIdAsync(
                                         exhaustiveSearchInstanceVariable
-                                            .Id).ToList();
+                                            .Id, token).ConfigureAwait(false);
 
                             var exhaustiveSearchInstanceVariableClassificationRepository =
                                 new ExhaustiveSearchInstanceVariableClassificationRepository(dbContext);
                             exhaustiveSearchInstanceVariable.ExhaustiveSearchInstanceVariableClassification =
-                                exhaustiveSearchInstanceVariableClassificationRepository
-                                    .GetByExhaustiveSearchInstanceVariableIdOrderById(exhaustiveSearchInstanceVariable
-                                        .Id).ToList();
+                                await exhaustiveSearchInstanceVariableClassificationRepository
+                                    .GetByExhaustiveSearchInstanceVariableIdOrderByIdAsync(exhaustiveSearchInstanceVariable
+                                        .Id, token).ConfigureAwait(false);
 
                             var exhaustiveSearchInstanceVariableHistogramRepository =
                                 new ExhaustiveSearchInstanceVariableHistogramRepository(dbContext);
                             exhaustiveSearchInstanceVariable.ExhaustiveSearchInstanceVariableHistogram =
-                                exhaustiveSearchInstanceVariableHistogramRepository
-                                    .GetByExhaustiveSearchInstanceVariableIdOrderById(
+                                await exhaustiveSearchInstanceVariableHistogramRepository
+                                    .GetByExhaustiveSearchInstanceVariableIdOrderByIdAsync(
                                         exhaustiveSearchInstanceVariable
-                                            .Id).ToList();
+                                            .Id, token).ConfigureAwait(false);
 
                             var exhaustiveSearchInstanceVariableHistogramClassificationRepository =
                                 new ExhaustiveSearchInstanceVariableHistogramClassificationRepository(dbContext);
                             exhaustiveSearchInstanceVariable.ExhaustiveSearchInstanceVariableHistogramClassification =
-                                exhaustiveSearchInstanceVariableHistogramClassificationRepository
-                                    .GetByExhaustiveSearchInstanceVariableId(exhaustiveSearchInstanceVariable
-                                        .Id).ToList();
+                                await exhaustiveSearchInstanceVariableHistogramClassificationRepository
+                                    .GetByExhaustiveSearchInstanceVariableIdAsync(exhaustiveSearchInstanceVariable
+                                        .Id, token).ConfigureAwait(false);
 
                             var exhaustiveSearchInstanceVariableHistogramAnomalyRepository =
                                 new ExhaustiveSearchInstanceVariableHistogramAnomalyRepository(dbContext);
                             exhaustiveSearchInstanceVariable.ExhaustiveSearchInstanceVariableHistogramAnomaly =
-                                exhaustiveSearchInstanceVariableHistogramAnomalyRepository
-                                    .GetByExhaustiveSearchInstanceVariableIdOrderById(exhaustiveSearchInstanceVariable
-                                        .Id).ToList();
+                                await exhaustiveSearchInstanceVariableHistogramAnomalyRepository
+                                    .GetByExhaustiveSearchInstanceVariableIdOrderByIdAsync(exhaustiveSearchInstanceVariable
+                                        .Id, token).ConfigureAwait(false);
 
                             var exhaustiveSearchInstanceVariableMulticollinearityRepository =
                                 new ExhaustiveSearchInstanceVariableMultiColiniarityRepository(dbContext);
                             exhaustiveSearchInstanceVariable.ExhaustiveSearchInstanceVariableMultiCollinearity =
-                                exhaustiveSearchInstanceVariableMulticollinearityRepository
-                                    .GetByExhaustiveSearchInstanceVariableIdOrderById(exhaustiveSearchInstanceVariable
-                                        .Id).ToList();
+                                await exhaustiveSearchInstanceVariableMulticollinearityRepository
+                                    .GetByExhaustiveSearchInstanceVariableIdOrderByIdAsync(exhaustiveSearchInstanceVariable
+                                        .Id, token).ConfigureAwait(false);
                         }
                     }
                 }
@@ -1060,13 +1050,12 @@
                 var entityAnalysisModelActivationRuleRepository =
                     new EntityAnalysisModelActivationRuleRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.EntityAnalysisModelActivationRule
-                    = entityAnalysisModelActivationRuleRepository
-                        .GetByEntityAnalysisModelIdOrderByIdDesc(entityAnalysisModel.Id)
-                        .ToList();
+                    = await entityAnalysisModelActivationRuleRepository
+                        .GetByEntityAnalysisModelIdOrderByIdDescAsync(entityAnalysisModel.Id, token);
 
                 var caseWorkflowRepository = new CaseWorkflowRepository(dbContext, tenantRegistryId);
                 entityAnalysisModel.CaseWorkflow
-                    = caseWorkflowRepository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id).ToList();
+                    = await caseWorkflowRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token);
 
                 foreach (var entityAnalysisModelCaseWorkflowEntityAnalysisModel in entityAnalysisModel
                              .CaseWorkflow)
@@ -1074,42 +1063,42 @@
                     var caseWorkflowXPathRepository =
                         new CaseWorkflowXPathRepository(dbContext, tenantRegistryId);
                     entityAnalysisModelCaseWorkflowEntityAnalysisModel.CaseWorkflowXPath
-                        = caseWorkflowXPathRepository.GetByCasesWorkflowIdOrderByIdDesc(
-                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id);
+                        = await caseWorkflowXPathRepository.GetByCasesWorkflowIdOrderByIdDescAsync(
+                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id, token);
 
                     var caseWorkflowStatusRepository =
                         new CaseWorkflowStatusRepository(dbContext, tenantRegistryId);
                     entityAnalysisModelCaseWorkflowEntityAnalysisModel.CaseWorkflowStatus
-                        = caseWorkflowStatusRepository.GetByCasesWorkflowIdOrderById(
-                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id);
+                        = await caseWorkflowStatusRepository.GetByCasesWorkflowIdOrderByIdAsync(
+                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id, token);
 
                     var caseWorkflowFormRepository = new CaseWorkflowFormRepository(dbContext, tenantRegistryId);
                     entityAnalysisModelCaseWorkflowEntityAnalysisModel.CaseWorkflowForm
-                        = caseWorkflowFormRepository.GetByCasesWorkflowIdOrderById(
-                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id);
+                        = await caseWorkflowFormRepository.GetByCasesWorkflowIdOrderByIdAsync(
+                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id, token);
 
                     var caseWorkflowActionRepository =
                         new CaseWorkflowActionRepository(dbContext, tenantRegistryId);
                     entityAnalysisModelCaseWorkflowEntityAnalysisModel.CaseWorkflowAction
-                        = caseWorkflowActionRepository.GetByCasesWorkflowIdOrderById(
-                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id);
+                        = await caseWorkflowActionRepository.GetByCasesWorkflowIdOrderByIdAsync(
+                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id, token);
 
                     var caseWorkflowDisplayRepository =
                         new CaseWorkflowDisplayRepository(dbContext, tenantRegistryId);
                     entityAnalysisModelCaseWorkflowEntityAnalysisModel.CaseWorkflowDisplay
-                        = caseWorkflowDisplayRepository.GetByCasesWorkflowIdOrderById(
-                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id);
+                        = await caseWorkflowDisplayRepository.GetByCasesWorkflowIdOrderByIdAsync(
+                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id, token);
 
                     var caseWorkflowMacro = new CaseWorkflowMacroRepository(dbContext, tenantRegistryId);
                     entityAnalysisModelCaseWorkflowEntityAnalysisModel.CaseWorkflowMacro
-                        = caseWorkflowMacro.GetByCasesWorkflowIdOrderById(
-                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id);
+                        = await caseWorkflowMacro.GetByCasesWorkflowIdOrderByIdAsync(
+                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id, token);
 
                     var caseWorkflowFilterRepository =
                         new CaseWorkflowFilterRepository(dbContext, tenantRegistryId);
                     entityAnalysisModelCaseWorkflowEntityAnalysisModel.CaseWorkflowFilter
-                        = caseWorkflowFilterRepository.GetByCasesWorkflowIdOrderById(
-                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id);
+                        = await caseWorkflowFilterRepository.GetByCasesWorkflowIdOrderByIdAsync(
+                            entityAnalysisModelCaseWorkflowEntityAnalysisModel.Id, token);
                 }
 
                 if (options.Lists)
@@ -1117,8 +1106,7 @@
                     var entityAnalysisModelListRepository =
                         new EntityAnalysisModelListRepository(dbContext, tenantRegistryId);
                     entityAnalysisModel.EntityAnalysisModelList
-                        = entityAnalysisModelListRepository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                            .ToList();
+                        = await entityAnalysisModelListRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                     foreach (var entityAnalysisModelListsEntityAnalysisModel in entityAnalysisModel
                                  .EntityAnalysisModelList)
@@ -1126,9 +1114,8 @@
                         var entityAnalysisModelListValueRepository =
                             new EntityAnalysisModelListValueRepository(dbContext, tenantRegistryId);
                         entityAnalysisModelListsEntityAnalysisModel.EntityAnalysisModelListValue
-                            = entityAnalysisModelListValueRepository
-                                .GetByEntityAnalysisModelListIdOrderById(entityAnalysisModelListsEntityAnalysisModel.Id)
-                                .ToList();
+                            = await entityAnalysisModelListValueRepository
+                                .GetByEntityAnalysisModelListIdOrderByIdAsync(entityAnalysisModelListsEntityAnalysisModel.Id, token);
                     }
                 }
 
@@ -1137,9 +1124,8 @@
                     var entityAnalysisModelDictionaryRepository =
                         new EntityAnalysisModelDictionaryRepository(dbContext, tenantRegistryId);
                     entityAnalysisModel.EntityAnalysisModelDictionary
-                        = entityAnalysisModelDictionaryRepository
-                            .GetByEntityAnalysisModelIdOrderById(entityAnalysisModel.Id)
-                            .ToList();
+                        = await entityAnalysisModelDictionaryRepository
+                            .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModel.Id, token).ConfigureAwait(false);
 
                     foreach (var entityAnalysisModelDictionaryEntityAnalysisModel in entityAnalysisModel
                                  .EntityAnalysisModelDictionary)
@@ -1148,11 +1134,10 @@
                             new EntityAnalysisModelDictionaryKvpRepository(dbContext, tenantRegistryId);
                         entityAnalysisModelDictionaryEntityAnalysisModel
                                 .EntityAnalysisModelDictionaryKvp
-                            = entityAnalysisModelDictionaryKvpRepository
-                                .GetByEntityAnalysisModelDictionaryIdOrderById(
+                            = await entityAnalysisModelDictionaryKvpRepository
+                                .GetByEntityAnalysisModelDictionaryIdOrderByIdAsync(
                                     entityAnalysisModelDictionaryEntityAnalysisModel
-                                        .Id)
-                                .ToList();
+                                        .Id, token).ConfigureAwait(false);
                     }
                 }
 
@@ -1161,23 +1146,21 @@
                 {
                     var visualisationRegistryRepository =
                         new VisualisationRegistryRepository(dbContext, tenantRegistryId);
-                    payload.VisualisationRegistry = visualisationRegistryRepository.GetOrderById().ToList();
+                    payload.VisualisationRegistry = await visualisationRegistryRepository.GetOrderByIdAsync(token);
 
                     foreach (var visualisationRegistry in payload.VisualisationRegistry)
                     {
                         var visualisationRegistryDatasourceRepository =
                             new VisualisationRegistryDatasourceRepository(dbContext, tenantRegistryId);
                         visualisationRegistry.VisualisationRegistryDatasource
-                            = visualisationRegistryDatasourceRepository
-                                .GetByVisualisationRegistryIdOrderById(visualisationRegistry.Id)
-                                .ToList();
+                            = await visualisationRegistryDatasourceRepository
+                                .GetByVisualisationRegistryIdOrderByIdAsync(visualisationRegistry.Id, token);
 
                         var visualisationRegistryParameterRepository =
                             new VisualisationRegistryParameterRepository(dbContext, tenantRegistryId);
                         visualisationRegistry.VisualisationRegistryParameter
-                            = visualisationRegistryParameterRepository
-                                .GetByVisualisationRegistryIdOrderById(visualisationRegistry.Id)
-                                .ToList();
+                            = await visualisationRegistryParameterRepository
+                                .GetByVisualisationRegistryIdOrderByIdAsync(visualisationRegistry.Id, token);
                     }
                 }
             }

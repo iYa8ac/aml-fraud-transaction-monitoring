@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -62,9 +64,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<CaseWorkflowDisplay, CaseWorkflowDisplayDto>();
                 cfg.CreateMap<CaseWorkflowDisplayDto, CaseWorkflowDisplay>();
-                cfg.CreateMap<List<CaseWorkflowDisplay>, List<CaseWorkflowDisplayDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new CaseWorkflowDisplayRepository(dbContext, userName);
             validator = new CaseWorkflowDisplayDtoValidator();
@@ -82,7 +83,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCasesWorkflowIdActiveOnly/{id:int}")]
-        public ActionResult<List<CaseWorkflowDisplayDto>> ByCasesWorkflowIdActiveOnly(int id)
+        public async Task<ActionResult<List<CaseWorkflowDisplayDto>>> ByCasesWorkflowIdActiveOnlyAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -94,7 +95,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseWorkflowDisplayDto>>(repository.GetByCasesWorkflowIdActiveOnly(id)));
+                return Ok(mapper.Map<List<CaseWorkflowDisplayDto>>(await repository.GetByCasesWorkflowIdActiveOnlyAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -104,7 +105,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCasesWorkflowGuidActiveOnly/{guid:guid}")]
-        public ActionResult<List<CaseWorkflowDisplayDto>> ByCasesWorkflowGuidActiveOnly(Guid guid)
+        public async Task<ActionResult<List<CaseWorkflowDisplayDto>>> ByCasesWorkflowGuidActiveOnlyAsync(Guid guid, CancellationToken token = default)
         {
             try
             {
@@ -117,7 +118,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<List<CaseWorkflowDisplayDto>>(
-                    repository.GetByCasesWorkflowGuidActiveOnly(guid)));
+                    await repository.GetByCasesWorkflowGuidActiveOnlyAsync(guid, token)));
             }
             catch (Exception e)
             {
@@ -127,7 +128,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<CaseWorkflowDisplayDto>> Get()
+        public async Task<ActionResult<List<CaseWorkflowDisplayDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -139,7 +140,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseWorkflowDisplayDto>>(repository.Get()));
+                return Ok(mapper.Map<List<CaseWorkflowDisplayDto>>(await repository.GetAsync(token)));
             }
             catch (Exception e)
             {
@@ -149,7 +150,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCasesWorkflowId/{casesWorkflowId:int}")]
-        public ActionResult<List<CaseWorkflowDisplayDto>> GetByEntityAnalysisModelId(int casesWorkflowId)
+        public async Task<ActionResult<List<CaseWorkflowDisplayDto>>> GetByEntityAnalysisModelIdAsync(int casesWorkflowId, CancellationToken token = default)
         {
             try
             {
@@ -162,7 +163,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<List<CaseWorkflowDisplayDto>>(
-                    repository.GetByCasesWorkflowIdOrderById(casesWorkflowId)));
+                    await repository.GetByCasesWorkflowIdOrderByIdAsync(casesWorkflowId, token)));
             }
             catch (Exception e)
             {
@@ -172,7 +173,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("{id:int}")]
-        public ActionResult<CaseWorkflowDisplayDto> GetById(int id)
+        public async Task<ActionResult<CaseWorkflowDisplayDto>> GetByIdAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -184,7 +185,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<CaseWorkflowDisplayDto>(repository.GetById(id)));
+                return Ok(mapper.Map<CaseWorkflowDisplayDto>(await repository.GetByIdAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -196,7 +197,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(CaseWorkflowDisplayDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<CaseWorkflowDisplayDto> Create([FromBody] CaseWorkflowDisplayDto model)
+        public async Task<ActionResult<CaseWorkflowDisplayDto>> CreateAsync([FromBody] CaseWorkflowDisplayDto model, CancellationToken token = default)
         {
             try
             {
@@ -208,10 +209,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Insert(mapper.Map<CaseWorkflowDisplay>(model)));
+                    return Ok(await repository.InsertAsync(mapper.Map<CaseWorkflowDisplay>(model), token));
                 }
 
                 return BadRequest(results);
@@ -226,7 +227,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPut]
         [ProducesResponseType(typeof(CaseWorkflowDisplayDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<CaseWorkflowDisplayDto> Update([FromBody] CaseWorkflowDisplayDto model)
+        public async Task<ActionResult<CaseWorkflowDisplayDto>> UpdateAsync([FromBody] CaseWorkflowDisplayDto model, CancellationToken token = default)
         {
             try
             {
@@ -238,10 +239,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Update(mapper.Map<CaseWorkflowDisplay>(model)));
+                    return Ok(await repository.UpdateAsync(mapper.Map<CaseWorkflowDisplay>(model), token));
                 }
 
                 return BadRequest(results);
@@ -259,7 +260,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpDelete]
         [Route("{id:int}")]
-        public ActionResult<List<CaseWorkflowDisplayDto>> Get(int id)
+        public async Task<ActionResult<List<CaseWorkflowDisplayDto>>> GetAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -271,7 +272,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.Delete(id);
+                await repository.DeleteAsync(id, token);
                 return Ok();
             }
             catch (KeyNotFoundException)

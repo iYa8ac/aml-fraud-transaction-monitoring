@@ -33,7 +33,7 @@ namespace Jube.Cache.Redis.Interfaces
 
         Task<List<string>> GetDistinctKeysAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string key);
 
-        Task DeleteByReferenceDate(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        Task DeleteByReferenceDateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             DateTime referenceDate, DateTime thresholdReferenceDate, int limit,
             List<(string name, string interval, int intervalValue)> searchKeys);
     }

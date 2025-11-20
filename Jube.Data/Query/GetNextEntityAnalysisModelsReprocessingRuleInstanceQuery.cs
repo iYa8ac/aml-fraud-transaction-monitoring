@@ -16,18 +16,19 @@ namespace Jube.Data.Query
     using System;
     using System.Data;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
 
     public class GetNextEntityAnalysisModelsReprocessingRuleInstanceQuery(DbContext dbContext)
     {
-
-        public Dto Execute(int entityAnalysisModelId)
+        public async Task<Dto> ExecuteAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
-            dbContext.BeginTransaction(IsolationLevel.Serializable);
+            await dbContext.BeginTransactionAsync(IsolationLevel.Serializable, token);
             try
             {
-                var query = dbContext.EntityAnalysisModelReprocessingRuleInstance
+                var query = await dbContext.EntityAnalysisModelReprocessingRuleInstance
                     .Where(w => w.StatusId == 0
                                 && (w.Deleted == 0 || w.Deleted == null)
                                 && w.EntityAnalysisModelReprocessingRule.Active == 1
@@ -51,26 +52,26 @@ namespace Jube.Data.Query
                             ReprocessingIntervalType = s.EntityAnalysisModelReprocessingRule.ReprocessingInterval
                         }
                     )
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync(token);
 
                 if (query != null)
                 {
-                    dbContext.EntityAnalysisModelReprocessingRuleInstance
+                    await dbContext.EntityAnalysisModelReprocessingRuleInstance
                         .Where(d =>
                             d.Id ==
                             query.Id)
                         .Set(s => s.StatusId, Convert.ToByte(1))
                         .Set(s => s.StartedDate, DateTime.Now)
-                        .Update();
+                        .UpdateAsync(token);
                 }
 
-                dbContext.CommitTransaction();
+                await dbContext.CommitTransactionAsync(token);
 
                 return query;
             }
             catch
             {
-                dbContext.RollbackTransaction();
+                await dbContext.RollbackTransactionAsync(token);
                 throw;
             }
         }

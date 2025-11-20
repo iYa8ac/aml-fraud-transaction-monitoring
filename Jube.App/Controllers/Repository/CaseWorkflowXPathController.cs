@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -62,9 +64,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<CaseWorkflowXPath, CaseWorkflowXPathDto>();
                 cfg.CreateMap<CaseWorkflowXPathDto, CaseWorkflowXPath>();
-                cfg.CreateMap<List<CaseWorkflowXPath>, List<CaseWorkflowXPathDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new CaseWorkflowXPathRepository(dbContext, userName);
             validator = new CaseWorkflowXPathDtoValidator();
@@ -82,7 +83,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCasesWorkflowIdActiveOnlyDrill/{id:int}")]
-        public ActionResult<List<CaseWorkflowXPathDto>> ByCasesWorkflowIdActiveOnly(int id)
+        public async Task<ActionResult<List<CaseWorkflowXPathDto>>> ByCasesWorkflowIdActiveOnlyAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -94,7 +95,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseWorkflowXPathDto>>(repository.GetByCasesWorkflowIdActiveDrillOnly(id)));
+                return Ok(mapper.Map<List<CaseWorkflowXPathDto>>(await repository.GetByCasesWorkflowIdActiveDrillOnlyAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -104,7 +105,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCasesWorkflowGuidActiveOnlyDrill/{guid:guid}")]
-        public ActionResult<List<CaseWorkflowXPathDto>> ByCasesWorkflowGuidActiveOnly(Guid guid)
+        public async Task<ActionResult<List<CaseWorkflowXPathDto>>> ByCasesWorkflowGuidActiveOnlyAsync(Guid guid, CancellationToken token = default)
         {
             try
             {
@@ -117,7 +118,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<List<CaseWorkflowXPathDto>>(
-                    repository.GetByCasesWorkflowGuidActiveDrillOnly(guid)));
+                    await repository.GetByCasesWorkflowGuidActiveDrillOnlyAsync(guid, token)));
             }
             catch (Exception e)
             {
@@ -127,7 +128,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<CaseWorkflowXPathDto>> Get()
+        public async Task<ActionResult<List<CaseWorkflowXPathDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -139,7 +140,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseWorkflowXPathDto>>(repository.Get()));
+                return Ok(mapper.Map<List<CaseWorkflowXPathDto>>(await repository.GetAsync(token)));
             }
             catch (Exception e)
             {
@@ -149,7 +150,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCasesWorkflowId/{casesWorkflowId:int}")]
-        public ActionResult<List<CaseWorkflowXPathDto>> GetByEntityAnalysisModelId(int casesWorkflowId)
+        public async Task<ActionResult<List<CaseWorkflowXPathDto>>> GetByEntityAnalysisModelIdAsync(int casesWorkflowId, CancellationToken token = default)
         {
             try
             {
@@ -162,7 +163,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<List<CaseWorkflowXPathDto>>(
-                    repository.GetByCasesWorkflowIdOrderByIdDesc(casesWorkflowId)));
+                    await repository.GetByCasesWorkflowIdOrderByIdDescAsync(casesWorkflowId, token)));
             }
             catch (Exception e)
             {
@@ -172,7 +173,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("{id:int}")]
-        public ActionResult<CaseWorkflowXPathDto> GetById(int id)
+        public async Task<ActionResult<CaseWorkflowXPathDto>> GetByIdAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -184,7 +185,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<CaseWorkflowXPathDto>(repository.GetById(id)));
+                return Ok(mapper.Map<CaseWorkflowXPathDto>(await repository.GetByIdAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -196,7 +197,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(CaseWorkflowXPathDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<CaseWorkflowXPathDto> Create([FromBody] CaseWorkflowXPathDto model)
+        public async Task<ActionResult<CaseWorkflowXPathDto>> CreateAsync([FromBody] CaseWorkflowXPathDto model, CancellationToken token = default)
         {
             try
             {
@@ -208,10 +209,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Insert(mapper.Map<CaseWorkflowXPath>(model)));
+                    return Ok(await repository.InsertAsync(mapper.Map<CaseWorkflowXPath>(model), token));
                 }
 
                 return BadRequest(results);
@@ -226,7 +227,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPut]
         [ProducesResponseType(typeof(CaseWorkflowXPathDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<CaseWorkflowXPathDto> Update([FromBody] CaseWorkflowXPathDto model)
+        public async Task<ActionResult<CaseWorkflowXPathDto>> UpdateAsync([FromBody] CaseWorkflowXPathDto model, CancellationToken token = default)
         {
             try
             {
@@ -238,10 +239,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Update(mapper.Map<CaseWorkflowXPath>(model)));
+                    return Ok(await repository.UpdateAsync(mapper.Map<CaseWorkflowXPath>(model), token));
                 }
 
                 return BadRequest(results);
@@ -259,7 +260,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpDelete]
         [Route("{id:int}")]
-        public ActionResult<List<CaseWorkflowXPathDto>> Get(int id)
+        public async Task<ActionResult<List<CaseWorkflowXPathDto>>> GetAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -271,7 +272,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.Delete(id);
+                await repository.DeleteAsync(id, token);
                 return Ok();
             }
             catch (KeyNotFoundException)

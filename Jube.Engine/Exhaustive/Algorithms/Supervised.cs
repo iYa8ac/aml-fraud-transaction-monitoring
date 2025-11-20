@@ -17,6 +17,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Accord.Math;
     using Accord.Neuro;
@@ -24,58 +25,31 @@ namespace Jube.Engine.Exhaustive.Algorithms
     using Accord.Neuro.Learning;
     using Accord.Statistics;
     using Accord.Statistics.Visualizations;
+    using Data.Context;
+    using Data.Poco;
+    using Data.Repository;
     using DynamicEnvironment;
-    using Helpers.Json;
-    using Jube.Data.Context;
-    using Jube.Data.Poco;
-    using Jube.Data.Repository;
+    using Helpers;
     using log4net;
+    using Models;
     using Newtonsoft.Json;
-    using Variables;
 
-    public class Supervised
+    public class Supervised(
+        DynamicEnvironment environment,
+        ExhaustiveSearchInstanceRepository repositoryExhaustiveSearchInstance,
+        int exhaustiveSearchInstanceId,
+        JsonSerializationHelper jsonSerializationHelper,
+        Random seeded,
+        Dictionary<int, Variable> variables,
+        double[][] data,
+        double[] output,
+        DbContext dbContext,
+        ILog log)
     {
-        private readonly double[][] data;
-        private readonly DbContext dbContext;
-        private readonly DynamicEnvironment environment;
-        private readonly int exhaustiveSearchInstanceId;
-        private readonly JsonSerializerSettings jsonSerializerSettings;
-        private readonly ILog log;
-        private readonly double[][] output;
-        private readonly Performance performance;
-        private readonly ExhaustiveSearchInstanceRepository repositoryExhaustiveSearchInstance;
-        private readonly Random seeded;
-        private readonly Dictionary<int, Variable> variables;
+        private readonly double[][] output = output.ToJagged();
+        private readonly Performance performance = new Performance();
 
-        public Supervised(DynamicEnvironment environment,
-            ExhaustiveSearchInstanceRepository repositoryExhaustiveSearchInstance,
-            int exhaustiveSearchInstanceId, Random seeded, Dictionary<int, Variable> variables,
-            double[][] data, double[] output, DbContext dbContext, ILog log)
-        {
-            jsonSerializerSettings = new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.Auto,
-                ContractResolver = new DeepContractResolver()
-            };
-
-            this.variables = variables;
-            this.exhaustiveSearchInstanceId = exhaustiveSearchInstanceId;
-            this.seeded = seeded;
-            this.data = data;
-            this.output = output.ToJagged();
-            this.dbContext = dbContext;
-            this.log = log;
-            performance = new Performance();
-            this.repositoryExhaustiveSearchInstance = repositoryExhaustiveSearchInstance;
-            this.environment = environment;
-
-            if (log.IsInfoEnabled)
-            {
-                log.Info("Exhaustive Training: Has initialised supervised learning.");
-            }
-        }
-
-        public Task<bool> Train()
+        public async Task<bool> TrainAsync(CancellationToken token = default)
         {
             var trialsLimit = Int32.Parse(environment.AppSettings("ExhaustiveTrialsLimit"));
             var minVariableCount = Int32.Parse(environment.AppSettings("ExhaustiveMinVariableCount"));
@@ -155,9 +129,9 @@ namespace Jube.Engine.Exhaustive.Algorithms
             {
                 try
                 {
-                    if (IsStoppingOrStopped())
+                    if (await IsStoppingOrStoppedAsync(token).ConfigureAwait(false))
                     {
-                        return Task.FromResult(false);
+                        return false;
                     }
 
                     if (log.IsInfoEnabled)
@@ -167,7 +141,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
                     }
 
                     var exhaustiveSearchInstanceTrialInstance =
-                        InsertExhaustiveSearchInstanceTrialInstance(exhaustiveSearchInstanceTrialInstanceRepository);
+                        await InsertExhaustiveSearchInstanceTrialInstanceAsync(exhaustiveSearchInstanceTrialInstanceRepository, token).ConfigureAwait(false);
 
                     if (log.IsInfoEnabled)
                     {
@@ -178,7 +152,14 @@ namespace Jube.Engine.Exhaustive.Algorithms
                             "those variables.");
                     }
 
-                    OptimiseData(activationFunctionExplorationEpochs,
+                    var (activationFunction,
+                        trialVariables,
+                        dataTraining,
+                        dataCrossValidation,
+                        dataTesting,
+                        outputsTraining,
+                        outputsCrossValidation,
+                        outputsTesting) = await OptimiseDataAsync(activationFunctionExplorationEpochs,
                         minVariableCount,
                         maxVariableCount,
                         exhaustiveSearchInstanceTrialInstance,
@@ -186,15 +167,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         crossValidationDataSamplePercentage,
                         testingDataSamplePercentage,
                         validationTestingActivationThreshold,
-                        out var activationFunction,
-                        out var trialVariables,
-                        out var dataTraining,
-                        out var dataCrossValidation,
-                        out var dataTesting,
-                        out var outputsTraining,
-                        out var outputsCrossValidation,
-                        out var outputsTesting
-                    );
+                        token
+                    ).ConfigureAwait(false);
 
                     if (log.IsInfoEnabled)
                     {
@@ -204,7 +178,9 @@ namespace Jube.Engine.Exhaustive.Algorithms
                             "starting the evolution of width and depth.");
                     }
 
-                    EvolveTopology(
+                    var (topologyNetwork,
+                        performanceAchievedInThisTrial,
+                        topologyComplexity) = await EvolveTopologyAsync(
                         topologySinceImprovementLimit,
                         topologyExplorationEpochs,
                         topologyFinalisationEpochs,
@@ -220,14 +196,11 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         outputsTesting,
                         validationTestingActivationThreshold,
                         layerWidthLimitInputLayerFactor, layerDepthLimit,
-                        topologyComplexityLimit,
-                        out var topologyNetwork,
-                        out var performanceAchievedInThisTrial,
-                        out var topologyComplexity);
+                        topologyComplexityLimit, token).ConfigureAwait(false);
 
                     LogTopology(exhaustiveSearchInstanceTrialInstance, topologyNetwork);
 
-                    models = IncrementModels(models);
+                    models = await IncrementModelsAsync(models, token).ConfigureAwait(false);
 
                     if (log.IsInfoEnabled)
                     {
@@ -252,14 +225,14 @@ namespace Jube.Engine.Exhaustive.Algorithms
                                 "Will promote model in the database.");
                         }
 
-                        repositoryExhaustiveSearchInstance.UpdateBestScore(exhaustiveSearchInstanceId, bestScore,
-                            topologyComplexity);
+                        await repositoryExhaustiveSearchInstance.UpdateBestScoreAsync(exhaustiveSearchInstanceId, bestScore,
+                            topologyComplexity, token).ConfigureAwait(false);
 
                         modelsSinceBest = 0;
 
-                        PromoteTopologyNetwork(topologyNetwork, topologyComplexity,
+                        await PromoteTopologyNetworkAsync(topologyNetwork, topologyComplexity,
                             exhaustiveSearchInstanceTrialInstance,
-                            exhaustiveSearchInstancePromotedTrialInstanceRepository);
+                            exhaustiveSearchInstancePromotedTrialInstanceRepository, token).ConfigureAwait(false);
 
                         if (log.IsInfoEnabled)
                         {
@@ -269,9 +242,9 @@ namespace Jube.Engine.Exhaustive.Algorithms
                                 "Has promoted the model in the database,  will now store the ROC data.");
                         }
 
-                        StoreRoc(outputsTesting,
+                        await StoreRocAsync(outputsTesting,
                             exhaustiveSearchInstanceTrialInstance,
-                            exhaustiveSearchInstancePromotedTrialInstanceRocRepository);
+                            exhaustiveSearchInstancePromotedTrialInstanceRocRepository, token).ConfigureAwait(false);
 
                         if (log.IsInfoEnabled)
                         {
@@ -282,8 +255,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
                                 "presenting it in the user interface).");
                         }
 
-                        StorePredictedVsActual(exhaustiveSearchInstanceTrialInstance, outputsTesting,
-                            exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository);
+                        await StorePredictedVsActualAsync(exhaustiveSearchInstanceTrialInstance, outputsTesting,
+                            exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository, token).ConfigureAwait(false);
 
                         if (log.IsInfoEnabled)
                         {
@@ -294,10 +267,10 @@ namespace Jube.Engine.Exhaustive.Algorithms
                                 "sensitivity analysis on the model and variables.");
                         }
 
-                        PerformSensitivityAnalysisAndStoreForPromoted(
+                        await PerformSensitivityAnalysisAndStoreForPromotedAsync(
                             exhaustiveSearchInstanceTrialInstance.Id,
                             topologyNetwork, trialVariables,
-                            dataCrossValidation, exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository);
+                            dataCrossValidation, exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository, token).ConfigureAwait(false);
 
                         if (log.IsInfoEnabled)
                         {
@@ -308,10 +281,10 @@ namespace Jube.Engine.Exhaustive.Algorithms
                                 "simulation to explain the model topology in practice.");
                         }
 
-                        PerformMonteCarloSimulationToUnderstandTopologyModel(simulationsCount,
+                        await PerformMonteCarloSimulationToUnderstandTopologyModelAsync(simulationsCount,
                             trialVariables,
                             topologyNetwork,
-                            exhaustiveSearchInstancePromotedTrialInstancePrescriptionRepository);
+                            exhaustiveSearchInstancePromotedTrialInstancePrescriptionRepository, token).ConfigureAwait(false);
 
                         if (log.IsInfoEnabled)
                         {
@@ -337,7 +310,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         break;
                     }
 
-                    modelsSinceBest = IncrementModelsSinceBest(modelsSinceBest);
+                    modelsSinceBest = await IncrementModelsSinceBestAsync(modelsSinceBest, token).ConfigureAwait(false);
 
                     if (log.IsInfoEnabled)
                     {
@@ -347,7 +320,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
                             $"Has not beaten the best model,  has incremented models since best to {modelsSinceBest}.");
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     log.Error(
                         $"Exhaustive Training: Trial instance count {i}. Has created an Exhaustive Search Instance " +
@@ -355,7 +328,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
                 }
             }
 
-            return Task.FromResult(true);
+            return true;
         }
 
         private void LogTopology(ExhaustiveSearchInstanceTrialInstance exhaustiveSearchInstanceTrialInstance,
@@ -393,10 +366,10 @@ namespace Jube.Engine.Exhaustive.Algorithms
             }
         }
 
-        private void PerformMonteCarloSimulationToUnderstandTopologyModel(int simulationsCount,
-            Dictionary<int, TrialVariable> trialVariables, Network topologyNetwork,
+        private static async Task PerformMonteCarloSimulationToUnderstandTopologyModelAsync(int simulationsCount,
+            Dictionary<int, TrialVariable> trialVariables, ActivationNetwork topologyNetwork,
             ExhaustiveSearchInstancePromotedTrialInstanceVariableRepository
-                exhaustiveSearchInstancePromotedTrialInstanceVariableRepository)
+                exhaustiveSearchInstancePromotedTrialInstanceVariableRepository, CancellationToken token = default)
         {
             var activations = new List<double[]>();
             for (var j = 0; j < simulationsCount; j++)
@@ -461,8 +434,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         trialVariables.ElementAt(j).Value.ReverseZScore(iqr);
 
                     exhaustiveSearchInstancePromotedTrialInstanceVariablePrescription =
-                        exhaustiveSearchInstancePromotedTrialInstanceVariableRepository
-                            .Insert(exhaustiveSearchInstancePromotedTrialInstanceVariablePrescription);
+                        await exhaustiveSearchInstancePromotedTrialInstanceVariableRepository
+                            .InsertAsync(exhaustiveSearchInstancePromotedTrialInstanceVariablePrescription, token).ConfigureAwait(false);
 
                     if (exhaustiveSearchInstancePromotedTrialInstanceVariablePrescription.Maximum -
                         exhaustiveSearchInstancePromotedTrialInstanceVariablePrescription.Minimum == 0)
@@ -497,12 +470,12 @@ namespace Jube.Engine.Exhaustive.Algorithms
             }
         }
 
-        private void PerformSensitivityAnalysisAndStoreForPromoted(
+        private async Task PerformSensitivityAnalysisAndStoreForPromotedAsync(
             int exhaustiveSearchInstanceTrialInstanceId,
             ActivationNetwork topologyNetwork,
             Dictionary<int, TrialVariable> trialVariables, double[][] dataTesting,
             ExhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository
-                exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository)
+                exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository, CancellationToken token = default)
         {
             var sensitivityAnalysis = PerformSensitivityAnalysis(exhaustiveSearchInstanceTrialInstanceId,
                 topologyNetwork, trialVariables, dataTesting, performance.Scores);
@@ -518,19 +491,19 @@ namespace Jube.Engine.Exhaustive.Algorithms
                             trialVariables[key].ExhaustiveSearchInstanceTrialInstanceVariableId
                     };
 
-                exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository.Insert(
-                    exhaustiveSearchInstancePromotedTrialInstanceSensitivity);
+                await exhaustiveSearchInstancePromotedTrialInstanceSensitivityRepository.InsertAsync(
+                    exhaustiveSearchInstancePromotedTrialInstanceSensitivity, token).ConfigureAwait(false);
             }
         }
 
-        private void StoreRoc(double[][] outputsTesting,
+        private async Task StoreRocAsync(double[][] outputsTesting,
             ExhaustiveSearchInstanceTrialInstance exhaustiveSearchInstanceTrialInstance,
             ExhaustiveSearchInstancePromotedTrialInstanceRocRepository
-                exhaustiveSearchInstancePromotedTrialInstanceRocRepository)
+                exhaustiveSearchInstancePromotedTrialInstanceRocRepository, CancellationToken token = default)
         {
-            var minPrediction = 0d;
-            var maxPrediction = 1d;
-            var rocStep = (maxPrediction - minPrediction) / 20d;
+            const double minPrediction = 0d;
+            const double maxPrediction = 1d;
+            const double rocStep = (maxPrediction - minPrediction) / 20d;
             var rocStepThreshold = 0.05d;
             for (var j = 0; j < 20; j++)
             {
@@ -549,17 +522,17 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         Threshold = rocStepThreshold
                     };
 
-                exhaustiveSearchInstancePromotedTrialInstanceRocRepository.Insert(
-                    exhaustiveSearchInstancePromotedTrialInstanceRoc);
+                await exhaustiveSearchInstancePromotedTrialInstanceRocRepository.InsertAsync(
+                    exhaustiveSearchInstancePromotedTrialInstanceRoc, token).ConfigureAwait(false);
 
                 rocStepThreshold += rocStep;
             }
         }
 
-        private void StorePredictedVsActual(ExhaustiveSearchInstanceTrialInstance exhaustiveSearchInstanceTrialInstance,
-            IReadOnlyList<double[]> outputsTesting,
+        private async Task StorePredictedVsActualAsync(ExhaustiveSearchInstanceTrialInstance exhaustiveSearchInstanceTrialInstance,
+            double[][] outputsTesting,
             ExhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository
-                exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository)
+                exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository, CancellationToken token = default)
         {
             for (var j = 0; j < performance.Scores.Length; j++)
             {
@@ -572,16 +545,16 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         Actual = outputsTesting[j][0]
                     };
 
-                exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository.Insert(
-                    exhaustiveSearchInstancePromotedTrialInstancePredictedActual);
+                await exhaustiveSearchInstancePromotedTrialInstancePredictedActualRepository.InsertAsync(
+                    exhaustiveSearchInstancePromotedTrialInstancePredictedActual, token).ConfigureAwait(false);
             }
         }
 
-        private void PromoteTopologyNetwork(Network topologyNetwork, int topologyComplexity,
+        private Task<ExhaustiveSearchInstancePromotedTrialInstance> PromoteTopologyNetworkAsync(Network topologyNetwork, int topologyComplexity,
             ExhaustiveSearchInstanceTrialInstance exhaustiveSearchInstanceTrialInstance,
-            ExhaustiveSearchInstancePromotedTrialInstanceRepository exhaustiveSearchInstancePromotedTrialsRepository)
+            ExhaustiveSearchInstancePromotedTrialInstanceRepository exhaustiveSearchInstancePromotedTrialsRepository, CancellationToken token = default)
         {
-            var json = JsonConvert.SerializeObject(topologyNetwork, jsonSerializerSettings);
+            var json = JsonConvert.SerializeObject(topologyNetwork, jsonSerializationHelper.TopologyNetworkJsonSerializerSettings);
 
             var exhaustiveSearchInstancePromotedTrial = new ExhaustiveSearchInstancePromotedTrialInstance
             {
@@ -597,24 +570,24 @@ namespace Jube.Engine.Exhaustive.Algorithms
                     .Id
             };
 
-            exhaustiveSearchInstancePromotedTrialsRepository.Insert(exhaustiveSearchInstancePromotedTrial);
+            return exhaustiveSearchInstancePromotedTrialsRepository.InsertAsync(exhaustiveSearchInstancePromotedTrial, token);
         }
 
-        private int IncrementModels(int models)
+        private async Task<int> IncrementModelsAsync(int models, CancellationToken token = default)
         {
             models += 1;
-            repositoryExhaustiveSearchInstance.UpdateModels(exhaustiveSearchInstanceId, models);
+            await repositoryExhaustiveSearchInstance.UpdateModelsAsync(exhaustiveSearchInstanceId, models, token).ConfigureAwait(false);
             return models;
         }
 
-        private int IncrementModelsSinceBest(int modelsSinceBest)
+        private async Task<int> IncrementModelsSinceBestAsync(int modelsSinceBest, CancellationToken token = default)
         {
             modelsSinceBest += 1;
-            repositoryExhaustiveSearchInstance.UpdateModelsSinceBest(exhaustiveSearchInstanceId, modelsSinceBest);
+            await repositoryExhaustiveSearchInstance.UpdateModelsSinceBestAsync(exhaustiveSearchInstanceId, modelsSinceBest, token).ConfigureAwait(false);
             return modelsSinceBest;
         }
 
-        private void EvolveTopology(
+        private async Task<(ActivationNetwork ActivationNetwork, Performance Performance, int BestTopologyComplexity)> EvolveTopologyAsync(
             int topologySinceImprovementLimit,
             int topologyExplorationEpochs,
             int topologyFinalEpochs,
@@ -628,21 +601,17 @@ namespace Jube.Engine.Exhaustive.Algorithms
             double[][] outputsTesting,
             double validationTestingActivationThreshold,
             int layerWidthLimitInputLayerFactor,
-            int layerDepthLimit, int topologyComplexityLimit,
-            out ActivationNetwork bestTopologyNetwork,
-            out Performance bestPerformance,
-            out int bestTopologyComplexity)
+            int layerDepthLimit, int topologyComplexityLimit, CancellationToken token = default)
         {
-            bestTopologyNetwork = null;
-            bestPerformance = null;
-            bestTopologyComplexity = 0;
+            ActivationNetwork bestTopologyNetwork = null;
+            var bestTopologyComplexity = 0;
 
             var repositoryExhaustiveSearchInstanceTrialInstanceTopologyTrial
                 = new ExhaustiveSearchInstanceTrialInstanceTopologyTrialRepository(dbContext);
 
             var bestScore = 0d;
             var topologiesSinceNoImproveCounter = 0;
-            var topologyTrials = 1;
+            const int topologyTrials = 1;
             var layers = new List<int>
             {
                 1
@@ -670,8 +639,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
                     };
 
                 exhaustiveSearchInstanceTrialInstanceTopologyTrial =
-                    repositoryExhaustiveSearchInstanceTrialInstanceTopologyTrial.Insert(
-                        exhaustiveSearchInstanceTrialInstanceTopologyTrial);
+                    await repositoryExhaustiveSearchInstanceTrialInstanceTopologyTrial.InsertAsync(
+                        exhaustiveSearchInstanceTrialInstanceTopologyTrial, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
@@ -881,7 +850,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
                 outputsTesting,
                 validationTestingActivationThreshold);
 
-            bestPerformance = performance;
+            var bestPerformance = performance;
 
             if (log.IsInfoEnabled)
             {
@@ -904,8 +873,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
                     Finalisation = 1
                 };
 
-            repositoryExhaustiveSearchInstanceTrialInstanceTopologyTrial.Insert(
-                modelExhaustiveSearchInstanceTrialInstanceTopologyTrialFinalisation);
+            await repositoryExhaustiveSearchInstanceTrialInstanceTopologyTrial.InsertAsync(
+                modelExhaustiveSearchInstanceTrialInstanceTopologyTrialFinalisation, token).ConfigureAwait(false);
 
             if (log.IsInfoEnabled)
             {
@@ -914,9 +883,11 @@ namespace Jube.Engine.Exhaustive.Algorithms
                     $"Trial Instance ID of {exhaustiveSearchInstanceTrialInstance.Id}. " +
                     "Has finished evolving topology.  Returning best topology complexity {topologyComplexity}.");
             }
+
+            return (bestTopologyNetwork, bestPerformance, bestTopologyComplexity);
         }
 
-        private int[] LayersParamsArray(IReadOnlyList<int> layers)
+        private static int[] LayersParamsArray(List<int> layers)
         {
             var layersArray = new int[layers.Count + 1];
             for (var j = 0; j < layers.Count; j++)
@@ -928,7 +899,13 @@ namespace Jube.Engine.Exhaustive.Algorithms
             return layersArray;
         }
 
-        private void OptimiseData(
+        private async Task<(IActivationFunction bestActivationFunctionObject, Dictionary<int, TrialVariable> bestTrialVariables,
+            double[][] bestDataTraining,
+            double[][] bestDataCrossValidation,
+            double[][] bestDataTesting,
+            double[][] bestOutputsTraining,
+            double[][] bestOutputsCrossValidation,
+            double[][] bestOutputsTesting)> OptimiseDataAsync(
             int activationFunctionExplorationEpochs,
             int minVariableCount,
             int maxVariableCount,
@@ -937,14 +914,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
             double crossValidationDataSamplePercentage,
             double testingDataSamplePercentage,
             double validationTestingActivationThreshold,
-            out IActivationFunction bestActivationFunctionObject,
-            out Dictionary<int, TrialVariable> bestTrialVariables,
-            out double[][] bestDataTraining,
-            out double[][] bestDataCrossValidation,
-            out double[][] bestDataTesting,
-            out double[][] bestOutputsTraining,
-            out double[][] bestOutputsCrossValidation,
-            out double[][] bestOutputsTesting
+            CancellationToken token
         )
         {
             var bestSensitivityAnalysisScore = 0d;
@@ -982,8 +952,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
                             $" will create with {randomTrialVariableCount} random variables.  Will proceed to select them in random order.");
                     }
 
-                    trialVariables = SelectVariables(exhaustiveSearchInstanceTrialInstance.Id,
-                        randomTrialVariableCount);
+                    trialVariables = await SelectVariablesAsync(exhaustiveSearchInstanceTrialInstance.Id,
+                        randomTrialVariableCount, token).ConfigureAwait(false);
 
                     originalVariables = (Dictionary<int, TrialVariable>)trialVariables.DeepMemberwiseClone();
 
@@ -994,8 +964,6 @@ namespace Jube.Engine.Exhaustive.Algorithms
                     activationFunctionSnapshot = null;
 
                     bestSensitivityAnalysisScore = 0;
-
-                    bestTrialVariables = null;
 
                     if (log.IsInfoEnabled)
                     {
@@ -1035,14 +1003,13 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         "Will now select activation functions.");
                 }
 
-                SearchForBestActivationFunction(trialVariables,
+                var (bestTopologyNetwork,
+                    bestActivationFunction,
+                    bestActivationFunctionScore) = await SearchForBestActivationFunctionAsync(trialVariables,
                     activationFunctionExplorationEpochs,
                     exhaustiveSearchInstanceTrialInstance,
                     dataTraining, outputsTraining, dataCrossValidation,
-                    outputsCrossValidation, validationTestingActivationThreshold,
-                    out var bestTopologyNetwork,
-                    out var bestActivationFunction,
-                    out var bestActivationFunctionScore);
+                    outputsCrossValidation, validationTestingActivationThreshold, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
@@ -1051,9 +1018,9 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         $" has found an activation function {bestActivationFunction}. Will proceed to perform sensitivity analysis.");
                 }
 
-                var sensitivityAnalysis = PerformSensitivityAnalysisAndStoreForVariableSelection(
+                var sensitivityAnalysis = await PerformSensitivityAnalysisAndStoreForVariableSelectionAsync(
                     exhaustiveSearchInstanceTrialInstance.Id,
-                    bestTopologyNetwork, trialVariables, dataCrossValidation);
+                    bestTopologyNetwork, trialVariables, dataCrossValidation, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
@@ -1098,8 +1065,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
                             "Will revert to deep copy before last removed variable and store the final removed variables removed in the database.");
                     }
 
-                    bestTrialVariables = trialVariablesSnapshot;
-                    bestActivationFunctionObject = activationFunctionSnapshot;
+                    var bestTrialVariables = trialVariablesSnapshot;
+                    var bestActivationFunctionObject = activationFunctionSnapshot;
 
                     var repository = new ExhaustiveSearchInstanceTrialInstanceVariableRepository(dbContext);
 
@@ -1116,9 +1083,9 @@ namespace Jube.Engine.Exhaustive.Algorithms
                                         $" variable {originalVariables.ElementAt(j).Key} has been removed,  will mark as removed in the database.");
                                 }
 
-                                repository.UpdateAsRemovedByExhaustiveSearchInstanceVariableId(
+                                await repository.UpdateAsRemovedByExhaustiveSearchInstanceVariableIdAsync(
                                     variables[originalVariables.ElementAt(j).Key].ExhaustiveSearchInstanceVariableId,
-                                    exhaustiveSearchInstanceTrialInstance.Id);
+                                    exhaustiveSearchInstanceTrialInstance.Id, token).ConfigureAwait(false);
 
                                 if (log.IsInfoEnabled)
                                 {
@@ -1153,12 +1120,12 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         exhaustiveSearchInstanceTrialInstance,
                         reducedDataAfterOptimisation,
                         output,
-                        out bestDataTraining,
-                        out bestOutputsTraining,
-                        out bestDataCrossValidation,
-                        out bestOutputsCrossValidation,
-                        out bestDataTesting,
-                        out bestOutputsTesting);
+                        out var bestDataTraining,
+                        out var bestOutputsTraining,
+                        out var bestDataCrossValidation,
+                        out var bestOutputsCrossValidation,
+                        out var bestDataTesting,
+                        out var bestOutputsTesting);
 
                     if (log.IsInfoEnabled)
                     {
@@ -1168,16 +1135,23 @@ namespace Jube.Engine.Exhaustive.Algorithms
                             "breaking search and returning method.");
                     }
 
-                    return;
+                    return (bestActivationFunctionObject,
+                        bestTrialVariables,
+                        bestDataTraining,
+                        bestDataCrossValidation,
+                        bestDataTesting,
+                        bestOutputsTraining,
+                        bestOutputsCrossValidation,
+                        bestOutputsTesting);
                 }
             }
         }
 
-        private Dictionary<int, double> PerformSensitivityAnalysisAndStoreForVariableSelection(
+        private async Task<Dictionary<int, double>> PerformSensitivityAnalysisAndStoreForVariableSelectionAsync(
             int exhaustiveSearchInstanceTrialInstanceId,
             ActivationNetwork bestTopologyNetwork,
             Dictionary<int, TrialVariable> trialVariables,
-            double[][] dataCrossValidation)
+            double[][] dataCrossValidation, CancellationToken token = default)
         {
             if (log.IsInfoEnabled)
             {
@@ -1198,7 +1172,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
                     " has finished the sensitivity analysis.  Will store in the database.");
             }
 
-            StoreSensitivityForVariableSelection(sensitivityAnalysis, trialVariables);
+            await StoreSensitivityForVariableSelectionAsync(sensitivityAnalysis, trialVariables, token).ConfigureAwait(false);
 
             if (log.IsInfoEnabled)
             {
@@ -1210,8 +1184,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
             return sensitivityAnalysis;
         }
 
-        private void StoreSensitivityForVariableSelection(Dictionary<int, double> sensitivityAnalysis,
-            IReadOnlyDictionary<int, TrialVariable> trialVariables)
+        private async Task StoreSensitivityForVariableSelectionAsync(Dictionary<int, double> sensitivityAnalysis,
+            Dictionary<int, TrialVariable> trialVariables, CancellationToken token = default)
         {
             var repository = new ExhaustiveSearchInstanceTrialInstanceSensitivityRepository(dbContext);
 
@@ -1224,7 +1198,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         ExhaustiveSearchInstanceVariableId = trialVariables[key].ExhaustiveSearchInstanceVariableId
                     };
 
-                repository.Insert(model);
+                await repository.InsertAsync(model, token).ConfigureAwait(false);
             }
         }
 
@@ -1239,7 +1213,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
             for (var j = 0; j < trialVariables.Count; j++)
             {
                 var outputSensitivityValues =
-                    performance.Sensitivity(seeded, bestTrialTopologyNetworkObject, dataCrossValidationOrTesting, j,
+                    Performance.Sensitivity(seeded, bestTrialTopologyNetworkObject, dataCrossValidationOrTesting, j,
                         baseline);
 
                 var sensitivity = outputSensitivityValues.Mean();
@@ -1288,19 +1262,16 @@ namespace Jube.Engine.Exhaustive.Algorithms
             }
         }
 
-        private void SearchForBestActivationFunction(Dictionary<int, TrialVariable> trialVariables,
+        private async Task<(ActivationNetwork bestTrialTopologyNetwork, IActivationFunction bestActivationFunction, double bestScore)> SearchForBestActivationFunctionAsync(Dictionary<int, TrialVariable> trialVariables,
             int activationFunctionExplorationEpochs,
             ExhaustiveSearchInstanceTrialInstance exhaustiveSearchInstanceTrialInstance,
             double[][] dataTraining, double[][] outputsTraining,
             double[][] dataCrossValidation, double[][] outputsCrossValidation,
-            double validationTestingActivationThreshold,
-            out ActivationNetwork bestTrialTopologyNetwork,
-            out IActivationFunction bestActivationFunction,
-            out double bestScore)
+            double validationTestingActivationThreshold, CancellationToken token = default)
         {
-            bestScore = 0;
-            bestTrialTopologyNetwork = null;
-            bestActivationFunction = null;
+            var bestScore = 0d;
+            ActivationNetwork bestTrialTopologyNetwork = null;
+            IActivationFunction bestActivationFunction = null;
 
             var repositoryExhaustiveSearchInstanceTrialInstanceActivationFunctionTrial =
                 new ExhaustiveSearchInstanceTrialInstanceActivationFunctionTrialRepository(dbContext);
@@ -1489,8 +1460,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
 
                 exhaustiveSearchInstanceTrialInstanceActivationFunctionTrial.ActivationFunctionId = j;
                 exhaustiveSearchInstanceTrialInstanceActivationFunctionTrial =
-                    repositoryExhaustiveSearchInstanceTrialInstanceActivationFunctionTrial
-                        .Insert(exhaustiveSearchInstanceTrialInstanceActivationFunctionTrial);
+                    await repositoryExhaustiveSearchInstanceTrialInstanceActivationFunctionTrial
+                        .InsertAsync(exhaustiveSearchInstanceTrialInstanceActivationFunctionTrial, token).ConfigureAwait(false);
 
                 if (log.IsInfoEnabled)
                 {
@@ -1562,6 +1533,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
                     }
                 }
             }
+
+            return (bestTrialTopologyNetwork, bestActivationFunction, bestScore);
         }
 
         private ActivationNetwork DefaultFirstActivationFunction(Dictionary<int, TrialVariable> trialVariables,
@@ -1606,7 +1579,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
             return reducedData;
         }
 
-        private ActivationNetwork TopologyRandomise(ActivationNetwork topologyNetwork)
+        private static ActivationNetwork TopologyRandomise(ActivationNetwork topologyNetwork)
         {
             var topologyRandomise = new NguyenWidrow(topologyNetwork);
             topologyRandomise.Randomize();
@@ -1618,8 +1591,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
             double crossValidationDataSamplePercentage,
             double testingDataSamplePercentage,
             ExhaustiveSearchInstanceTrialInstance exhaustiveSearchInstanceTrialInstance,
-            IReadOnlyList<double[]> dataToSplit,
-            IReadOnlyList<double[]> outputToSplit,
+            double[][] dataToSplit,
+            double[][] outputToSplit,
             out double[][] dataTraining,
             out double[][] outputsTraining,
             out double[][] dataCrossValidation,
@@ -1628,9 +1601,9 @@ namespace Jube.Engine.Exhaustive.Algorithms
             out double[][] outputsTesting
         )
         {
-            var trainingLength = (int)(outputToSplit.Count * trainingDataSamplePercentage);
-            var crossValidationLength = (int)(outputToSplit.Count * crossValidationDataSamplePercentage);
-            var testingLength = (int)(outputToSplit.Count * testingDataSamplePercentage);
+            var trainingLength = (int)(outputToSplit.Length * trainingDataSamplePercentage);
+            var crossValidationLength = (int)(outputToSplit.Length * crossValidationDataSamplePercentage);
+            var testingLength = (int)(outputToSplit.Length * testingDataSamplePercentage);
 
             if (log.IsInfoEnabled)
             {
@@ -1659,11 +1632,11 @@ namespace Jube.Engine.Exhaustive.Algorithms
             outputsTesting = SplitArray(outputToSplit, crossValidationLength, testingLength + crossValidationLength);
         }
 
-        private Dictionary<int, TrialVariable> SelectVariables(
-            int exhaustiveSearchInstanceTrialInstanceId, int randomTrialVariableCount)
+        private async Task<Dictionary<int, TrialVariable>> SelectVariablesAsync(
+            int exhaustiveSearchInstanceTrialInstanceId, int randomTrialVariableCount, CancellationToken token = default)
         {
             var repository = new ExhaustiveSearchInstanceTrialInstanceVariableRepository(dbContext);
-            repository.DeleteAllByExhaustiveSearchInstanceTrialInstanceId(exhaustiveSearchInstanceTrialInstanceId);
+            await repository.DeleteAllByExhaustiveSearchInstanceTrialInstanceIdAsync(exhaustiveSearchInstanceTrialInstanceId, token).ConfigureAwait(false);
 
             var trialVariables = new Dictionary<int, TrialVariable>();
             for (var j = 0; j < randomTrialVariableCount; j++)
@@ -1716,8 +1689,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
                         };
 
                     trialVariables[randomVariable].ExhaustiveSearchInstanceTrialInstanceVariableId
-                        = repository.Insert(exhaustiveSearchInstanceTrialInstanceVariable)
-                            .Id;
+                        = (await repository.InsertAsync(exhaustiveSearchInstanceTrialInstanceVariable, token).ConfigureAwait(false)).Id;
 
                     if (log.IsInfoEnabled)
                     {
@@ -1753,7 +1725,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
             return trialVariables;
         }
 
-        private double[][] SplitArray(IReadOnlyList<double[]> inputs, int start, int finish)
+        private static double[][] SplitArray(IReadOnlyList<double[]> inputs, int start, int finish)
         {
             var newArray = new double[finish][];
             var j = 0;
@@ -1785,8 +1757,8 @@ namespace Jube.Engine.Exhaustive.Algorithms
             return value > maxVariableCount ? maxVariableCount : value;
         }
 
-        private ExhaustiveSearchInstanceTrialInstance InsertExhaustiveSearchInstanceTrialInstance(
-            ExhaustiveSearchInstanceTrialInstanceRepository repository)
+        private Task<ExhaustiveSearchInstanceTrialInstance> InsertExhaustiveSearchInstanceTrialInstanceAsync(
+            ExhaustiveSearchInstanceTrialInstanceRepository repository, CancellationToken token = default)
         {
             var exhaustiveSearchInstanceTrialInstance = new ExhaustiveSearchInstanceTrialInstance
             {
@@ -1794,10 +1766,10 @@ namespace Jube.Engine.Exhaustive.Algorithms
                 CreatedDate = DateTime.Now
             };
 
-            return repository.Insert(exhaustiveSearchInstanceTrialInstance);
+            return repository.InsertAsync(exhaustiveSearchInstanceTrialInstance, token);
         }
 
-        private List<ActivationNetworkAnnotation> MapTrialVariableToActivationNetworkAnnotations(
+        private static List<ActivationNetworkAnnotation> MapTrialVariableToActivationNetworkAnnotations(
             Dictionary<int, TrialVariable> trialVariables)
         {
             return trialVariables.Select(trialVariable => new ActivationNetworkAnnotation
@@ -1817,9 +1789,9 @@ namespace Jube.Engine.Exhaustive.Algorithms
                 .ToList();
         }
 
-        private bool IsStoppingOrStopped()
+        private async Task<bool> IsStoppingOrStoppedAsync(CancellationToken token = default)
         {
-            return !repositoryExhaustiveSearchInstance.IsStoppingOrStopped(exhaustiveSearchInstanceId);
+            return !await repositoryExhaustiveSearchInstance.IsStoppingOrStoppedAsync(exhaustiveSearchInstanceId, token).ConfigureAwait(false);
         }
     }
 }

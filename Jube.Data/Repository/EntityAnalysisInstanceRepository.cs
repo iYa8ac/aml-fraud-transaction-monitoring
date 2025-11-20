@@ -13,16 +13,26 @@
 
 namespace Jube.Data.Repository
 {
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class EntityAnalysisInstanceRepository(DbContext dbContext)
     {
-
-        public EntityAnalysisInstance Insert(EntityAnalysisInstance model)
+        public async Task<EntityAnalysisInstance> InsertAsync(EntityAnalysisInstance model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(
+                model,
+                null,
+                null,
+                null,
+                null,
+                TableOptions.NotSet,
+                token
+            ).ConfigureAwait(false);
+
             return model;
         }
     }

@@ -211,9 +211,8 @@ namespace Jube.Dictionary
             }
 
             Interlocked.Add(ref totalSize, -entry.Size);
-            Interlocked.Add(ref requestBytes, -entry.Size);
-            Interlocked.Add(ref remove, -entry.Size);
-            Interlocked.Add(ref removeBytes, 1);
+            Interlocked.Add(ref removeBytes, entry.Size);
+            Interlocked.Add(ref remove, 1);
 
             // ReSharper disable once RedundantAssignment
             entry = null;//This is important to make sure the GC identifies it.

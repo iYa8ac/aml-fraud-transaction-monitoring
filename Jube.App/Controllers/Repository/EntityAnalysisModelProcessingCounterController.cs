@@ -15,6 +15,8 @@ namespace Jube.App.Controllers.Repository
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -57,10 +59,8 @@ namespace Jube.App.Controllers.Repository
                     GetEntityAnalysisModelProcessingCountersQuery.Dto>();
                 cfg.CreateMap<GetEntityAnalysisModelProcessingCountersQuery.Dto,
                     EntityAnalysisModelProcessingCounterDto>();
-                cfg.CreateMap<List<GetEntityAnalysisModelProcessingCountersQuery.Dto>,
-                        List<EntityAnalysisModelProcessingCounterDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
         }
 
@@ -76,7 +76,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<EntityAnalysisModelProcessingCounterDto>> Get()
+        public async Task<ActionResult<List<EntityAnalysisModelProcessingCounterDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -89,7 +89,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 var query = new GetEntityAnalysisModelProcessingCountersQuery(dbContext);
-                return Ok(mapper.Map<List<EntityAnalysisModelProcessingCounterDto>>(query.Execute(1000)));
+                return Ok(mapper.Map<List<EntityAnalysisModelProcessingCounterDto>>(await query.ExecuteAsync(1000, token)));
             }
             catch (Exception e)
             {

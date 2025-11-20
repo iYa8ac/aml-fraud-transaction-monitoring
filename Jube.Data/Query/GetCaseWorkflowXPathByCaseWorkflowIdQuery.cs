@@ -16,7 +16,10 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetCaseWorkflowXPathByCaseWorkflowIdQuery
     {
@@ -30,9 +33,9 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute(Guid caseWorkflowGuid)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(Guid caseWorkflowGuid, CancellationToken token = default)
         {
-            return dbContext.CaseWorkflowXPath.Where(w
+            return await dbContext.CaseWorkflowXPath.Where(w
                     => w.CaseWorkflow.Guid == caseWorkflowGuid &&
                        w.Active == 1 && (w.Deleted == 0 || w.Deleted == null) &&
                        w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
@@ -50,7 +53,7 @@ namespace Jube.Data.Query
                     BoldLineFormatForeColor = s.BoldLineFormatForeColor,
                     BoldLineFormatBackColor = s.BoldLineFormatBackColor,
                     BoldLineMatched = s.BoldLineMatched == 1
-                });
+                }).ToListAsync(token);
         }
 
         private string FormatXPath(string xPath)

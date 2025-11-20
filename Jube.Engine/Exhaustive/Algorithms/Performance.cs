@@ -23,12 +23,12 @@ namespace Jube.Engine.Exhaustive.Algorithms
     {
         private double PercentageCorrect { get; set; }
         private double Correlation { get; set; }
-        public double Score { get; set; }
-        public double[] Scores { get; set; }
-        public int Tp { get; set; }
-        public int Fp { get; set; }
-        public int Tn { get; set; }
-        public int Fn { get; set; }
+        public double Score { get; private set; }
+        public double[] Scores { get; private set; }
+        public int Tp { get; private set; }
+        public int Fp { get; private set; }
+        public int Tn { get; private set; }
+        public int Fn { get; private set; }
 
         public double[] CalculateScores(ActivationNetwork topologyNetwork, double[][] data)
         {
@@ -115,7 +115,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
             Fn = 0;
         }
 
-        public double SpearmansCoeff(IEnumerable<double> current, IEnumerable<double> other)
+        public static double SpearmansCoeff(IEnumerable<double> current, IEnumerable<double> other)
         {
             var enumerable = current as double[] ?? current.ToArray();
             var doubles = other as double[] ?? other.ToArray();
@@ -140,7 +140,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
             return rho;
         }
 
-        private IEnumerable<double> GetRanking(IEnumerable<double> values)
+        private static double[] GetRanking(IEnumerable<double> values)
         {
             var enumerable = values as double[] ?? values.ToArray();
             var groupedValues = enumerable.OrderByDescending(n => n)
@@ -158,7 +158,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
             return rankings;
         }
 
-        public double[] Sensitivity(Random seeded, ActivationNetwork model, double[][] datasetInputs, int test,
+        public static double[] Sensitivity(Random seeded, ActivationNetwork model, double[][] datasetInputs, int test,
             double[] compareValues)
         {
             var deepCopyDatasetInputs = (double[][])datasetInputs.DeepMemberwiseClone();
@@ -179,7 +179,7 @@ namespace Jube.Engine.Exhaustive.Algorithms
             return outputValues;
         }
 
-        private double GetRandomNumber(Random seeded, double minimum, double maximum)
+        private static double GetRandomNumber(Random seeded, double minimum, double maximum)
         {
             return seeded.NextDouble() * (maximum - minimum) + minimum;
         }

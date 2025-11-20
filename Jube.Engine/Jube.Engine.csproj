@@ -6,6 +6,10 @@
         <TargetFramework>net9.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="AsyncFixer" Version="1.6.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="DnsClient" Version="1.2.0"/>
         <PackageReference Include="Fastenshtein" Version="1.0.0.5"/>
         <PackageReference Include="log4net" Version="2.0.14"/>
@@ -13,7 +17,10 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0"/>
         <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" Version="3.8.0"/>
         <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0"/>
-        <PackageReference Include="NEST" Version="7.3.1"/>
+        <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4"/>
         <PackageReference Include="RabbitMQ.Client" Version="6.2.1"/>
         <PackageReference Include="StackExchange.Redis" Version="2.9.32"/>
@@ -30,6 +37,10 @@
     <ItemGroup>
         <Compile Remove="Class1.cs"/>
         <Compile Remove="JubeQuantEngine.Designer.cs"/>
+        <Compile Remove="EntityAnalysisModelInvoke\Extraction\EntityJsonExtractionResult.cs"/>
+        <Compile Remove="EntityAnalysisModelInvoke\Extraction\EntityRequestXPathProcessor.cs"/>
+        <Compile Remove="EntityAnalysisModelInvoke\Context\Exceptions\OldReferenceDateException.cs"/>
+        <Compile Remove="ContractResolvers\Usage\JsonSettings.cs"/>
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Accord.Core\Accord.Core.csproj"/>
@@ -44,6 +55,7 @@
         <ProjectReference Include="..\Jube.DynamicEnvironment\Jube.DynamicEnvironment.csproj"/>
         <ProjectReference Include="..\Jube.Dictionary\Jube.Dictionary.csproj"/>
         <ProjectReference Include="..\Jube.Parser\Jube.Parser.csproj"/>
+        <ProjectReference Include="..\Jube.TaskCancellation\Jube.TaskCancellation.csproj"/>
     </ItemGroup>
     <ItemGroup>
         <None Remove="Exhaustive\Mock.csv"/>

@@ -14,10 +14,10 @@
 namespace Jube.Test.Load
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
+    using System.Linq;
     using System.Net.Http;
     using System.Text;
     using System.Threading;
@@ -26,36 +26,35 @@ namespace Jube.Test.Load
 
     public class Load
     {
-        private readonly ConcurrentQueue<(double, long)> responseTimes = new ConcurrentQueue<(double, long)>();
         private readonly Stopwatch swTotal = new Stopwatch();
         private int requests;
-        private bool stop;
-        private Thread? writerThreadTps;
 
         [Theory]
         [InlineData("http://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc",
-            10000, 100000000, false, 10, 10)]
-        public async Task LoadTest(string uriString, int httpTimeout, long iteration, bool async,
-            int maxConnectionsPerServer, int timeDriftSeconds)
+            10000, 100000000, 10, 1,12)]
+        public Task LoadTestAsync(string uriString, int httpTimeout, long iteration,
+            int maxConnectionsPerServer, int timeDriftMs, int taskCount)
         {
+            var txnId = 0;
             var random = new Random();
             var referenceDate = DateTime.Now.AddYears(-10);
-            var uri = async ? new Uri(uriString + "/async") : new Uri(uriString);
+            var uri = new Uri(uriString);
             var stringTemplate = Helpers.ReadFileContents("Load/Mock.json");
+            
+            var baseIterationsPerClient = iteration / taskCount;
+            var remainder = iteration % taskCount;
 
-            var clientCount = 6;
-            var baseIterationsPerClient = iteration / clientCount;
-            var remainder = iteration % clientCount;
+            _ = Task.Run(() =>
+            {
+                _ = WriteTpsEstimatesAsync();
+            });
 
-            writerThreadTps = new Thread(WriteTpsEstimates);
-            writerThreadTps.Start();
             swTotal.Start();
 
             var tasks = new List<Task>();
-            for (var clientIndex = 0; clientIndex < clientCount; clientIndex++)
+            for (var clientIndex = 0; clientIndex < taskCount; clientIndex++)
             {
-                var iterationsForThisClient = baseIterationsPerClient + (clientIndex == clientCount - 1 ? remainder : 0);
-                var startingIteration = clientIndex * baseIterationsPerClient;
+                var iterationsForThisClient = baseIterationsPerClient + (clientIndex == taskCount - 1 ? remainder : 0);
 
                 tasks.Add(Task.Run(async () =>
                 {
@@ -68,41 +67,30 @@ namespace Jube.Test.Load
                     using var client = new HttpClient(clientHandler);
                     client.Timeout = TimeSpan.FromMilliseconds(httpTimeout);
 
-                    var myReferenceDate = referenceDate.AddSeconds(startingIteration * timeDriftSeconds);
-
                     for (var i = 0; i < iterationsForThisClient; i++)
                     {
-                        var globalIteration = startingIteration + i;
                         var replacements = new Dictionary<string, string>
                         {
-                            ["[@AccountId@]"] = random.NextInt64(1, 100000).ToString(),
-                            ["[@TxnId@]"] = globalIteration.ToString(),
-                            //["[@TxnDateTime@]"] = myReferenceDate.AddSeconds(timeDriftSeconds).ToString("o")
-                            ["[@TxnDateTime@]"] = DateTime.Now.ToString("o")
+                            ["[@AccountId@]"] = random.NextInt64(1, 10000000).ToString(),
+                            ["[@TxnId@]"] = Interlocked.Increment(ref txnId).ToString(),
+                            ["[@TxnDateTime@]"] = referenceDate.AddMilliseconds(timeDriftMs).ToString("o")
                         };
 
-                        var payload = stringTemplate;
-                        foreach (var kvp in replacements)
-                        {
-                            payload = payload.Replace(kvp.Key, kvp.Value);
-                        }
+                        var payload = replacements.Aggregate(stringTemplate, (current, kvp) => current.Replace(kvp.Key, kvp.Value));
 
-                        myReferenceDate = myReferenceDate.AddSeconds(timeDriftSeconds);
-
-                        await SendToJubeAndAwaitResponse(payload, uri, client, responseTimes, swTotal);
+                        await SendToJubeAndAwaitResponseAsync(payload, uri, client);
 
                         Interlocked.Increment(ref requests);
                     }
                 }));
             }
+            
+            swTotal.Stop();
 
-            await Task.WhenAll(tasks);
-
-            stop = true;
+            return Task.WhenAll(tasks);
         }
 
-        private static async Task SendToJubeAndAwaitResponse(string stringReplaced, Uri uri, HttpClient client,
-            ConcurrentQueue<(double, long)> responseTimes, Stopwatch swTotal)
+        private static async Task SendToJubeAndAwaitResponseAsync(string stringReplaced, Uri uri, HttpClient client)
         {
             var stringContent = new StringContent(
                 stringReplaced,
@@ -120,10 +108,9 @@ namespace Jube.Test.Load
             sw.Start();
             await client.SendAsync(request, HttpCompletionOption.ResponseContentRead);
             sw.Stop();
-            responseTimes.Enqueue((swTotal.Elapsed.TotalSeconds, (int)(sw.ElapsedTicks * 1000000 / Stopwatch.Frequency)));
         }
 
-        private async void WriteTpsEstimates()
+        private async Task WriteTpsEstimatesAsync(CancellationToken token = default)
         {
             try
             {
@@ -131,9 +118,10 @@ namespace Jube.Test.Load
                 var outputFileTpsSnapshot = new StreamWriter(Path.Combine(docPath, "WriteLinesTpsSnapshot.txt"));
                 outputFileTpsSnapshot.AutoFlush = true;
 
-                while (!stop)
+                while (!token.IsCancellationRequested)
                 {
-                    Thread.Sleep(1000);
+                    await Task.Delay(1000, token);
+
                     await outputFileTpsSnapshot.WriteLineAsync(
                         $"{Math.Round(swTotal.Elapsed.TotalSeconds)},{requests}");
                     requests = 0;

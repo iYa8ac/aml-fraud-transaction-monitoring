@@ -16,13 +16,14 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
 
     public class GetCaseByCaseKeyValueQuery(DbContext dbContext, string user)
     {
-
-        public IEnumerable<Dto> Execute(string key, string value)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(string key, string value, CancellationToken token = default)
         {
             var query = from c in dbContext.Case
                 from i in dbContext.CaseWorkflow.InnerJoin(w => w.Guid == c.CaseWorkflowGuid)
@@ -60,7 +61,7 @@ namespace Jube.Data.Query
                     BackColor = s.BackColor
                 };
 
-            return query;
+            return await query.ToListAsync(token);
         }
 
         public class Dto

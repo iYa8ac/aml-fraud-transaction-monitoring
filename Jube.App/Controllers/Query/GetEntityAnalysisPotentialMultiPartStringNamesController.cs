@@ -15,6 +15,8 @@ namespace Jube.App.Controllers.Query
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Query;
@@ -64,7 +66,7 @@ namespace Jube.App.Controllers.Query
         }
 
         [HttpGet("{entityAnalysisModelId:int}")]
-        public ActionResult<List<string>> Get(int entityAnalysisModelId)
+        public async Task<ActionResult<List<string>>> GetAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             try
             {
@@ -76,7 +78,7 @@ namespace Jube.App.Controllers.Query
                     return Forbid();
                 }
 
-                return Ok(query.Execute(entityAnalysisModelId));
+                return Ok(await query.ExecuteAsync(entityAnalysisModelId, token));
             }
             catch (Exception e)
             {
@@ -86,7 +88,7 @@ namespace Jube.App.Controllers.Query
         }
 
         [HttpGet("{entityAnalysisModelGuid:guid}")]
-        public ActionResult<List<string>> Get(Guid entityAnalysisModelGuid)
+        public async Task<ActionResult<List<string>>> GetAsync(Guid entityAnalysisModelGuid, CancellationToken token = default)
         {
             try
             {
@@ -98,7 +100,7 @@ namespace Jube.App.Controllers.Query
                     return Forbid();
                 }
 
-                return Ok(query.Execute(entityAnalysisModelGuid));
+                return Ok(await query.ExecuteAsync(entityAnalysisModelGuid, token));
             }
             catch (Exception e)
             {

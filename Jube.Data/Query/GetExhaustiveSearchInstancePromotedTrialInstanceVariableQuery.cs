@@ -15,7 +15,10 @@ namespace Jube.Data.Query
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstancePromotedTrialInstanceVariableQuery
     {
@@ -34,8 +37,8 @@ namespace Jube.Data.Query
             this.dbContext = dbContext;
         }
 
-        private IEnumerable<Dto> Execute
-            (int promotedExhaustiveSearchInstanceTrialInstanceId)
+        private async Task<IEnumerable<Dto>> ExecuteAsync
+            (int promotedExhaustiveSearchInstanceTrialInstanceId, CancellationToken token = default)
         {
             var query = from v in
                     dbContext.ExhaustiveSearchInstanceVariable
@@ -61,19 +64,20 @@ namespace Jube.Data.Query
                     VariableSequence = v.VariableSequence.GetValueOrDefault(),
                     ProcessingTypeId = v.ProcessingTypeId.GetValueOrDefault()
                 };
-            return query;
+
+            return await query.ToListAsync(token).ConfigureAwait(false);
         }
 
-        public IEnumerable<Dto> ExecuteByExhaustiveSearchInstanceTrialInstanceId(
-            int exhaustiveSearchInstanceTrialInstanceId)
+        public Task<IEnumerable<Dto>> ExecuteByExhaustiveSearchInstanceTrialInstanceIdAsync(
+            int exhaustiveSearchInstanceTrialInstanceId, CancellationToken token = default)
         {
-            return Execute(exhaustiveSearchInstanceTrialInstanceId);
+            return ExecuteAsync(exhaustiveSearchInstanceTrialInstanceId, token);
         }
 
-        public IEnumerable<Dto> ExecuteByExhaustiveSearchInstanceId(
-            int exhaustiveSearchInstanceId)
+        public async Task<IEnumerable<Dto>> ExecuteByExhaustiveSearchInstanceIdAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            var promotedExhaustiveSearchInstanceTrialInstanceId = dbContext
+            var promotedExhaustiveSearchInstanceTrialInstanceId = await dbContext
                 .ExhaustiveSearchInstancePromotedTrialInstance
                 .Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance.Id == exhaustiveSearchInstanceId
@@ -82,9 +86,9 @@ namespace Jube.Data.Query
                         .EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue))
                 .OrderByDescending(o => o.Id)
                 .Select(s => s.ExhaustiveSearchInstanceTrialInstanceId.GetValueOrDefault())
-                .FirstOrDefault();
+                .FirstOrDefaultAsync(token).ConfigureAwait(false);
 
-            return Execute(promotedExhaustiveSearchInstanceTrialInstanceId);
+            return await ExecuteAsync(promotedExhaustiveSearchInstanceTrialInstanceId, token).ConfigureAwait(false);
         }
 
         public class Dto

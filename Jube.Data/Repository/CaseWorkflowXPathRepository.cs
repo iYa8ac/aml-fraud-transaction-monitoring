@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Context;
     using LinqToDB;
@@ -41,66 +43,68 @@ namespace Jube.Data.Repository
             this.tenantRegistryId = tenantRegistryId;
         }
 
-        public IEnumerable<CaseWorkflowXPath> Get()
+        public async Task<IEnumerable<CaseWorkflowXPath>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.CaseWorkflowXPath
-                .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId);
+            return await dbContext.CaseWorkflowXPath
+                .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId)
+                .ToListAsync(token);
         }
 
-        public IEnumerable<CaseWorkflowXPath> GetByCasesWorkflowIdActiveDrillOnly(int casesWorkflowId)
+        public async Task<IEnumerable<CaseWorkflowXPath>> GetByCasesWorkflowIdActiveDrillOnlyAsync(int casesWorkflowId, CancellationToken token = default)
         {
-            return dbContext.CaseWorkflowXPath
+            return await dbContext.CaseWorkflowXPath
                 .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && w.Active == 1
                             && w.Drill == 1
                             && w.CaseWorkflowId == casesWorkflowId
-                            && (w.Deleted == 0 || w.Deleted == null));
+                            && (w.Deleted == 0 || w.Deleted == null))
+                .ToListAsync(token);
         }
 
-        public IEnumerable<CaseWorkflowXPath> GetByCasesWorkflowGuidActiveDrillOnly(Guid casesWorkflowGuid)
+        public async Task<IEnumerable<CaseWorkflowXPath>> GetByCasesWorkflowGuidActiveDrillOnlyAsync(Guid casesWorkflowGuid, CancellationToken token = default)
         {
-            return dbContext.CaseWorkflowXPath
+            return await dbContext.CaseWorkflowXPath
                 .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && w.Active == 1
                             && w.Drill == 1
                             && w.CaseWorkflow.Guid == casesWorkflowGuid
-                            && (w.Deleted == 0 || w.Deleted == null));
+                            && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
         }
 
-        public IEnumerable<CaseWorkflowXPath> GetByCasesWorkflowIdOrderByIdDesc(int casesWorkflowId)
+        public async Task<IEnumerable<CaseWorkflowXPath>> GetByCasesWorkflowIdOrderByIdDescAsync(int casesWorkflowId, CancellationToken token = default)
         {
-            return dbContext.CaseWorkflowXPath
+            return await dbContext.CaseWorkflowXPath
                 .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && w.CaseWorkflowId == casesWorkflowId && (w.Deleted == 0 || w.Deleted == null))
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token);
         }
 
-        public CaseWorkflowXPath GetById(int id)
+        public Task<CaseWorkflowXPath> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.CaseWorkflowXPath.FirstOrDefault(w =>
+            return dbContext.CaseWorkflowXPath.FirstOrDefaultAsync(w =>
                 w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
-                && w.Id == id && (w.Deleted == 0 || w.Deleted == null));
+                && w.Id == id && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public CaseWorkflowXPath Insert(CaseWorkflowXPath model)
+        public async Task<CaseWorkflowXPath> InsertAsync(CaseWorkflowXPath model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
             model.Version = 1;
             model.Guid = Guid.NewGuid();
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public CaseWorkflowXPath Update(CaseWorkflowXPath model)
+        public async Task<CaseWorkflowXPath> UpdateAsync(CaseWorkflowXPath model, CancellationToken token = default)
         {
-            var existing = dbContext.CaseWorkflowXPath
-                .FirstOrDefault(w => w.Id
-                                     == model.Id
-                                     && w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId ==
-                                     tenantRegistryId
-                                     && (w.Deleted == 0 || w.Deleted == null)
-                                     && (w.Locked == 0 || w.Locked == null));
+            var existing = await dbContext.CaseWorkflowXPath
+                .FirstOrDefaultAsync(w => w.Id
+                                          == model.Id
+                                          && w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId ==
+                                          tenantRegistryId
+                                          && (w.Deleted == 0 || w.Deleted == null)
+                                          && (w.Locked == 0 || w.Locked == null), token);
 
             if (existing == null)
             {
@@ -112,22 +116,21 @@ namespace Jube.Data.Repository
             model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
             model.CreatedDate = DateTime.Now;
 
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token);
 
-            var config = new MapperConfiguration(cfg => { cfg.CreateMap<CaseWorkflowXPath, CaseWorkflowXPathVersion>(); });
-            var mapper = new Mapper(config);
+            var mapper = new Mapper(new MapperConfiguration(cfg => { cfg.CreateMap<CaseWorkflowXPath, CaseWorkflowXPathVersion>(); }));
 
             var audit = mapper.Map<CaseWorkflowXPathVersion>(existing);
             audit.CaseWorkflowXPathId = existing.Id;
 
-            dbContext.Insert(audit);
+            await dbContext.InsertAsync(audit, token: token);
 
             return model;
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.CaseWorkflowXPath
+            var records = await dbContext.CaseWorkflowXPath
                 .Where(d => d.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && d.Id == id
                             && (d.Locked == 0 || d.Locked == null)
@@ -135,7 +138,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {
@@ -143,15 +146,15 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.CaseWorkflowXPath
+            return dbContext.CaseWorkflowXPath
                 .Where(d => d.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryIdOutsideOfInstance
                             && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

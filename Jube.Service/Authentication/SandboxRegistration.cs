@@ -9,9 +9,9 @@ namespace Jube.Service.Authentication
 
     public class SandboxRegistration(DbContext dbContext)
     {
-        public async Task<SandboxRegistrationResponseDto> Register(
+        public async Task<SandboxRegistrationResponseDto> RegisterAsync(
             SandboxRegistrationRequestDto sandboxRegistrationRequestDto,
-            string passwordHashingKey)
+            string passwordHashingKey, CancellationToken token = default)
         {
             if (sandboxRegistrationRequestDto.UserName == null)
             {
@@ -23,74 +23,75 @@ namespace Jube.Service.Authentication
                 throw new ArgumentException("Missing Password.");
             }
 
-            ValidateUserDoesNotExistAndRaiseExceptionIfExists(sandboxRegistrationRequestDto.UserName);
+            await ValidateUserDoesNotExistAndRaiseExceptionIfExistsAsync(sandboxRegistrationRequestDto.UserName, token);
 
-            var tenantRegistry = CreateTenantRegistry(sandboxRegistrationRequestDto.UserName);
-            var roleRegistry = CreateRoleRegistry(sandboxRegistrationRequestDto.UserName, tenantRegistry);
+            var tenantRegistry = await CreateTenantRegistryAsync(sandboxRegistrationRequestDto.UserName, token);
+            var roleRegistry = await CreateRoleRegistryAsync(sandboxRegistrationRequestDto.UserName, tenantRegistry, token);
 
-            AllocateAllPermissionSpecificationsToRoleRegistry(sandboxRegistrationRequestDto.UserName, roleRegistry);
+            await AllocateAllPermissionSpecificationsToRoleRegistryAsync(sandboxRegistrationRequestDto.UserName, roleRegistry, token);
 
-            var userRegistry = CreateUserRegistry(sandboxRegistrationRequestDto.UserName,
-                sandboxRegistrationRequestDto.Password, passwordHashingKey, roleRegistry);
+            var userRegistry = await CreateUserRegistryAsync(sandboxRegistrationRequestDto.UserName,
+                sandboxRegistrationRequestDto.Password, passwordHashingKey, roleRegistry, token);
 
-            AssignToUserRegistryToTenantRegistry(sandboxRegistrationRequestDto.UserName, tenantRegistry);
+            await AssignToUserRegistryToTenantRegistryAsync(sandboxRegistrationRequestDto.UserName, tenantRegistry, token);
 
-            var entityAnalysisModel = InsertEntityAnalysisModel(userRegistry.Name);
-            InsertEntityAnalysisModelRequestXPaths(entityAnalysisModel.Id, userRegistry.Name);
-            InsertEntityAnalysisModelInlineScript(entityAnalysisModel.Id, 1, userRegistry.Name);
-            InsertEntityAnalysisModelAbstractionCalculation(entityAnalysisModel.Id, userRegistry.Name);
-            InsertEntityAnalysisModelAbstractionRule(entityAnalysisModel.Id, userRegistry.Name);
+            var entityAnalysisModel = await InsertEntityAnalysisModelAsync(userRegistry.Name, token);
+            await InsertEntityAnalysisModelRequestXPathsAsync(entityAnalysisModel.Id, userRegistry.Name, token);
+            await InsertEntityAnalysisModelInlineScriptAsync(entityAnalysisModel.Id, 1, userRegistry.Name, token);
+            await InsertEntityAnalysisModelAbstractionCalculationAsync(entityAnalysisModel.Id, userRegistry.Name, token);
+            await InsertEntityAnalysisModelAbstractionRuleAsync(entityAnalysisModel.Id, userRegistry.Name, token);
 
             var entityAnalysisModelDictionaryId =
                 InsertEntityAnalysisModelDictionary(entityAnalysisModel.Guid, userRegistry.Name);
 
-            InsertEntityAnalysisModelDictionaryKvp(entityAnalysisModelDictionaryId, userRegistry.Name);
-            InsertEntityAnalysisModelGatewayRule(entityAnalysisModel.Id, userRegistry.Name);
-            InsertEntityAnalysisModelHttpAdaptation(entityAnalysisModel.Id, userRegistry.Name);
-            InsertEntityAnalysisModelInlineFunction(entityAnalysisModel.Id, userRegistry.Name);
+            await InsertEntityAnalysisModelDictionaryKvpAsync(entityAnalysisModelDictionaryId, userRegistry.Name, token);
+            await InsertEntityAnalysisModelGatewayRuleAsync(entityAnalysisModel.Id, userRegistry.Name, token);
+            await InsertEntityAnalysisModelHttpAdaptationAsync(entityAnalysisModel.Id, userRegistry.Name, token);
+            await InsertEntityAnalysisModelInlineFunctionAsync(entityAnalysisModel.Id, userRegistry.Name, token);
 
-            var entityAnalysisModelListId = InsertEntityAnalysisModelList(entityAnalysisModel.Guid, userRegistry.Name);
+            var entityAnalysisModelListId = await InsertEntityAnalysisModelListAsync(entityAnalysisModel.Guid, userRegistry.Name, token);
 
-            InsertEntityAnalysisModelListValue(entityAnalysisModelListId, userRegistry.Name);
-            InsertEntityAnalysisModelSanction(entityAnalysisModel.Id, userRegistry.Name);
-            InsertEntityAnalysisModelTag(entityAnalysisModel.Id, userRegistry.Name);
+            await InsertEntityAnalysisModelListValueAsync(entityAnalysisModelListId, userRegistry.Name, token);
+            await InsertEntityAnalysisModelSanctionAsync(entityAnalysisModel.Id, userRegistry.Name, token);
+            await InsertEntityAnalysisModelTagAsync(entityAnalysisModel.Id, userRegistry.Name, token);
+
             var entityEntityAnalysisModelTtlCounterId =
-                InsertEntityAnalysisModelTtlCounter(entityAnalysisModel.Id, userRegistry.Name);
+                await InsertEntityAnalysisModelTtlCounterAsync(entityAnalysisModel.Id, userRegistry.Name, token);
 
             var insertVisualisationRegistryExampleVisualisationId =
-                InsertVisualisationRegistryExampleVisualisation(userRegistry.Name);
+                await InsertVisualisationRegistryExampleVisualisationAsync(userRegistry.Name, token);
 
             var insertVisualisationRegistryExampleEmbeddedVisualisation =
-                InsertVisualisationRegistryExampleEmbeddedVisualisation(userRegistry.Name);
+                await InsertVisualisationRegistryExampleEmbeddedVisualisationAsync(userRegistry.Name, token);
 
-            InsertVisualisationRegistryParameterEmbeddedVisualisation(
-                insertVisualisationRegistryExampleEmbeddedVisualisation.Id, userRegistry.Name);
+            await InsertVisualisationRegistryParameterEmbeddedVisualisationAsync(
+                insertVisualisationRegistryExampleEmbeddedVisualisation.Id, userRegistry.Name, token);
 
-            InsertVisualisationRegistryParameterExampleEmbeddedVisualisation(
-                insertVisualisationRegistryExampleVisualisationId, userRegistry.Name);
+            await InsertVisualisationRegistryParameterExampleEmbeddedVisualisationAsync(
+                insertVisualisationRegistryExampleVisualisationId, userRegistry.Name, token);
 
-            await InsertVisualisationRegistryDatasourceExampleEmbeddedVisualisation(
+            await InsertVisualisationRegistryDatasourceExampleEmbeddedVisualisationAsync(
                 insertVisualisationRegistryExampleEmbeddedVisualisation.Id, userRegistry.Name).ConfigureAwait(false);
 
-            await InsertVisualisationRegistryDatasourceExampleVisualisation(
+            await InsertVisualisationRegistryDatasourceExampleVisualisationAsync(
                 insertVisualisationRegistryExampleVisualisationId, userRegistry.Name).ConfigureAwait(false);
 
-            var caseWorkflow = InsertCaseWorkflow(entityAnalysisModel.Id,
-                insertVisualisationRegistryExampleEmbeddedVisualisation.Guid, userRegistry.Name);
+            var caseWorkflow = await InsertCaseWorkflowAsync(entityAnalysisModel.Id,
+                insertVisualisationRegistryExampleEmbeddedVisualisation.Guid, userRegistry.Name, token);
 
-            InsertCaseWorkflowAction(caseWorkflow.Id, userRegistry.Name);
-            InsertCaseWorkflowDisplay(caseWorkflow.Id, userRegistry.Name);
-            InsertCaseWorkflowFilter(caseWorkflow.Id, userRegistry.Name);
-            InsertCaseWorkflowForm(caseWorkflow.Id, userRegistry.Name);
-            InsertCaseWorkflowMacro(caseWorkflow.Id, userRegistry.Name);
-            InsertCaseWorkflowXPath(caseWorkflow.Id, userRegistry.Name);
+            await InsertCaseWorkflowActionAsync(caseWorkflow.Id, userRegistry.Name, token);
+            await InsertCaseWorkflowDisplayAsync(caseWorkflow.Id, userRegistry.Name, token);
+            await InsertCaseWorkflowFilterAsync(caseWorkflow.Id, userRegistry.Name, token);
+            await InsertCaseWorkflowFormAsync(caseWorkflow.Id, userRegistry.Name, token);
+            await InsertCaseWorkflowMacroAsync(caseWorkflow.Id, userRegistry.Name, token);
+            await InsertCaseWorkflowXPathAsync(caseWorkflow.Id, userRegistry.Name, token);
 
-            var caseWorkflowStatusId = InsertCaseWorkflowStatus(caseWorkflow.Id, userRegistry.Name);
+            var caseWorkflowStatusId = await InsertCaseWorkflowStatusAsync(caseWorkflow.Id, userRegistry.Name, token);
 
-            InsertEntityAnalysisModelActivationRule(entityAnalysisModel,
+            await InsertEntityAnalysisModelActivationRuleAsync(entityAnalysisModel,
                 caseWorkflow.Guid, caseWorkflowStatusId, entityEntityAnalysisModelTtlCounterId,
-                userRegistry.Name);
-            InsertEntityAnalysisModelSynchronisationSchedule(userRegistry.Name);
+                userRegistry.Name, token);
+            await InsertEntityAnalysisModelSynchronisationScheduleAsync(userRegistry.Name, token);
 
             return new SandboxRegistrationResponseDto
             {
@@ -100,11 +101,11 @@ namespace Jube.Service.Authentication
             };
         }
 
-        private Guid InsertCaseWorkflowStatus(int caseWorkflowId, string userName)
+        private async Task<Guid> InsertCaseWorkflowStatusAsync(int caseWorkflowId, string userName, CancellationToken token = default)
         {
             var caseWorkflowStatusRepository = new CaseWorkflowStatusRepository(dbContext, userName);
 
-            var returnCaseWorkflowStatusId = caseWorkflowStatusRepository.Insert(new CaseWorkflowStatus
+            var returnCaseWorkflowStatusId = (await caseWorkflowStatusRepository.InsertAsync(new CaseWorkflowStatus
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "First Line Review",
@@ -113,9 +114,9 @@ namespace Jube.Service.Authentication
                 ForeColor = "#260080",
                 BackColor = "#abc8f7",
                 Guid = Guid.NewGuid()
-            }).Guid;
+            }, token)).Guid;
 
-            caseWorkflowStatusRepository.Insert(new CaseWorkflowStatus
+            await caseWorkflowStatusRepository.InsertAsync(new CaseWorkflowStatus
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Supervisor Review",
@@ -124,9 +125,9 @@ namespace Jube.Service.Authentication
                 ForeColor = "#260080",
                 BackColor = "#fafcb1",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            caseWorkflowStatusRepository.Insert(new CaseWorkflowStatus
+            await caseWorkflowStatusRepository.InsertAsync(new CaseWorkflowStatus
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Restricted",
@@ -135,9 +136,9 @@ namespace Jube.Service.Authentication
                 ForeColor = "#260080",
                 BackColor = "#fce9c5",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            caseWorkflowStatusRepository.Insert(new CaseWorkflowStatus
+            await caseWorkflowStatusRepository.InsertAsync(new CaseWorkflowStatus
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Fraudulent",
@@ -146,9 +147,9 @@ namespace Jube.Service.Authentication
                 ForeColor = "#260080",
                 BackColor = "#facaf4",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            caseWorkflowStatusRepository.Insert(new CaseWorkflowStatus
+            await caseWorkflowStatusRepository.InsertAsync(new CaseWorkflowStatus
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Reported",
@@ -157,49 +158,49 @@ namespace Jube.Service.Authentication
                 ForeColor = "#260080",
                 BackColor = "#f77781",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
             return returnCaseWorkflowStatusId;
         }
 
-        private void InsertCaseWorkflowAction(int caseWorkflowId, string userName)
+        private async Task InsertCaseWorkflowActionAsync(int caseWorkflowId, string userName, CancellationToken token = default)
         {
             var caseWorkflowActionRepository = new CaseWorkflowActionRepository(dbContext, userName);
 
-            caseWorkflowActionRepository.Insert(new CaseWorkflowAction
+            await caseWorkflowActionRepository.InsertAsync(new CaseWorkflowAction
             {
                 Name = "Call Customer",
                 CaseWorkflowId = caseWorkflowId,
                 Active = 1
-            });
+            }, token);
 
-            caseWorkflowActionRepository.Insert(new CaseWorkflowAction
+            await caseWorkflowActionRepository.InsertAsync(new CaseWorkflowAction
             {
                 Name = "Email Customer",
                 CaseWorkflowId = caseWorkflowId,
                 Active = 1
-            });
+            }, token);
 
-            caseWorkflowActionRepository.Insert(new CaseWorkflowAction
+            await caseWorkflowActionRepository.InsertAsync(new CaseWorkflowAction
             {
                 Name = "Escalation",
                 CaseWorkflowId = caseWorkflowId,
                 Active = 1
-            });
+            }, token);
 
-            caseWorkflowActionRepository.Insert(new CaseWorkflowAction
+            await caseWorkflowActionRepository.InsertAsync(new CaseWorkflowAction
             {
                 Name = "General Action",
                 CaseWorkflowId = caseWorkflowId,
                 Active = 1
-            });
+            }, token);
         }
 
-        private void InsertCaseWorkflowXPath(int caseWorkflowId, string userName)
+        private async Task InsertCaseWorkflowXPathAsync(int caseWorkflowId, string userName, CancellationToken token = default)
         {
             var caseWorkflowXPathRepository = new CaseWorkflowXPathRepository(dbContext, userName);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AccountId",
@@ -209,9 +210,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "TxnDateTime",
@@ -221,9 +222,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Currency",
@@ -233,9 +234,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "ResponseCode",
@@ -248,9 +249,9 @@ namespace Jube.Service.Authentication
                 RegularExpression = "[^0]+",
                 ForeRowColorScope = 1,
                 BackRowColorScope = 0
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "CurrencyAmount",
@@ -260,9 +261,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "SettlementAmount",
@@ -272,9 +273,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AccountCurrency",
@@ -284,9 +285,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "ChannelId",
@@ -296,9 +297,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AppVersionCode",
@@ -307,9 +308,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "ServiceCode",
@@ -319,9 +320,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "System",
@@ -331,9 +332,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Brand",
@@ -343,9 +344,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Model",
@@ -355,9 +356,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AccountLongitude",
@@ -367,9 +368,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AccountLatitude",
@@ -379,9 +380,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "OS",
@@ -391,9 +392,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Resolution",
@@ -403,9 +404,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "DebuggerAttached",
@@ -415,9 +416,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "SimulatorAttached",
@@ -427,9 +428,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Jailbreak",
@@ -439,9 +440,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "MAC",
@@ -451,9 +452,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "ToAccountId",
@@ -463,9 +464,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "ToAccountExternalRef",
@@ -475,9 +476,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "TwoFATypeId",
@@ -487,9 +488,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "TwoFAResponseId",
@@ -499,9 +500,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Storage",
@@ -511,9 +512,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "TransactionExternalResponseId",
@@ -523,9 +524,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "FingerprintHash",
@@ -535,9 +536,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BusinessModel",
@@ -547,9 +548,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AmountEUR",
@@ -559,9 +560,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AmountUSD",
@@ -571,9 +572,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AmountUSDRate",
@@ -583,9 +584,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AmountGBP",
@@ -595,9 +596,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AmountGBPRate",
@@ -607,9 +608,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Is3D",
@@ -619,9 +620,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "OriginalAmount",
@@ -631,9 +632,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "OriginalCurrency",
@@ -643,9 +644,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "Email",
@@ -655,9 +656,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "CreditCardHash",
@@ -667,9 +668,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AcquirerBankName",
@@ -679,9 +680,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "ActionDate",
@@ -691,9 +692,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "APMAccountId",
@@ -703,9 +704,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BankId",
@@ -715,9 +716,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BillingAddress",
@@ -727,9 +728,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BillingCity",
@@ -739,9 +740,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BillingCountry",
@@ -751,9 +752,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BillingFirstName",
@@ -763,9 +764,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BillingLastName",
@@ -775,9 +776,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BillingPhone",
@@ -787,9 +788,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BillingState",
@@ -799,9 +800,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "BillingZip",
@@ -811,9 +812,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "IsAPM",
@@ -823,9 +824,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "IsCascaded",
@@ -835,9 +836,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "IsCredited",
@@ -847,9 +848,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "IsCurrencyConverted",
@@ -859,9 +860,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "IsModification",
@@ -871,9 +872,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "IsRebill",
@@ -883,9 +884,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "TransactionTypeId",
@@ -895,9 +896,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "TransactionResultId",
@@ -907,9 +908,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "IP",
@@ -920,9 +921,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "AmountEURRate",
@@ -932,9 +933,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "DeviceId",
@@ -945,9 +946,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "IsModified",
@@ -957,9 +958,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "OrderId",
@@ -969,9 +970,9 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
 
-            caseWorkflowXPathRepository.Insert(new CaseWorkflowXPath
+            await caseWorkflowXPathRepository.InsertAsync(new CaseWorkflowXPath
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "TxnId",
@@ -982,42 +983,42 @@ namespace Jube.Service.Authentication
                 BoldLineFormatBackColor = "#ffffff",
                 ConditionalFormatForeColor = "#000000",
                 ConditionalFormatBackColor = "#ffffff"
-            });
+            }, token);
         }
 
-        private CaseWorkflow InsertCaseWorkflow(int entityAnalysisModelId, Guid visualisationRegistryGuid, string userName)
+        private Task<CaseWorkflow> InsertCaseWorkflowAsync(int entityAnalysisModelId, Guid visualisationRegistryGuid, string userName, CancellationToken token = default)
         {
             var caseWorkflowRepository = new CaseWorkflowRepository(dbContext, userName);
 
-            return caseWorkflowRepository.Insert(new CaseWorkflow
+            return caseWorkflowRepository.InsertAsync(new CaseWorkflow
             {
                 Name = "Detailed Account Financial Transactions Cases",
                 Active = 1,
                 EntityAnalysisModelId = entityAnalysisModelId,
                 EnableVisualisation = 1,
                 VisualisationRegistryGuid = visualisationRegistryGuid
-            });
+            }, token);
         }
 
-        private void InsertCaseWorkflowMacro(int caseWorkflowId, string userName)
+        private Task InsertCaseWorkflowMacroAsync(int caseWorkflowId, string userName, CancellationToken token = default)
         {
             var caseWorkflowMacroRepository = new CaseWorkflowMacroRepository(dbContext, userName);
 
-            caseWorkflowMacroRepository.Insert(new CaseWorkflowMacro
+            return caseWorkflowMacroRepository.InsertAsync(new CaseWorkflowMacro
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "ExampleMacro",
                 Active = 1,
                 Javascript = "alert('Example Macro Javascript Eval.');",
                 ImageLocation = "calculator.png"
-            });
+            }, token);
         }
 
-        private void InsertCaseWorkflowForm(int caseWorkflowId, string userName)
+        private Task InsertCaseWorkflowFormAsync(int caseWorkflowId, string userName, CancellationToken token = default)
         {
             var caseWorkflowForm = new CaseWorkflowFormRepository(dbContext, userName);
 
-            caseWorkflowForm.Insert(new CaseWorkflowForm
+            return caseWorkflowForm.InsertAsync(new CaseWorkflowForm
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "ExampleForm",
@@ -1032,14 +1033,14 @@ namespace Jube.Service.Authentication
                        "Example Textbox Element: " + Environment.NewLine +
                        "<br/>" + Environment.NewLine +
                        "<input id='ExampleTextboxElement'/>"
-            });
+            }, token);
         }
 
-        private void InsertCaseWorkflowFilter(int caseWorkflowId, string userName)
+        private Task InsertCaseWorkflowFilterAsync(int caseWorkflowId, string userName, CancellationToken token = default)
         {
             var caseWorkflowFilterRepository = new CaseWorkflowFilterRepository(dbContext, userName);
 
-            caseWorkflowFilterRepository.Insert(new CaseWorkflowFilter
+            return caseWorkflowFilterRepository.InsertAsync(new CaseWorkflowFilter
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "OpenCasesNotLockedByCreatedDate",
@@ -1084,14 +1085,14 @@ namespace Jube.Service.Authentication
                              "\"valid\": true, \"condition\": \"AND\"}",
                 FilterTokens = "[0,0]",
                 Active = 1
-            });
+            }, token);
         }
 
-        private void InsertCaseWorkflowDisplay(int caseWorkflowId, string userName)
+        private Task InsertCaseWorkflowDisplayAsync(int caseWorkflowId, string userName, CancellationToken token = default)
         {
             var caseWorkflowDisplayRepository = new CaseWorkflowDisplayRepository(dbContext, userName);
 
-            caseWorkflowDisplayRepository.Insert(new CaseWorkflowDisplay
+            return caseWorkflowDisplayRepository.InsertAsync(new CaseWorkflowDisplay
             {
                 CaseWorkflowId = caseWorkflowId,
                 Name = "ExampleDisplayCurrencyAmount",
@@ -1103,16 +1104,16 @@ namespace Jube.Service.Authentication
                        "<div style='font-size:30px'>[@CurrencyAmount@]</div>" + Environment.NewLine +
                        "<br/>" + Environment.NewLine +
                        "The tokens are taken from the Cases Workflows XPath and can be laid out in HTML."
-            });
+            }, token);
         }
 
-        private void InsertVisualisationRegistryParameterEmbeddedVisualisation(int visualisationRegistryId,
-            string userName)
+        private Task InsertVisualisationRegistryParameterEmbeddedVisualisationAsync(int visualisationRegistryId,
+            string userName, CancellationToken token = default)
         {
             var visualisationRegistryParameterRepository =
                 new VisualisationRegistryParameterRepository(dbContext, userName);
 
-            visualisationRegistryParameterRepository.Insert(new VisualisationRegistryParameter
+            return visualisationRegistryParameterRepository.InsertAsync(new VisualisationRegistryParameter
             {
                 VisualisationRegistryId = visualisationRegistryId,
                 Name = "AccountId",
@@ -1121,16 +1122,16 @@ namespace Jube.Service.Authentication
                 Required = 1,
                 DefaultValue = "Test1",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertVisualisationRegistryParameterExampleEmbeddedVisualisation(int visualisationRegistryId,
-            string userName)
+        private async Task InsertVisualisationRegistryParameterExampleEmbeddedVisualisationAsync(int visualisationRegistryId,
+            string userName, CancellationToken token = default)
         {
             var visualisationRegistryParameterRepository =
                 new VisualisationRegistryParameterRepository(dbContext, userName);
 
-            visualisationRegistryParameterRepository.Insert(new VisualisationRegistryParameter
+            await visualisationRegistryParameterRepository.InsertAsync(new VisualisationRegistryParameter
             {
                 VisualisationRegistryId = visualisationRegistryId,
                 Name = "Percentage Contribution Greater Than",
@@ -1139,9 +1140,9 @@ namespace Jube.Service.Authentication
                 Required = 1,
                 DefaultValue = "0",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            visualisationRegistryParameterRepository.Insert(new VisualisationRegistryParameter
+            await visualisationRegistryParameterRepository.InsertAsync(new VisualisationRegistryParameter
             {
                 VisualisationRegistryId = visualisationRegistryId,
                 Name = "Frequency Greater Than",
@@ -1149,10 +1150,10 @@ namespace Jube.Service.Authentication
                 DataTypeId = 2,
                 Required = 1,
                 DefaultValue = "0"
-            });
+            }, token);
         }
 
-        private async Task InsertVisualisationRegistryDatasourceExampleVisualisation(int visualisationRegistryId,
+        private async Task InsertVisualisationRegistryDatasourceExampleVisualisationAsync(int visualisationRegistryId,
             string userName)
         {
             var visualisationRegistryDatasourceRepository =
@@ -1251,7 +1252,7 @@ namespace Jube.Service.Authentication
             }).ConfigureAwait(false);
         }
 
-        private async Task InsertVisualisationRegistryDatasourceExampleEmbeddedVisualisation(int visualisationRegistryId,
+        private async Task InsertVisualisationRegistryDatasourceExampleEmbeddedVisualisationAsync(int visualisationRegistryId,
             string userName)
         {
             var visualisationRegistryDatasourceRepository =
@@ -1346,11 +1347,11 @@ namespace Jube.Service.Authentication
             }).ConfigureAwait(false);
         }
 
-        private int InsertVisualisationRegistryExampleVisualisation(string userName)
+        private async Task<int> InsertVisualisationRegistryExampleVisualisationAsync(string userName, CancellationToken token = default)
         {
             var visualisationRegistryRepository = new VisualisationRegistryRepository(dbContext, userName);
 
-            return visualisationRegistryRepository.Insert(new VisualisationRegistry
+            return (await visualisationRegistryRepository.InsertAsync(new VisualisationRegistry
             {
                 Name = "ExampleVisualisation",
                 Active = 1,
@@ -1360,14 +1361,14 @@ namespace Jube.Service.Authentication
                 ColumnWidth = 300,
                 RowHeight = 300,
                 Guid = Guid.NewGuid()
-            }).Id;
+            }, token)).Id;
         }
 
-        private VisualisationRegistry InsertVisualisationRegistryExampleEmbeddedVisualisation(string userName)
+        private Task<VisualisationRegistry> InsertVisualisationRegistryExampleEmbeddedVisualisationAsync(string userName, CancellationToken token = default)
         {
             var visualisationRegistryRepository = new VisualisationRegistryRepository(dbContext, userName);
 
-            return visualisationRegistryRepository.Insert(new VisualisationRegistry
+            return visualisationRegistryRepository.InsertAsync(new VisualisationRegistry
             {
                 Name = "ExampleEmbeddedVisualisation",
                 Active = 1,
@@ -1377,51 +1378,51 @@ namespace Jube.Service.Authentication
                 ColumnWidth = 300,
                 RowHeight = 300,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelInlineScript(int entityAnalysisModelId, int entityAnalysisInlineScriptId,
-            string userName)
+        private Task InsertEntityAnalysisModelInlineScriptAsync(int entityAnalysisModelId, int entityAnalysisInlineScriptId,
+            string userName, CancellationToken token = default)
         {
             var entityAnalysisModelInlineScriptRepository =
                 new EntityAnalysisModelInlineScriptRepository(dbContext, userName);
 
-            entityAnalysisModelInlineScriptRepository.Insert(new EntityAnalysisModelInlineScript
+            return entityAnalysisModelInlineScriptRepository.InsertAsync(new EntityAnalysisModelInlineScript
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Issue OTP",
                 Active = 1,
                 EntityAnalysisInlineScriptId = entityAnalysisInlineScriptId,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelTag(int entityAnalysisModelId, string userName)
+        private Task InsertEntityAnalysisModelTagAsync(int entityAnalysisModelId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelTagRepository = new EntityAnalysisModelTagRepository(dbContext, userName);
 
-            entityAnalysisModelTagRepository.Insert(new EntityAnalysisModelTag
+            return entityAnalysisModelTagRepository.InsertAsync(new EntityAnalysisModelTag
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Fraud",
                 Active = 1,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelSynchronisationSchedule(string userName)
+        private Task InsertEntityAnalysisModelSynchronisationScheduleAsync(string userName, CancellationToken token = default)
         {
             var entityAnalysisModelSynchronisationScheduleRepository =
                 new EntityAnalysisModelSynchronisationScheduleRepository(dbContext, userName);
 
-            entityAnalysisModelSynchronisationScheduleRepository.Insert(new EntityAnalysisModelSynchronisationSchedule());
+            return entityAnalysisModelSynchronisationScheduleRepository.InsertAsync(new EntityAnalysisModelSynchronisationSchedule(), token);
         }
 
-        private void InsertEntityAnalysisModelSanction(int entityAnalysisModelId, string userName)
+        private Task InsertEntityAnalysisModelSanctionAsync(int entityAnalysisModelId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelSanctionRepository = new EntityAnalysisModelSanctionRepository(dbContext, userName);
 
-            entityAnalysisModelSanctionRepository.Insert(new EntityAnalysisModelSanction
+            return entityAnalysisModelSanctionRepository.InsertAsync(new EntityAnalysisModelSanction
             {
                 Name = "FuzzyMatchDistance2JoinedName",
                 EntityAnalysisModelId = entityAnalysisModelId,
@@ -1432,27 +1433,27 @@ namespace Jube.Service.Authentication
                 CacheValue = 1,
                 CacheInterval = 'h',
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelListValue(int entityAnalysisModelListId, string userName)
+        private Task InsertEntityAnalysisModelListValueAsync(int entityAnalysisModelListId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelListValueRepository = new EntityAnalysisModelListValueRepository(dbContext, userName);
 
-            entityAnalysisModelListValueRepository.Insert(new EntityAnalysisModelListValue
+            return entityAnalysisModelListValueRepository.InsertAsync(new EntityAnalysisModelListValue
             {
                 EntityAnalysisModelListId = entityAnalysisModelListId,
                 ListValue = "123.456.789.123",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelHttpAdaptation(int entityAnalysisModelId, string userName)
+        private Task InsertEntityAnalysisModelHttpAdaptationAsync(int entityAnalysisModelId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelHttpAdaptationRepository =
                 new EntityAnalysisModelHttpAdaptationRepository(dbContext, userName);
 
-            entityAnalysisModelHttpAdaptationRepository.Insert(new EntityAnalysisModelHttpAdaptation
+            return entityAnalysisModelHttpAdaptationRepository.InsertAsync(new EntityAnalysisModelHttpAdaptation
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Active = 0,
@@ -1460,14 +1461,14 @@ namespace Jube.Service.Authentication
                 ResponsePayload = 1,
                 HttpEndpoint = "/api/invoke/ExampleFraudScoreLocalEndpoint",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private Guid InsertEntityAnalysisModelTtlCounter(int entityAnalysisModelId, string userName)
+        private async Task<Guid> InsertEntityAnalysisModelTtlCounterAsync(int entityAnalysisModelId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelTtlCounterRepository = new EntityAnalysisModelTtlCounterRepository(dbContext, userName);
 
-            return entityAnalysisModelTtlCounterRepository.Insert(new EntityAnalysisModelTtlCounter
+            return (await entityAnalysisModelTtlCounterRepository.InsertAsync(new EntityAnalysisModelTtlCounter
             {
                 Name = "TtlCounterAll",
                 EntityAnalysisModelId = entityAnalysisModelId,
@@ -1479,28 +1480,28 @@ namespace Jube.Service.Authentication
                 OnlineAggregation = 0,
                 EnableLiveForever = 0,
                 Guid = Guid.NewGuid()
-            }).Guid;
+            }, token)).Guid;
         }
 
-        private int InsertEntityAnalysisModelList(Guid entityAnalysisModelGuid, string userName)
+        private async Task<int> InsertEntityAnalysisModelListAsync(Guid entityAnalysisModelGuid, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelListRepository = new EntityAnalysisModelListRepository(dbContext, userName);
 
-            return entityAnalysisModelListRepository.Insert(new EntityAnalysisModelList
+            return (await entityAnalysisModelListRepository.InsertAsync(new EntityAnalysisModelList
             {
                 EntityAnalysisModelGuid = entityAnalysisModelGuid,
                 Name = "IPDenyList",
                 Active = 1,
                 Guid = Guid.NewGuid()
-            }).Id;
+            }, token)).Id;
         }
 
-        private void InsertEntityAnalysisModelInlineFunction(int entityAnalysisModelId, string userName)
+        private Task InsertEntityAnalysisModelInlineFunctionAsync(int entityAnalysisModelId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelInlineFunctionRepository =
                 new EntityAnalysisModelInlineFunctionRepository(dbContext, userName);
 
-            entityAnalysisModelInlineFunctionRepository.Insert(new EntityAnalysisModelInlineFunction
+            return entityAnalysisModelInlineFunctionRepository.InsertAsync(new EntityAnalysisModelInlineFunction
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "JoinedName",
@@ -1509,10 +1510,10 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 ResponsePayload = 1,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelGatewayRule(int entityAnalysisModelId, string userName)
+        private Task InsertEntityAnalysisModelGatewayRuleAsync(int entityAnalysisModelId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelGatewayRuleRepository =
                 new EntityAnalysisModelGatewayRuleRepository(dbContext, userName);
@@ -1525,7 +1526,7 @@ namespace Jube.Service.Authentication
                        "\"field\": \"Payload.CurrencyAmount\", \"input\": \"number\", \"value\": 0, \"operator\": " +
                        "\"greater\"}], \"valid\": true, \"condition\": \"AND\"}";
 
-            entityAnalysisModelGatewayRuleRepository.Insert(new EntityAnalysisModelGatewayRule
+            return entityAnalysisModelGatewayRuleRepository.InsertAsync(new EntityAnalysisModelGatewayRule
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Priority = 0,
@@ -1538,14 +1539,14 @@ namespace Jube.Service.Authentication
                 GatewaySample = 1,
                 Active = 1,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
         private int InsertEntityAnalysisModelDictionary(Guid entityAnalysisModelGuid, string userName)
         {
             var entityAnalysisModelDictionaryRepository = new EntityAnalysisModelDictionaryRepository(dbContext, userName);
 
-            return entityAnalysisModelDictionaryRepository.Insert(new EntityAnalysisModelDictionary
+            return entityAnalysisModelDictionaryRepository.InsertAsync(new EntityAnalysisModelDictionary
             {
                 EntityAnalysisModelGuid = entityAnalysisModelGuid,
                 Name = "VolumeThresholdByAccountId",
@@ -1556,21 +1557,21 @@ namespace Jube.Service.Authentication
             }).Id;
         }
 
-        private void InsertEntityAnalysisModelDictionaryKvp(int entityAnalysisModelDictionaryId, string userName)
+        private Task InsertEntityAnalysisModelDictionaryKvpAsync(int entityAnalysisModelDictionaryId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelDictionaryKvpRepository =
                 new EntityAnalysisModelDictionaryKvpRepository(dbContext, userName);
 
-            entityAnalysisModelDictionaryKvpRepository.Insert(new EntityAnalysisModelDictionaryKvp
+            return entityAnalysisModelDictionaryKvpRepository.InsertAsync(new EntityAnalysisModelDictionaryKvp
             {
                 EntityAnalysisModelDictionaryId = entityAnalysisModelDictionaryId,
                 KvpKey = "Test1",
                 KvpValue = 1000,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelAbstractionRule(int entityAnalysisModelId, string userName)
+        private async Task InsertEntityAnalysisModelAbstractionRuleAsync(int entityAnalysisModelId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelAbstractionRuleRepository =
                 new EntityAnalysisModelAbstractionRuleRepository(dbContext, userName);
@@ -1584,7 +1585,7 @@ namespace Jube.Service.Authentication
                 "\"field\": \"Payload.ResponseCode\", \"input\": \"text\", \"value\": \"0\", " +
                 "\"operator\": \"equal\"}], \"valid\": true, \"condition\": \"AND\"}";
 
-            entityAnalysisModelAbstractionRuleRepository.Insert(new EntityAnalysisModelAbstractionRule
+            await entityAnalysisModelAbstractionRuleRepository.InsertAsync(new EntityAnalysisModelAbstractionRule
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 BuilderRuleScript = builderRuleScriptApproved,
@@ -1601,7 +1602,7 @@ namespace Jube.Service.Authentication
                 ResponsePayload = 1,
                 Json = jsonApproved,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
             var builderRuleScriptDeclined = "If (NOT ( Payload.ResponseCode = \"0\" )) Then " + Environment.NewLine +
                                             "   Return True" + Environment.NewLine +
@@ -1611,7 +1612,7 @@ namespace Jube.Service.Authentication
                                "\"field\": \"Payload.ResponseCode\", \"input\": \"text\", \"value\": \"0\", " +
                                "\"operator\": \"equal\"}], \"valid\": true, \"condition\": \"AND\"}";
 
-            entityAnalysisModelAbstractionRuleRepository.Insert(new EntityAnalysisModelAbstractionRule
+            await entityAnalysisModelAbstractionRuleRepository.InsertAsync(new EntityAnalysisModelAbstractionRule
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 BuilderRuleScript = builderRuleScriptDeclined,
@@ -1628,10 +1629,10 @@ namespace Jube.Service.Authentication
                 ResponsePayload = 1,
                 Json = jsonDeclined,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelAbstractionCalculation(int entityAnalysisModelId, string userName)
+        private Task InsertEntityAnalysisModelAbstractionCalculationAsync(int entityAnalysisModelId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelAbstractionCalculationRepository =
                 new EntityAnalysisModelAbstractionCalculationRepository(dbContext, userName);
@@ -1640,7 +1641,7 @@ namespace Jube.Service.Authentication
                                  " (Abstraction.NotResponseCodeEqual0Volume _  " + Environment.NewLine +
                                  "+ Abstraction.ResponseCodeEqual0Volume) _ " + Environment.NewLine;
 
-            entityAnalysisModelAbstractionCalculationRepository.Insert(new EntityAnalysisModelAbstractionCalculation
+            return entityAnalysisModelAbstractionCalculationRepository.InsertAsync(new EntityAnalysisModelAbstractionCalculation
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "ResponseCodeVolumeRatio",
@@ -1649,18 +1650,18 @@ namespace Jube.Service.Authentication
                 ResponsePayload = 1,
                 FunctionScript = functionScript,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelActivationRule(EntityAnalysisModel entityAnalysisModel,
+        private async Task InsertEntityAnalysisModelActivationRuleAsync(EntityAnalysisModel entityAnalysisModel,
             Guid caseWorkflowGuid,
             Guid caseWorkflowStatusGuid, Guid entityAnalysisModelTtlCounterGuid,
-            string userName)
+            string userName, CancellationToken token = default)
         {
             var entityAnalysisModelActivationRuleRepository =
                 new EntityAnalysisModelActivationRuleRepository(dbContext, userName);
 
-            entityAnalysisModelActivationRuleRepository.Insert(new EntityAnalysisModelActivationRule
+            await entityAnalysisModelActivationRuleRepository.InsertAsync(new EntityAnalysisModelActivationRule
             {
                 EntityAnalysisModelId = entityAnalysisModel.Id,
                 Name = "IncrementTtlCounterAll",
@@ -1685,9 +1686,9 @@ namespace Jube.Service.Authentication
                 ActivationSample = 1,
                 ReviewStatusId = 4,
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelActivationRuleRepository.Insert(new EntityAnalysisModelActivationRule
+            await entityAnalysisModelActivationRuleRepository.InsertAsync(new EntityAnalysisModelActivationRule
             {
                 EntityAnalysisModelId = entityAnalysisModel.Id,
                 Name = "ThresholdTtlCounterAll",
@@ -1725,9 +1726,9 @@ namespace Jube.Service.Authentication
                 CaseWorkflowStatusGuid = caseWorkflowStatusGuid,
                 ResponseElevationRedirect = "https://www.jube.io",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelActivationRuleRepository.Insert(new EntityAnalysisModelActivationRule
+            await entityAnalysisModelActivationRuleRepository.InsertAsync(new EntityAnalysisModelActivationRule
             {
                 EntityAnalysisModelId = entityAnalysisModel.Id,
                 Name = "ThresholdSanctionsDistance",
@@ -1765,9 +1766,9 @@ namespace Jube.Service.Authentication
                 CaseWorkflowStatusGuid = caseWorkflowStatusGuid,
                 ResponseElevationRedirect = "https://www.jube.io",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelActivationRuleRepository.Insert(new EntityAnalysisModelActivationRule
+            await entityAnalysisModelActivationRuleRepository.InsertAsync(new EntityAnalysisModelActivationRule
             {
                 EntityAnalysisModelId = entityAnalysisModel.Id,
                 Name = "AllIPDenyList",
@@ -1804,9 +1805,9 @@ namespace Jube.Service.Authentication
                 CaseWorkflowStatusGuid = caseWorkflowStatusGuid,
                 ResponseElevationRedirect = "https://www.jube.io",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelActivationRuleRepository.Insert(new EntityAnalysisModelActivationRule
+            await entityAnalysisModelActivationRuleRepository.InsertAsync(new EntityAnalysisModelActivationRule
             {
                 EntityAnalysisModelId = entityAnalysisModel.Id,
                 Name = "VolumeThresholdByAccountId",
@@ -1842,15 +1843,15 @@ namespace Jube.Service.Authentication
                 CaseWorkflowStatusGuid = caseWorkflowStatusGuid,
                 ResponseElevationRedirect = "https://www.jube.io",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private void InsertEntityAnalysisModelRequestXPaths(int entityAnalysisModelId, string userName)
+        private async Task InsertEntityAnalysisModelRequestXPathsAsync(int entityAnalysisModelId, string userName, CancellationToken token = default)
         {
             var entityAnalysisModelRequestXPathRepository =
                 new EntityAnalysisModelRequestXPathRepository(dbContext, userName);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AccountId",
@@ -1867,9 +1868,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Test1",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "TxnDateTime",
@@ -1881,9 +1882,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "2022-08-19T21:41:37.247",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Currency",
@@ -1895,9 +1896,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "826",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "ResponseCode",
@@ -1909,9 +1910,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "1",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "CurrencyAmount",
@@ -1923,9 +1924,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "123.45",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "SettlementAmount",
@@ -1937,9 +1938,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "123.45",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AccountCurrency",
@@ -1951,9 +1952,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "566",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "ChannelId",
@@ -1965,9 +1966,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "1",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AppVersionCode",
@@ -1979,9 +1980,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "12.34",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "ServiceCode",
@@ -1993,9 +1994,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "DID",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "System",
@@ -2007,9 +2008,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Android",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Brand",
@@ -2021,9 +2022,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "ZTE",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Model",
@@ -2035,9 +2036,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Barby",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AccountLongitude",
@@ -2049,9 +2050,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "36.1408",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AccountLatitude",
@@ -2063,9 +2064,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "5.3536",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "OS",
@@ -2077,9 +2078,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Lollypop",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Resolution",
@@ -2091,9 +2092,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "720*1280",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "DebuggerAttached",
@@ -2105,9 +2106,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "true",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "SimulatorAttached",
@@ -2119,9 +2120,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "true",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Jailbreak",
@@ -2133,9 +2134,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "false",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "MAC",
@@ -2147,9 +2148,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "94:23:44f:2:d3",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "ToAccountId",
@@ -2161,9 +2162,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Test2",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "ToAccountExternalRef",
@@ -2175,9 +2176,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "ChurchmanR",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "TwoFATypeId",
@@ -2189,9 +2190,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "SMS",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "TwoFAResponseId",
@@ -2203,9 +2204,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "1",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Storage",
@@ -2217,9 +2218,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "true",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "TransactionExternalResponseId",
@@ -2231,9 +2232,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "0",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "FingerprintHash",
@@ -2245,9 +2246,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "jhjkhjkhsjh2hjhjkhj2k",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BusinessModel",
@@ -2259,9 +2260,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Travel",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AmountEUR",
@@ -2273,9 +2274,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "100.00",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AmountUSD",
@@ -2286,9 +2287,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "113.05",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AmountUSDRate",
@@ -2300,9 +2301,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "1.1305502954",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AmountGBP",
@@ -2314,9 +2315,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "86.5866",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AmountGBPRate",
@@ -2328,9 +2329,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "0.8658658602",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Is3D",
@@ -2342,9 +2343,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "true",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "OriginalAmount",
@@ -2356,9 +2357,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "100",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "OriginalCurrency",
@@ -2370,9 +2371,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "EUR",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "Email",
@@ -2384,9 +2385,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "please@hash.me",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "CreditCardHash",
@@ -2398,9 +2399,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "1FDA39A3EE5E6B4HKAJAA890AFD80709",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AcquirerBankName",
@@ -2412,9 +2413,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Caixa",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "ActionDate",
@@ -2426,9 +2427,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "2022-08-19T21:41:37.247",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "APMAccountId",
@@ -2440,9 +2441,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Skrill123456789",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BankId",
@@ -2454,9 +2455,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "57",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BillingAddress",
@@ -2468,9 +2469,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Address Line 1",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BillingCity",
@@ -2482,9 +2483,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Address Line 2",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BillingCountry",
@@ -2496,9 +2497,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "DE",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BillingFirstName",
@@ -2510,9 +2511,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Richard",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BillingLastName",
@@ -2524,9 +2525,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "Churchman",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BillingPhone",
@@ -2538,9 +2539,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "1234567890",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BillingState",
@@ -2552,9 +2553,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "DE",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "BillingZip",
@@ -2566,9 +2567,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "123456",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "IsAPM",
@@ -2580,9 +2581,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "true",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "IsCascaded",
@@ -2594,9 +2595,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "false",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "IsCredited",
@@ -2608,9 +2609,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "false",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "IsCurrencyConverted",
@@ -2622,9 +2623,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "true",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "IsModification",
@@ -2636,9 +2637,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "false",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "IsRebill",
@@ -2650,9 +2651,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "true",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "TransactionTypeId",
@@ -2664,9 +2665,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "1000",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "TransactionResultId",
@@ -2678,9 +2679,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "2000",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "IP",
@@ -2692,9 +2693,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "123.456.789.200",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "AmountEURRate",
@@ -2706,9 +2707,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "1",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "DeviceId",
@@ -2723,9 +2724,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "OlaRoseGoldPhone6",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "IsModified",
@@ -2737,9 +2738,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "false",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "OrderId",
@@ -2751,9 +2752,9 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "10607324128",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
 
-            entityAnalysisModelRequestXPathRepository.Insert(new EntityAnalysisModelRequestXpath
+            await entityAnalysisModelRequestXPathRepository.InsertAsync(new EntityAnalysisModelRequestXpath
             {
                 EntityAnalysisModelId = entityAnalysisModelId,
                 Name = "TxnId",
@@ -2765,51 +2766,50 @@ namespace Jube.Service.Authentication
                 Active = 1,
                 DefaultValue = "0987654321",
                 Guid = Guid.NewGuid()
-            });
+            }, token);
         }
 
-        private EntityAnalysisModel InsertEntityAnalysisModel(string userName)
+        private Task<EntityAnalysisModel> InsertEntityAnalysisModelAsync(string userName, CancellationToken token = default)
         {
             var entityAnalysisModelRepository = new EntityAnalysisModelRepository(dbContext, userName);
-            return entityAnalysisModelRepository.Insert(new EntityAnalysisModel
-                {
-                    Name = "Detailed Account Financial Transactions",
-                    Guid = Guid.NewGuid(),
-                    EntryXPath = "$.TxnId",
-                    EntryName = "TxnId",
-                    ReferenceDateXPath = "$.TxnDateTime",
-                    ReferenceDatePayloadLocationTypeId = 1,
-                    Active = 1,
-                    ReferenceDateName = "TxnDateTime",
-                    CacheFetchLimit = 100,
-                    CacheTtlInterval = 'd',
-                    CacheTtlIntervalValue = 100,
-                    EnableCache = 1,
-                    EnableRdbmsArchive = 1,
-                    EnableTtlCounter = 1,
-                    EnableSanctionCache = 1,
-                    EnableActivationArchive = 1,
-                    EnableActivationWatcher = 1,
-                    MaxActivationWatcherValue = 1,
-                    MaxActivationWatcherInterval = 'h',
-                    MaxActivationWatcherThreshold = 100,
-                    EnableResponseElevationLimit = 0,
-                    MaxResponseElevation = 10,
-                    ActivationWatcherSample = 1
-                }
-            );
+            return entityAnalysisModelRepository.InsertAsync(new EntityAnalysisModel
+            {
+                Name = "Detailed Account Financial Transactions",
+                Guid = Guid.NewGuid(),
+                EntryXPath = "$.TxnId",
+                EntryName = "TxnId",
+                ReferenceDateXPath = "$.TxnDateTime",
+                ReferenceDatePayloadLocationTypeId = 1,
+                Active = 1,
+                ReferenceDateName = "TxnDateTime",
+                CacheFetchLimit = 100,
+                CacheTtlInterval = 'd',
+                CacheTtlIntervalValue = 100,
+                EnableCache = 1,
+                EnableRdbmsArchive = 1,
+                EnableTtlCounter = 1,
+                EnableSanctionCache = 1,
+                EnableActivationArchive = 1,
+                EnableActivationWatcher = 1,
+                MaxActivationWatcherValue = 1,
+                MaxActivationWatcherInterval = 'h',
+                MaxActivationWatcherThreshold = 100,
+                EnableResponseElevationLimit = 0,
+                MaxResponseElevation = 10,
+                ActivationWatcherSample = 1
+            }, token);
         }
 
-        private void AssignToUserRegistryToTenantRegistry(string userName, TenantRegistry tenantRegistry)
+        private Task AssignToUserRegistryToTenantRegistryAsync(string userName, TenantRegistry tenantRegistry, CancellationToken token = default)
         {
             var userInTenantRepository = new UserInTenantRepository(dbContext, "Administrator");
-            userInTenantRepository.Update(userName, tenantRegistry.Id);
+            return userInTenantRepository.UpdateAsync(userName, tenantRegistry.Id, token);
         }
 
-        private void AllocateAllPermissionSpecificationsToRoleRegistry(string userName, RoleRegistry roleRegistry)
+        private async Task AllocateAllPermissionSpecificationsToRoleRegistryAsync(string userName, RoleRegistry roleRegistry, CancellationToken token = default)
         {
             var permissionSpecificationRepository = new PermissionSpecificationRepository(dbContext);
-            var permissionSpecifications = permissionSpecificationRepository.Get();
+            var permissionSpecifications = await permissionSpecificationRepository.GetAsync(token);
 
             var roleRegistryPermissionRepository = new RoleRegistryPermissionRepository(dbContext, userName);
 
@@ -2821,12 +2821,12 @@ namespace Jube.Service.Authentication
                              PermissionSpecificationId = permissionSpecification.Id
                          }))
             {
-                roleRegistryPermissionRepository.Insert(roleRegistryPermission);
+                await roleRegistryPermissionRepository.InsertAsync(roleRegistryPermission, token);
             }
         }
 
-        private UserRegistry CreateUserRegistry(string userName, string password, string passwordHashingKey,
-            RoleRegistry roleRegistry)
+        private async Task<UserRegistry> CreateUserRegistryAsync(string userName, string password, string passwordHashingKey,
+            RoleRegistry roleRegistry, CancellationToken token = default)
         {
             var userRegistry = new UserRegistry
             {
@@ -2837,14 +2837,14 @@ namespace Jube.Service.Authentication
             };
 
             var userRegistryRepository = new UserRegistryRepository(dbContext, roleRegistry);
-            userRegistryRepository.Insert(userRegistry);
-            userRegistryRepository.SetPassword(userRegistry.Id,
-                HashPassword.GenerateHash(password, passwordHashingKey), DateTime.Now.AddDays(90));
+            await userRegistryRepository.InsertAsync(userRegistry, token);
+            await userRegistryRepository.SetPasswordAsync(userRegistry.Id,
+                HashPassword.GenerateHash(password, passwordHashingKey), DateTime.Now.AddDays(90), token);
 
             return userRegistry;
         }
 
-        private RoleRegistry CreateRoleRegistry(string userName, TenantRegistry tenantRegistry)
+        private async Task<RoleRegistry> CreateRoleRegistryAsync(string userName, TenantRegistry tenantRegistry, CancellationToken token = default)
         {
             var roleRegistry = new RoleRegistry
             {
@@ -2854,11 +2854,11 @@ namespace Jube.Service.Authentication
             };
 
             var roleRegistryRepository = new RoleRegistryRepository(dbContext, tenantRegistry);
-            roleRegistry = roleRegistryRepository.Insert(roleRegistry);
+            roleRegistry = await roleRegistryRepository.InsertAsync(roleRegistry, token);
             return roleRegistry;
         }
 
-        private TenantRegistry CreateTenantRegistry(string userName)
+        private async Task<TenantRegistry> CreateTenantRegistryAsync(string userName, CancellationToken token = default)
         {
             var tenantRegistryRepository = new TenantRegistryRepository(dbContext, "Administrator");
 
@@ -2869,14 +2869,14 @@ namespace Jube.Service.Authentication
                 Landlord = 0
             };
 
-            tenantRegistry = tenantRegistryRepository.Insert(tenantRegistry);
+            tenantRegistry = await tenantRegistryRepository.InsertAsync(tenantRegistry, token);
             return tenantRegistry;
         }
 
-        private void ValidateUserDoesNotExistAndRaiseExceptionIfExists(string userName)
+        private async Task ValidateUserDoesNotExistAndRaiseExceptionIfExistsAsync(string userName, CancellationToken token = default)
         {
             var userRegistryRepositoryExisting = new UserRegistryRepository(dbContext);
-            var userRegistryExisting = userRegistryRepositoryExisting.GetByUserName(userName);
+            var userRegistryExisting = await userRegistryRepositoryExisting.GetByUserNameAsync(userName, token);
 
             if (userRegistryExisting != null)
             {

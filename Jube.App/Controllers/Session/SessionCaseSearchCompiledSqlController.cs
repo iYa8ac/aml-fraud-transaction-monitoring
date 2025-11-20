@@ -16,6 +16,7 @@ namespace Jube.App.Controllers.Session
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
     using System.Threading.Tasks;
     using AutoMapper;
     using Code;
@@ -67,9 +68,8 @@ namespace Jube.App.Controllers.Session
             {
                 cfg.CreateMap<SessionCaseSearchCompiledSql, SessionCaseSearchCompiledSqlDto>();
                 cfg.CreateMap<SessionCaseSearchCompiledSqlDto, SessionCaseSearchCompiledSql>();
-                cfg.CreateMap<List<SessionCaseSearchCompiledSql>, List<SessionCaseSearchCompiledSqlDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
 
             validator = new SessionCaseSearchCompiledSqlDtoValidator();
@@ -88,7 +88,7 @@ namespace Jube.App.Controllers.Session
         }
 
         [HttpGet("ByGuid/{guid:Guid}")]
-        public async Task<ActionResult<List<dynamic>>> ExecuteByGuidAsync(Guid guid)
+        public async Task<ActionResult<List<dynamic>>> ExecuteByGuidAsync(Guid guid, CancellationToken token = default)
         {
             try
             {
@@ -108,7 +108,7 @@ namespace Jube.App.Controllers.Session
                     return NotFound();
                 }
 
-                await CheckRebuild(modelCompiled).ConfigureAwait(false);
+                await CheckRebuildAsync(modelCompiled, token).ConfigureAwait(false);
 
                 var postgres = new Postgres(dynamicEnvironment.AppSettings("ConnectionString"));
                 var tokens = JsonConvert.DeserializeObject<List<object>>(modelCompiled.FilterTokens);
@@ -116,9 +116,10 @@ namespace Jube.App.Controllers.Session
                 var sw = new StopWatch();
                 sw.Start();
 
-                var value = await postgres.ExecuteByOrderedParametersAsync(modelCompiled.SelectSqlSearch + " "
-                                                                                                         + modelCompiled.WhereSql
-                                                                                                         + " " + modelCompiled.OrderSql, tokens).ConfigureAwait(false);
+                var value = await postgres.ExecuteByOrderedParametersAsync(modelCompiled.SelectSqlSearch 
+                    + " "
+                    + modelCompiled.WhereSql
+                    + " " + modelCompiled.OrderSql + " limit 100", tokens, token).ConfigureAwait(false);
 
                 sw.Stop();
 
@@ -132,7 +133,7 @@ namespace Jube.App.Controllers.Session
                 var sessionCaseSearchCompiledSqlExecutionRepository =
                     new SessionCaseSearchCompiledSqlExecutionRepository(dbContext, userName);
 
-                sessionCaseSearchCompiledSqlExecutionRepository.Insert(modelInsert);
+                await sessionCaseSearchCompiledSqlExecutionRepository.InsertAsync(modelInsert, token);
 
                 return Ok(value);
             }
@@ -143,18 +144,18 @@ namespace Jube.App.Controllers.Session
             }
         }
 
-        private async Task<SessionCaseSearchCompiledSql> CheckRebuild(SessionCaseSearchCompiledSql modelCompiled)
+        private async Task<SessionCaseSearchCompiledSql> CheckRebuildAsync(SessionCaseSearchCompiledSql modelCompiled, CancellationToken token = default)
         {
             if (modelCompiled.Rebuild == 1 && modelCompiled.RebuildDate != null)
             {
-                return await CompileSql.Compile(dbContext, modelCompiled, userName).ConfigureAwait(false);
+                return await CompileSql.CompileAsync(dbContext, modelCompiled, userName, token).ConfigureAwait(false);
             }
 
             return modelCompiled;
         }
 
         [HttpGet("ByLast")]
-        public async Task<ActionResult<SessionCaseSearchCompiledSqlDto>> ExecuteByLast()
+        public async Task<ActionResult<SessionCaseSearchCompiledSqlDto>> ExecuteByLastAsync(CancellationToken token = default)
         {
             try
             {
@@ -168,7 +169,7 @@ namespace Jube.App.Controllers.Session
 
                 var repository = new SessionCaseSearchCompiledSqlRepository(dbContext, userName);
 
-                var modelCompiled = repository.GetByLast();
+                var modelCompiled = await repository.GetByLastAsync(token);
                 if (modelCompiled == null)
                 {
                     return new SessionCaseSearchCompiledSqlDto
@@ -177,7 +178,7 @@ namespace Jube.App.Controllers.Session
                     };
                 }
 
-                modelCompiled = await CheckRebuild(modelCompiled).ConfigureAwait(false);
+                modelCompiled = await CheckRebuildAsync(modelCompiled, token).ConfigureAwait(false);
 
                 return Ok(mapper.Map<SessionCaseSearchCompiledSqlDto>(modelCompiled));
             }
@@ -191,8 +192,8 @@ namespace Jube.App.Controllers.Session
         [HttpPost]
         [ProducesResponseType(typeof(SessionCaseSearchCompiledSqlDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<SessionCaseSearchCompiledSqlDto>> Create(
-            [FromBody] SessionCaseSearchCompiledSqlDto model)
+        public async Task<ActionResult<SessionCaseSearchCompiledSqlDto>> CreateAsync(
+            [FromBody] SessionCaseSearchCompiledSqlDto model, CancellationToken token = default)
         {
             try
             {
@@ -204,15 +205,15 @@ namespace Jube.App.Controllers.Session
                     return Forbid();
                 }
 
-                var results = await validator.ValidateAsync(model).ConfigureAwait(false);
+                var results = await validator.ValidateAsync(model, token).ConfigureAwait(false);
                 if (!results.IsValid)
                 {
                     return BadRequest(results);
                 }
 
-                return Ok(mapper.Map<SessionCaseSearchCompiledSqlDto>(await CompileSql.Compile(dbContext,
+                return Ok(mapper.Map<SessionCaseSearchCompiledSqlDto>(await CompileSql.CompileAsync(dbContext,
                     mapper.Map<SessionCaseSearchCompiledSql>(model),
-                    userName).ConfigureAwait(false)));
+                    userName, token).ConfigureAwait(false)));
             }
             catch (Exception e)
             {

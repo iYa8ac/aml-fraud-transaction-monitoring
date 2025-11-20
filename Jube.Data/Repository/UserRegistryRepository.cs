@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Context;
     using LinqToDB;
@@ -46,34 +48,36 @@ namespace Jube.Data.Repository
             tenantRegistryId = roleRegistry.TenantRegistryId;
         }
 
-        public IEnumerable<UserRegistry> Get()
+        public async Task<IEnumerable<UserRegistry>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.UserRegistry
-                .Where(w => w.RoleRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue);
+            return await dbContext.UserRegistry
+                .Where(w => w.RoleRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
+                .ToListAsync(token);
         }
 
-        public IEnumerable<UserRegistry> GetByRoleRegistryId(int roleRegistryId)
+        public async Task<IEnumerable<UserRegistry>> GetByRoleRegistryIdAsync(int roleRegistryId, CancellationToken token = default)
         {
-            return dbContext.UserRegistry
+            return await dbContext.UserRegistry
                 .Where(w => (w.RoleRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
-                            && w.RoleRegistryId == roleRegistryId && (w.Deleted == 0 || w.Deleted == null));
+                            && w.RoleRegistryId == roleRegistryId && (w.Deleted == 0 || w.Deleted == null))
+                .ToListAsync(token);
         }
 
-        public UserRegistry GetById(int id)
+        public Task<UserRegistry> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.UserRegistry.FirstOrDefault(w =>
+            return dbContext.UserRegistry.FirstOrDefaultAsync(w =>
                 (w.RoleRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
-                && w.Id == id && (w.Deleted == 0 || w.Deleted == null));
+                && w.Id == id && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public UserRegistry GetByUserName(string userNameInTenant)
+        public Task<UserRegistry> GetByUserNameAsync(string userNameInTenant, CancellationToken token = default)
         {
-            return dbContext.UserRegistry.FirstOrDefault(w =>
+            return dbContext.UserRegistry.FirstOrDefaultAsync(w =>
                 (w.RoleRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
-                && w.Name == userNameInTenant && (w.Deleted == 0 || w.Deleted == null));
+                && w.Name == userNameInTenant && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public UserRegistry Insert(UserRegistry model)
+        public async Task<UserRegistry> InsertAsync(UserRegistry model, CancellationToken token = default)
         {
             if (!tenantRegistryId.HasValue)
             {
@@ -84,7 +88,7 @@ namespace Jube.Data.Repository
             model.Version = 1;
             model.CreatedDate = DateTime.Now;
             model.Guid = Guid.NewGuid();
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
 
             var userInTenant = new UserInTenant
             {
@@ -94,12 +98,12 @@ namespace Jube.Data.Repository
                 SwitchedDate = DateTime.Now
             };
 
-            dbContext.Insert(userInTenant);
+            await dbContext.InsertAsync(userInTenant, token: token);
 
             return model;
         }
 
-        public UserRegistry Update(UserRegistry model)
+        public async Task<UserRegistry> UpdateAsync(UserRegistry model, CancellationToken token = default)
         {
             var existing = dbContext.UserRegistry
                 .FirstOrDefault(w => w.Id
@@ -116,27 +120,26 @@ namespace Jube.Data.Repository
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
 
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token);
 
-            var config = new MapperConfiguration(cfg => { cfg.CreateMap<UserRegistry, UserRegistryVersion>(); });
-            var mapper = new Mapper(config);
+            var mapper = new Mapper(new MapperConfiguration(cfg => { cfg.CreateMap<UserRegistry, UserRegistryVersion>(); }));
 
             var audit = mapper.Map<UserRegistryVersion>(existing);
             audit.UserRegistryId = existing.Id;
 
-            dbContext.Insert(audit);
+            await dbContext.InsertAsync(audit, token: token);
 
             return model;
         }
 
-        public void ResetFailedPasswordCount(int id)
+        public async Task ResetFailedPasswordCountAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.UserRegistry
+            var records = await dbContext.UserRegistry
                 .Where(d => (d.RoleRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                             && d.Id == id
                             && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.FailedPasswordCount, 0)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {
@@ -144,9 +147,9 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void SetPassword(int id, string password, DateTime expiryDate)
+        public async Task SetPasswordAsync(int id, string password, DateTime expiryDate, CancellationToken token = default)
         {
-            var records = dbContext.UserRegistry
+            var records = await dbContext.UserRegistry
                 .Where(d => (d.RoleRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                             && d.Id == id
                             && (d.Deleted == 0 || d.Deleted == null))
@@ -155,7 +158,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.FailedPasswordCount, 0)
                 .Set(s => s.PasswordExpiryDate, expiryDate)
                 .Set(s => s.PasswordCreatedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {
@@ -163,15 +166,15 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void SetLocked(int id)
+        public async Task SetLockedAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.UserRegistry
+            var records = await dbContext.UserRegistry
                 .Where(d => (d.RoleRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                             && d.Id == id
                             && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.PasswordLocked, (byte)1)
                 .Set(s => s.PasswordLockedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {
@@ -179,7 +182,7 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void IncrementFailedPassword(int id)
+        public Task IncrementFailedPasswordAsync(int id, CancellationToken token = default)
         {
             var existing = dbContext.UserRegistry
                 .FirstOrDefault(w => w.Id
@@ -193,19 +196,19 @@ namespace Jube.Data.Repository
 
             existing.FailedPasswordCount += 1;
 
-            dbContext.Update(existing);
+            return dbContext.UpdateAsync(existing, token: token);
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.UserRegistry
+            var records = await dbContext.UserRegistry
                 .Where(d => (d.RoleRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                             && d.Id == id
                             && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {

@@ -15,6 +15,7 @@ namespace Jube.App.Controllers.Repository
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Dto;
@@ -61,7 +62,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCasesWorkflowIdActiveOnly/{id:int}")]
-        public ActionResult<List<CaseWorkflowPriorityDto>> ByCasesWorkflowIdActiveOnly(int id)
+        public Task<ActionResult<List<CaseWorkflowPriorityDto>>> ByCasesWorkflowIdActiveOnlyAsync(int id)
         {
             try
             {
@@ -70,20 +71,20 @@ namespace Jube.App.Controllers.Repository
                         1
                     }))
                 {
-                    return Forbid();
+                    return Task.FromResult<ActionResult<List<CaseWorkflowPriorityDto>>>(Forbid());
                 }
 
-                return Ok(CaseWorkflowPriorities());
+                return Task.FromResult<ActionResult<List<CaseWorkflowPriorityDto>>>(Ok(CaseWorkflowPriorities()));
             }
             catch (Exception e)
             {
                 log.Error(e);
-                return StatusCode(500);
+                return Task.FromResult<ActionResult<List<CaseWorkflowPriorityDto>>>(StatusCode(500));
             }
         }
 
         [HttpGet("ByCasesWorkflowGuidActiveOnly/{guid:guid}")]
-        public ActionResult<List<CaseWorkflowPriorityDto>> ByCasesWorkflowGuidActiveOnly(Guid guid)
+        public Task<ActionResult<List<CaseWorkflowPriorityDto>>> ByCasesWorkflowGuidActiveOnlyAsync(Guid guid)
         {
             try
             {
@@ -92,15 +93,15 @@ namespace Jube.App.Controllers.Repository
                         1
                     }))
                 {
-                    return Forbid();
+                    return Task.FromResult<ActionResult<List<CaseWorkflowPriorityDto>>>(Forbid());
                 }
 
-                return Ok(CaseWorkflowPriorities());
+                return Task.FromResult<ActionResult<List<CaseWorkflowPriorityDto>>>(Ok(CaseWorkflowPriorities()));
             }
             catch (Exception e)
             {
                 log.Error(e);
-                return StatusCode(500);
+                return Task.FromResult<ActionResult<List<CaseWorkflowPriorityDto>>>(StatusCode(500));
             }
         }
 

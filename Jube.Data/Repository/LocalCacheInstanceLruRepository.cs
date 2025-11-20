@@ -14,16 +14,18 @@
 namespace Jube.Data.Repository
 {
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class LocalCacheInstanceLruRepository(DbContext dbContext)
     {
-        public LocalCacheInstanceLru Insert(LocalCacheInstanceLru model)
+        public async Task<LocalCacheInstanceLru> InsertAsync(LocalCacheInstanceLru model, CancellationToken token = default)
         {
             model.CreatedDate = DateTime.Now;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
 
             return model;
         }

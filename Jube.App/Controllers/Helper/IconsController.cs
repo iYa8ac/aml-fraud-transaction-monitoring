@@ -17,6 +17,7 @@ namespace Jube.App.Controllers.Helper
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Dto.TreeChildren;
@@ -65,14 +66,14 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpGet]
-        public ActionResult<List<IconDto>> GetIcons()
+        public Task<ActionResult<List<IconDto>>> GetIconsAsync()
         {
             if (!permissionValidation.Validate(new[]
                 {
                     24
                 }))
             {
-                return Forbid();
+                return Task.FromResult<ActionResult<List<IconDto>>>(Forbid());
             }
 
             try
@@ -80,16 +81,16 @@ namespace Jube.App.Controllers.Helper
                 var webRoot = env.WebRootPath;
                 var directoryPath = Path.Combine(webRoot, "icons");
 
-                return Directory.GetFiles(directoryPath).Select(file => new IconDto
+                return Task.FromResult<ActionResult<List<IconDto>>>(Directory.GetFiles(directoryPath).Select(file => new IconDto
                     {
                         Name = Path.GetFileName(file)
                     })
-                    .ToList();
+                    .ToList());
             }
             catch (Exception e)
             {
                 log.Error(e);
-                return StatusCode(500);
+                return Task.FromResult<ActionResult<List<IconDto>>>(StatusCode(500));
             }
         }
     }

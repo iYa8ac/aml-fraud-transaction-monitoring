@@ -25,7 +25,7 @@ namespace Jube.Cache.Redis.Interfaces
             Guid entityAnalysisModelGuid, DictionaryNoBoxing payload,
             DateTime referenceDate, Guid entityAnalysisModelInstanceEntryGuid);
 
-        Task DeleteByReferenceDate(int tenantRegistryId, Guid entityAnalysisModelGuid,
-            DateTime referenceDate, int limit);
+        Task DeleteByReferenceDateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
+            DateTime referenceDate, int limit, CancellationToken token = default);
     }
 }
