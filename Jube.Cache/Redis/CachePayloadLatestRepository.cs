@@ -15,16 +15,22 @@ using Exception=System.Exception;
 
 namespace Jube.Cache.Redis
 {
+    using System.Diagnostics;
+    using Data.Context;
+    using Data.Poco;
+    using Data.Repository;
     using Dictionary;
     using Extensions;
-    using MessagePack;
     using Interfaces;
     using log4net;
+    using MessagePack;
     using Models;
     using Serialization;
     using StackExchange.Redis;
+    using TaskCancellation.TaskHelper;
 
     public class CachePayloadLatestRepository(
+        string postgresConnectionString,
         IDatabaseAsync redisDatabase,
         ILog log,
         CommandFlags commandFlag = CommandFlags.FireAndForget) : ICachePayloadLatestRepository
@@ -44,7 +50,7 @@ namespace Jube.Cache.Redis
                     UpdatedDate = DateTime.Now
                 };
 
-                await UpsertMessagePack(tenantRegistryId, entityAnalysisModelGuid, entryKey, entryKeyValue,
+                await UpsertMessagePackAsync(tenantRegistryId, entityAnalysisModelGuid, entryKey, entryKeyValue,
                     cachePayloadLatest, referenceDate).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -70,7 +76,7 @@ namespace Jube.Cache.Redis
                     UpdatedDate = DateTime.Now
                 };
 
-                await UpsertMessagePack(tenantRegistryId, entityAnalysisModelGuid, entryKey, entryKeyValue,
+                await UpsertMessagePackAsync(tenantRegistryId, entityAnalysisModelGuid, entryKey, entryKeyValue,
                     cachePayloadLatest, referenceDate).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -82,90 +88,90 @@ namespace Jube.Cache.Redis
         public async Task<List<string>> GetDistinctKeysAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             string key, DateTime dateFrom, DateTime dateTo)
         {
-            var value = new List<string>();
+            var values = new List<string>();
             try
             {
                 var redisKey = $"PayloadLatest:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{key}";
-                var hashEntries = await redisDatabase.HashGetAllAsync(redisKey).ConfigureAwait(false);
 
-                value = (from hashEntry in hashEntries
-                        let cachePayloadLatest = MessagePackSerializer
-                            .Deserialize<CachePayloadLatest>(hashEntry.Value,
-                                MessagePackSerializerOptionsHelper
-                                    .ContractlessStandardResolverWithCompressionMessagePackSerializerOptions(true))
-                        where cachePayloadLatest.UpdatedDate >= dateFrom
-                              && cachePayloadLatest.UpdatedDate <= dateTo
-                        select hashEntry.Name)
-                    .Select(s => (string)s).ToList();
+                await foreach (var hashEntry in redisDatabase.HashScanAsync(redisKey))
+                {
+                    var unpacked = MessagePackSerializer
+                        .Deserialize<CachePayloadLatest>(hashEntry.Value,
+                            MessagePackSerializerOptionsHelper
+                                .ContractlessStandardResolverWithCompressionMessagePackSerializerOptions(true));
+
+                    if (unpacked.UpdatedDate >= dateFrom && unpacked.UpdatedDate <= dateTo)
+                    {
+                        values.Add(hashEntry.Name);
+                    }
+                }
             }
             catch (Exception ex)
             {
                 log.Error($"Cache Redis: Has created an exception as {ex}.");
             }
 
-            return value;
+            return values;
         }
 
         public async Task<List<string>> GetDistinctKeysAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string key,
             DateTime dateBefore)
         {
-            var value = new List<string>();
+            var values = new List<string>();
             try
             {
                 var redisKey = $"PayloadLatest:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{key}";
-                var hashEntries = await redisDatabase.HashGetAllAsync(redisKey).ConfigureAwait(false);
 
-                value = (from hashEntry in hashEntries
-                        let cachePayloadLatest = MessagePackSerializer
-                            .Deserialize<CachePayloadLatest>(hashEntry.Value,
-                                MessagePackSerializerOptionsHelper
-                                    .ContractlessStandardResolverWithCompressionMessagePackSerializerOptions(true))
-                        where cachePayloadLatest.UpdatedDate <= dateBefore
-                        select hashEntry.Name)
-                    .Select(s => (string)s).ToList();
+                await foreach (var hashEntry in redisDatabase.HashScanAsync(redisKey))
+                {
+                    var unpacked = MessagePackSerializer
+                        .Deserialize<CachePayloadLatest>(hashEntry.Value,
+                            MessagePackSerializerOptionsHelper
+                                .ContractlessStandardResolverWithCompressionMessagePackSerializerOptions(true));
+
+                    if (unpacked.UpdatedDate <= dateBefore)
+                    {
+                        values.Add(hashEntry.Name);
+                    }
+                }
             }
             catch (Exception ex)
             {
                 log.Error($"Cache Redis: Has created an exception as {ex}.");
             }
 
-            return value;
+            return values;
         }
 
         public async Task<List<string>> GetDistinctKeysAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string key)
         {
-            var value = new List<string>();
+            var values = new List<string>();
             try
             {
                 var redisKey = $"PayloadLatest:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{key}";
-                var hashEntries = await redisDatabase.HashGetAllAsync(redisKey).ConfigureAwait(false);
-                return hashEntries.Select(hashEntry => hashEntry.Name).Select(s => (string)s).ToList();
+
+                await foreach (var hashEntry in redisDatabase.HashScanAsync(redisKey))
+                {
+                    values.Add(hashEntry.Name);
+                }
             }
             catch (Exception ex)
             {
                 log.Error($"Cache Redis: Has created an exception as {ex}.");
             }
 
-            return value;
+            return values;
         }
 
-        public async Task DeleteByReferenceDate(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        public Task DeleteByReferenceDateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             DateTime referenceDate, DateTime thresholdReferenceDate, int limit,
             List<(string name, string interval, int intervalValue)> searchKeys)
         {
-            var tasks = new List<Task>();
-
-            await DeleteLatestWhereExpiredAndReduceLatestCount(tenantRegistryId, entityAnalysisModelGuid,
-                thresholdReferenceDate,
-                limit, tasks).ConfigureAwait(false);
-
-            await DeleteSortedSetForSearchKeyAndSetFirst(tenantRegistryId, entityAnalysisModelGuid, referenceDate, limit,
-                searchKeys).ConfigureAwait(false);
-
-            await Task.WhenAll(tasks.ToArray()).ConfigureAwait(false);
+            return DeleteExpiredReferenceDateLatestAsync(tenantRegistryId, entityAnalysisModelGuid,
+                thresholdReferenceDate);
         }
 
-        private async Task UpsertMessagePack(int tenantRegistryId, Guid entityAnalysisModelGuid, string entryKey,
+        private async Task UpsertMessagePackAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string entryKey,
             string entryKeyValue, CachePayloadLatest cachePayloadLatest, DateTime referenceDate)
         {
             try
@@ -175,40 +181,20 @@ namespace Jube.Cache.Redis
                     MessagePackSerializerOptionsHelper
                         .ContractlessStandardResolverWithCompressionMessagePackSerializerOptions(true)).ConfigureAwait(false);
 
-                var redisKeyPayload = $"PayloadLatest:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{entryKey}";
-
-                var redisKeyPayloadFirst = $"ReferenceDateFirst:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{entryKey}";
-                var redisKeyPayloadLatest =
+                var redisKeyPayloadLatest = $"PayloadLatest:{tenantRegistryId.ToString()}:{entityAnalysisModelGuid:N}";
+                var redisKeyReferenceDateLatest =
                     $"ReferenceDateLatest:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{entryKey}";
                 var redisKeyPayloadLatestCount = $"LatestCount:{tenantRegistryId}:{entityAnalysisModelGuid:N}";
                 var redisHSetKey = $"{entryKeyValue}";
                 var referenceDateTimestamp = referenceDate.ToUnixTimeMilliSeconds();
                 var bytes = ms.ToArray();
 
-                var tasks = new List<Task>
-                {
-                    redisDatabase.SortedSetUpdateAsync(redisKeyPayloadLatest, redisHSetKey, referenceDateTimestamp),
-                    redisDatabase.HashExistsAsync(redisKeyPayload, redisHSetKey).ContinueWith(w =>
-                    {
-                        if (!w.Result)
-                        {
-                            redisDatabase.HashIncrementAsync(redisKeyPayloadLatestCount, entryKey);
-                        }
+                var updateLatestTask = redisDatabase.SortedSetUpdateAsync(redisKeyReferenceDateLatest, redisHSetKey, referenceDateTimestamp);
 
-                        redisDatabase.HashSetAsync(redisKeyPayload, redisHSetKey, bytes);
-                    }),
-                    redisDatabase.SortedSetScoreAsync(redisKeyPayloadFirst, entryKeyValue).ContinueWith(w =>
-                    {
-                        if (w.Result == null)
-                        {
-                            redisDatabase.SortedSetAddAsync(redisKeyPayloadFirst, entryKeyValue, referenceDateTimestamp);
-                        }
+                await redisDatabase.HashIncrementAsync(redisKeyPayloadLatestCount, entryKey);
+                await redisDatabase.HashSetAsync(redisKeyPayloadLatest, redisHSetKey, bytes);
 
-                        redisDatabase.HashSetAsync(redisKeyPayload, redisHSetKey, bytes);
-                    })
-                };
-
-                await Task.WhenAll(tasks.ToArray()).ConfigureAwait(false);
+                await updateLatestTask;
             }
             catch (Exception ex)
             {
@@ -216,144 +202,128 @@ namespace Jube.Cache.Redis
             }
         }
 
-        private async Task DeleteSortedSetForSearchKeyAndSetFirst(int tenantRegistryId, Guid entityAnalysisModelGuid,
-            DateTime referenceDate, int limit, List<(string name, string interval, int intervalValue)> searchKeys)
-        {
-            foreach (var searchKey in searchKeys)
-            {
-                var thresholdReferenceDateTimestamp = (searchKey.interval switch
-                {
-                    "d" => referenceDate.AddDays(searchKey.intervalValue * -1),
-                    "h" => referenceDate.AddHours(searchKey.intervalValue * -1),
-                    "n" => referenceDate.AddMinutes(searchKey.intervalValue * -1),
-                    "s" => referenceDate.AddSeconds(searchKey.intervalValue * -1),
-                    "m" => referenceDate.AddMonths(searchKey.intervalValue * -1),
-                    "y" => referenceDate.AddYears(searchKey.intervalValue * -1),
-                    _ => referenceDate.AddDays(searchKey.intervalValue * -1)
-                }).ToUnixTimeMilliSeconds();
-
-                const double epsilon = 2.2250738585072014E-308d;
-
-                var redisKeyReferenceDateFirst =
-                    $"ReferenceDateFirst:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{searchKey.name}";
-
-                var breakOutOfWhileLoopAsUpToDate = false;
-                while (!breakOutOfWhileLoopAsUpToDate)
-                {
-                    var sortedSetFirstEntries =
-                        await redisDatabase.SortedSetRangeByRankWithScoresAsync(redisKeyReferenceDateFirst, 0, limit).ConfigureAwait(false);
-
-                    if (sortedSetFirstEntries.Length == 0 ||
-                        sortedSetFirstEntries[0].Score >= thresholdReferenceDateTimestamp)
-                    {
-                        breakOutOfWhileLoopAsUpToDate = true;
-                    }
-                    else
-                    {
-                        foreach (var sortedSetFirstEntry in sortedSetFirstEntries)
-                        {
-                            var redisSortedSetKeyValue =
-                                $"Payload:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{searchKey.name}:{sortedSetFirstEntry.Element}";
-
-                            var breakOutOfWhileLoopAsNoMoreRecordsForKey = false;
-                            while (!breakOutOfWhileLoopAsNoMoreRecordsForKey)
-                            {
-                                var sortedSetPayloadEntries =
-                                    await redisDatabase.SortedSetRangeByRankWithScoresAsync(redisSortedSetKeyValue, 0,
-                                        limit).ConfigureAwait(false);
-
-                                if (sortedSetPayloadEntries.Length == 0)
-                                {
-                                    await redisDatabase.SortedSetRemoveAsync(redisKeyReferenceDateFirst,
-                                        sortedSetFirstEntry.Element).ConfigureAwait(false);
-
-                                    breakOutOfWhileLoopAsNoMoreRecordsForKey = true;
-                                }
-                                else
-                                {
-                                    var keysToBeDeleted = new List<RedisValue>();
-                                    foreach (var sortedSetPayloadEntry in sortedSetPayloadEntries)
-                                    {
-                                        if (sortedSetPayloadEntry.Score >= thresholdReferenceDateTimestamp)
-                                        {
-                                            if (Math.Abs(sortedSetPayloadEntry.Score - sortedSetFirstEntry.Score) >
-                                                epsilon)
-                                            {
-                                                await redisDatabase.SortedSetUpdateAsync(redisKeyReferenceDateFirst,
-                                                    sortedSetFirstEntry.Element, sortedSetPayloadEntry.Score).ConfigureAwait(false);
-                                            }
-
-                                            breakOutOfWhileLoopAsNoMoreRecordsForKey = true;
-                                            break;
-                                        }
-
-                                        keysToBeDeleted.Add(sortedSetPayloadEntry.Element);
-                                    }
-
-                                    if (keysToBeDeleted.Count > 0)
-                                    {
-                                        await redisDatabase.SortedSetRemoveAsync(redisSortedSetKeyValue,
-                                            keysToBeDeleted.ToArray()).ConfigureAwait(false);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private async Task DeleteLatestWhereExpiredAndReduceLatestCount(int tenantRegistryId, Guid entityAnalysisModelGuid,
-            DateTime referenceDate, int limit, List<Task> tasks)
+        private async Task DeleteExpiredReferenceDateLatestAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
+            DateTime referenceDate)
         {
             var referenceDateTimestampThreshold =
                 referenceDate.ToUnixTimeMilliSeconds();
 
             var redisKeyCount = $"LatestCount:{tenantRegistryId}:{entityAnalysisModelGuid:N}";
-            var latestCounts = await redisDatabase.HashGetAllAsync(redisKeyCount).ConfigureAwait(false);
 
-            foreach (var latestCount in latestCounts)
+            await foreach (var latestCount in redisDatabase.HashScanAsync(redisKeyCount))
             {
                 var redisKey = $"ReferenceDateLatest:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{latestCount.Name}";
 
-                var breakWhile = false;
-                while (!breakWhile)
+                var expiredSortedSetEntries = await redisDatabase.SortedSetRangeByScoreWithScoresAsync(
+                    redisKey,
+                    Int64.MinValue,
+                    referenceDateTimestampThreshold
+                ).ConfigureAwait(false);
+
+                if (expiredSortedSetEntries.Length == 0)
                 {
-                    var sortedSetEntries = await redisDatabase.SortedSetRangeByRankWithScoresAsync(redisKey, 0, limit).ConfigureAwait(false);
-                    if (sortedSetEntries.Length == 0)
-                    {
-                        breakWhile = true;
-                        continue;
-                    }
+                    continue;
+                }
 
-                    var redisValuesToDelete = new List<RedisValue>();
-                    foreach (var sortedSetEntry in sortedSetEntries)
+                var sw = new Stopwatch();
+                sw.Start();
+
+                var sortedSetExpiredCount = expiredSortedSetEntries.Length;
+                var expiredSortedSetMinTimestamp = (long)expiredSortedSetEntries.FirstOrDefault().Score;
+                var expiredSortedSetMaxTimestamp = (long)expiredSortedSetEntries.LastOrDefault().Score;
+
+                var dbContext = DataConnectionDbContext.GetDbContextDataConnection(postgresConnectionString);
+                try
+                {
+                    var cachePayloadLatestRemovalBatchRepository = new CachePayloadLatestRemovalBatchRepository(dbContext);
+                    var cachePayloadLatestRemovalBatch = await cachePayloadLatestRemovalBatchRepository.InsertAsync(new CachePayloadLatestRemovalBatch
                     {
-                        if (sortedSetEntry.Score <= referenceDateTimestampThreshold)
+                        EntityAnalysisModelGuid = entityAnalysisModelGuid,
+                        ReferenceDate = referenceDate,
+                        Key = latestCount.Name,
+                        ExpiredSortedSetCount = sortedSetExpiredCount,
+                        FirstExpiredSortedSetReferenceDate = expiredSortedSetMinTimestamp.FromUnixTimeMilliSeconds(),
+                        LastExpiredSortedSetReferenceDate = expiredSortedSetMaxTimestamp.FromUnixTimeMilliSeconds()
+                    });
+
+                    var bulkInsertEntries = expiredSortedSetEntries.Select(expiredSortedSetEntry => new CachePayloadLatestRemovalBatchEntry
                         {
-                            redisValuesToDelete.Add(new RedisValue(sortedSetEntry.Element));
-                        }
-                        else
-                        {
-                            breakWhile = true;
-                        }
-                    }
+                            CachePayloadLatestRemovalBatchId = cachePayloadLatestRemovalBatch.Id,
+                            Value = expiredSortedSetEntry.Element,
+                            ReferenceDate = ((long)expiredSortedSetEntry.Score).FromUnixTimeMilliSeconds()
+                        })
+                        .ToList();
 
-                    if (redisValuesToDelete.Count <= 0)
+                    var redisValuesToDelete = expiredSortedSetEntries.Select(s => new RedisValue(s.Element)).ToArray();
+                    var countRedisValuesToDelete = redisValuesToDelete.Length;
+                    var cachePayloadLatestRemovalBatchEntryRepository = new CachePayloadLatestRemovalBatchKeyEntryRepository(dbContext);
+
+                    var tasks = new List<Task<TimedTaskResult>>
                     {
-                        continue;
-                    }
+                        TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.SortedSetRemoveReferenceDateLatest, async () => await BatchSortedSetRemoveAsync(redisDatabase, redisKey, redisValuesToDelete.ToArray(), commandFlag)),
+                        TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.HashDecrementLatestCount, async () => await redisDatabase.HashDecrementAsync(redisKeyCount, latestCount.Name, countRedisValuesToDelete, commandFlag)),
+                        TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.HashDeletePayloadLatest, async () => await BatchHashDeleteAsync(redisDatabase,$"PayloadLatest:{tenantRegistryId.ToString()}:{entityAnalysisModelGuid:N}", redisValuesToDelete, commandFlag))
+                    };
 
-                    tasks.Add(redisDatabase.HashDeleteAsync($"Payload:{tenantRegistryId.ToString()}:{entityAnalysisModelGuid:N}",
-                        redisValuesToDelete.ToArray(), commandFlag));
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                    await TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.BulkInsertCachePayloadLatestRemovalBatchEntry, async () => await cachePayloadLatestRemovalBatchEntryRepository.BulkCopyAsync(bulkInsertEntries));
 
-                    tasks.Add(redisDatabase.SortedSetRemoveAsync(redisKey, redisValuesToDelete.ToArray()
-                        , commandFlag));
-
-                    tasks.Add(redisDatabase.HashDecrementAsync(redisKeyCount, latestCount.Name, redisValuesToDelete.Count,
-                        commandFlag));
+                    var completedTasks = await Task.WhenAll(tasks).ConfigureAwait(false);
+                    var cachePayloadLatestRemovalBatchResponseTimeRepository = new CachePayloadLatestRemovalBatchResponseTimeRepository(dbContext);
+                    // ReSharper disable once MethodSupportsCancellation
+                    await cachePayloadLatestRemovalBatchResponseTimeRepository.BulkCopyAsync(AggregateResponseTimesForBulkInsert(completedTasks, cachePayloadLatestRemovalBatch));
+                    await cachePayloadLatestRemovalBatchRepository.FinishAsync(cachePayloadLatestRemovalBatch.Id);
+                }
+                catch (Exception ex)
+                {
+                    log.Error($"DeleteExpiredReferenceDateLatestAsync has created an error {ex}");
+                }
+                finally
+                {
+                    await dbContext.CloseAsync();
+                    await dbContext.DisposeAsync();
                 }
             }
+        }
+
+        private static async Task BatchSortedSetRemoveAsync(IDatabaseAsync db, RedisKey key, IEnumerable<RedisValue> values, CommandFlags flags)
+        {
+            const int batchSize = 1000;
+            var valuesArray = values.ToArray();
+
+            for (int i = 0; i < valuesArray.Length; i += batchSize)
+            {
+                var batch = valuesArray.Skip(i).Take(batchSize).ToArray();
+                await db.SortedSetRemoveAsync(key, batch, flags).ConfigureAwait(false);
+                await Task.Yield();
+                await Task.Delay(1);
+            }
+        }
+
+        private static async Task BatchHashDeleteAsync(IDatabaseAsync db, RedisKey key, IEnumerable<RedisValue> fields, CommandFlags flags)
+        {
+            const int batchSize = 1000;
+            var fieldsArray = fields.ToArray();
+
+            for (int i = 0; i < fieldsArray.Length; i += batchSize)
+            {
+                var batch = fieldsArray.Skip(i).Take(batchSize).ToArray();
+                await db.HashDeleteAsync(key, batch, flags).ConfigureAwait(false);
+                await Task.Yield();
+                await Task.Delay(1);
+            }
+        }
+
+        private static List<CachePayloadLatestRemovalBatchResponseTime> AggregateResponseTimesForBulkInsert(TimedTaskResult[] tasks, CachePayloadLatestRemovalBatch cachePayloadLatestRemovalBatch)
+        {
+            var groupByComputeTime = tasks.GroupBy(g => g.TaskType).Select(s => new CachePayloadLatestRemovalBatchResponseTime
+            {
+                TaskTypeId = (int)s.Key,
+                ResponseTime = s.Sum(a => a.ComputeTime),
+                CachePayloadLatestRemovalBatchId = cachePayloadLatestRemovalBatch.Id
+            }).ToList();
+
+            return groupByComputeTime;
         }
     }
 }

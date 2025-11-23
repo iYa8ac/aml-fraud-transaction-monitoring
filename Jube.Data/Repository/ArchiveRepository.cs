@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using LinqToDB.Data;
@@ -23,40 +25,67 @@ namespace Jube.Data.Repository
 
     public class ArchiveRepository(DbContext dbContext)
     {
-
-        public Archive GetByEntityAnalysisModelInstanceEntryGuidAndEntityAnalysisModelId(Guid guid,
-            int entityAnalysisModelId)
+        public Task<Archive> GetByEntityAnalysisModelInstanceEntryGuidAndEntityAnalysisModelIdAsync(Guid guid,
+            int entityAnalysisModelId, CancellationToken token = default)
         {
-            return dbContext.Archive.FirstOrDefault(w =>
+            return dbContext.Archive.FirstOrDefaultAsync(w =>
                 w.EntityAnalysisModelInstanceEntryGuid == guid
-                && w.EntityAnalysisModelId == entityAnalysisModelId);
+                && w.EntityAnalysisModelId == entityAnalysisModelId, token);
         }
 
-        public void Update(Archive model)
+        public async Task UpdateAsync(Archive model, CancellationToken token = default)
         {
-            dbContext.Update(model);
+            var existing = await dbContext.Archive
+                .Where(w => w.EntityAnalysisModelInstanceEntryGuid == model.EntityAnalysisModelInstanceEntryGuid)
+                .FirstOrDefaultAsync(token);
+
+            if (existing == null)
+            {
+                throw new KeyNotFoundException();
+            }
+
+            model.Id = existing.Id;
+            model.Version = existing.Version + 1;
+            model.CreatedDate = DateTime.Now;
+
+            await dbContext.UpdateAsync(existing, token: token);
+
+            var audit = new ArchiveVersion
+            {
+                ArchiveId = existing.Id,
+                Json = existing.Json,
+                EntityAnalysisModelInstanceEntryGuid = existing.EntityAnalysisModelInstanceEntryGuid,
+                EntryKeyValue = existing.EntryKeyValue,
+                ResponseElevation = existing.ResponseElevation,
+                EntityAnalysisModelActivationRuleId = existing.EntityAnalysisModelActivationRuleId,
+                EntityAnalysisModelId = existing.EntityAnalysisModelId,
+                ActivationRuleCount = existing.ActivationRuleCount,
+                CreatedDate = existing.CreatedDate,
+                ReferenceDate = existing.ReferenceDate,
+                Version = existing.Version
+            };
+
+            await dbContext.InsertAsync(audit, token: token);
         }
 
-        public long GetCountsByReferenceDate(Guid entityAnalysisModelGuid,DateTime referenceDate)
+        public async Task<long> GetCountsByReferenceDateAsync(Guid entityAnalysisModelGuid, DateTime referenceDate, CancellationToken token = default)
         {
-            return dbContext.Archive.Count(w => w.EntityAnalysisModel.Guid == entityAnalysisModelGuid && w.ReferenceDate >= referenceDate);
-        }
-        
-        public void Insert(Archive model)
-        {
-            dbContext.Insert(model);
+            return await dbContext.Archive
+                .CountAsync(w => w.EntityAnalysisModel.Guid == entityAnalysisModelGuid
+                                 && w.ReferenceDate >= referenceDate, token).ConfigureAwait(false);
         }
 
-        public IEnumerable<string> GetJsonByEntityAnalysisModelIdRandomLimit(int entityAnalysisModelId, int limit)
+        public async Task<IEnumerable<string>> GetJsonByEntityAnalysisModelIdRandomLimitAsync(int entityAnalysisModelId, int limit, CancellationToken token = default)
         {
-            return dbContext.Archive
+            return await dbContext.Archive
                 .Where(w => w.EntityAnalysisModelId == entityAnalysisModelId)
-                .OrderBy(o => o.EntityAnalysisModelInstanceEntryGuid).Select(s => s.Json).Take(limit);
+                .OrderBy(o => o.EntityAnalysisModelInstanceEntryGuid).Select(s => s.Json)
+                .Take(limit).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public void BulkCopy(List<Archive> models)
+        public Task BulkCopyAsync(List<Archive> models, CancellationToken token = default)
         {
-            dbContext.BulkCopy(models);
+            return dbContext.BulkCopyAsync(models, token);
         }
     }
 }

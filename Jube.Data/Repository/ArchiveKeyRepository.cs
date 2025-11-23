@@ -13,7 +13,11 @@
 
 namespace Jube.Data.Repository
 {
+    using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using LinqToDB.Data;
@@ -21,20 +25,60 @@ namespace Jube.Data.Repository
 
     public class ArchiveKeyRepository(DbContext dbContext)
     {
-
-        public void Update(ArchiveKey model)
+        public Task DeleteWhereNotInListAsync(List<ArchiveKey> archiveKeys, int? entityAnalysisModelsReprocessingRuleInstanceId)
         {
-            dbContext.Update(model);
+            return dbContext.ArchiveKey
+                .Where(d => !archiveKeys.Any(x =>
+                    x.ProcessingTypeId == d.ProcessingTypeId &&
+                    x.Key == d.Key &&
+                    x.EntityAnalysisModelInstanceEntryGuid == d.EntityAnalysisModelInstanceEntryGuid))
+                .Set(x => x.Deleted, (byte)1)
+                .Set(x => x.DeletedDate, DateTime.Now)
+                .Set(x => x.EntityAnalysisModelsReprocessingRuleInstanceId, entityAnalysisModelsReprocessingRuleInstanceId)
+                .UpdateAsync();
         }
 
-        public void Insert(ArchiveKey model)
+        public async Task UpsertAsync(ArchiveKey model, CancellationToken token = default)
         {
-            dbContext.Insert(model);
+            var existing = await dbContext.ArchiveKey
+                .FirstOrDefaultAsync(f => f.EntityAnalysisModelInstanceEntryGuid == model.EntityAnalysisModelInstanceEntryGuid
+                                          && f.Key == model.Key
+                                          && f.ProcessingTypeId == model.ProcessingTypeId, token);
+
+            if (existing == null)
+            {
+                await dbContext.InsertAsync(model, token: token);
+            }
+            else
+            {
+                model.Version = existing.Version + 1;
+                model.Id = existing.Id;
+
+                await dbContext.UpdateAsync(model, token: token);
+
+                var audit = new ArchiveKeyVersion
+                {
+                    ArchiveKeyId = existing.Id,
+                    EntityAnalysisModelInstanceEntryGuid = existing.EntityAnalysisModelInstanceEntryGuid,
+                    ProcessingTypeId = existing.ProcessingTypeId,
+                    Key = existing.Key,
+                    KeyValueString = existing.KeyValueString,
+                    KeyValueInteger = existing.KeyValueInteger,
+                    KeyValueFloat = existing.KeyValueFloat,
+                    KeyValueBoolean = existing.KeyValueBoolean,
+                    KeyValueDate = existing.KeyValueDate,
+                    KeyValueLong = existing.KeyValueLong,
+                    Version = existing.Version,
+                    EntityAnalysisModelsReprocessingRuleInstanceId = existing.EntityAnalysisModelsReprocessingRuleInstanceId
+                };
+
+                await dbContext.InsertAsync(audit, token: token);
+            }
         }
 
-        public void BulkCopy(List<ArchiveKey> models)
+        public Task BulkCopyAsync(List<ArchiveKey> models, CancellationToken token = default)
         {
-            dbContext.BulkCopy(models);
+            return dbContext.BulkCopyAsync(models, token);
         }
     }
 }

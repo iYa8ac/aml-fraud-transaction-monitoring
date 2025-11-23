@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -62,9 +64,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<VisualisationRegistry, VisualisationRegistryDto>();
                 cfg.CreateMap<VisualisationRegistryDto, VisualisationRegistry>();
-                cfg.CreateMap<List<VisualisationRegistry>, List<VisualisationRegistryDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new VisualisationRegistryRepository(dbContext, userName);
             validator = new VisualisationRegistryDtoValidator();
@@ -82,7 +83,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<VisualisationRegistryDto>> Get()
+        public async Task<ActionResult<List<VisualisationRegistryDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -94,7 +95,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<VisualisationRegistryDto>>(repository.GetOrderById()));
+                return Ok(mapper.Map<List<VisualisationRegistryDto>>(await repository.GetOrderByIdAsync(token)));
             }
             catch (Exception e)
             {
@@ -104,7 +105,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("{id:int}")]
-        public ActionResult<VisualisationRegistryDto> GetByGuid(int id)
+        public async Task<ActionResult<VisualisationRegistryDto>> GetByGuidAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -116,7 +117,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<VisualisationRegistryDto>(repository.GetById(id)));
+                return Ok(mapper.Map<VisualisationRegistryDto>(await repository.GetByIdAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -126,7 +127,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("{guid:guid}")]
-        public ActionResult<VisualisationRegistryDto> GetByGuid(Guid guid)
+        public async Task<ActionResult<VisualisationRegistryDto>> GetByGuidAsync(Guid guid, CancellationToken token = default)
         {
             try
             {
@@ -138,7 +139,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<VisualisationRegistryDto>(repository.GetByGuid(guid)));
+                return Ok(mapper.Map<VisualisationRegistryDto>(await repository.GetByGuidAsync(guid, token)));
             }
             catch (Exception e)
             {
@@ -148,7 +149,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("GetByShowInDirectory")]
-        public ActionResult<List<VisualisationRegistryDto>> GetByShowInDirectory()
+        public async Task<ActionResult<List<VisualisationRegistryDto>>> GetByShowInDirectoryAsync(CancellationToken token = default)
         {
             try
             {
@@ -160,7 +161,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<VisualisationRegistryDto>>(repository.GetOrderById()));
+                return Ok(mapper.Map<List<VisualisationRegistryDto>>(await repository.GetOrderByIdAsync(token)));
             }
             catch (Exception e)
             {
@@ -172,7 +173,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(VisualisationRegistryDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<VisualisationRegistryDto> Create([FromBody] VisualisationRegistryDto model)
+        public async Task<ActionResult<VisualisationRegistryDto>> CreateAsync([FromBody] VisualisationRegistryDto model, CancellationToken token = default)
         {
             try
             {
@@ -184,10 +185,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Insert(mapper.Map<VisualisationRegistry>(model)));
+                    return Ok(await repository.InsertAsync(mapper.Map<VisualisationRegistry>(model), token));
                 }
 
                 return BadRequest(results);
@@ -202,7 +203,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPut]
         [ProducesResponseType(typeof(VisualisationRegistryDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<VisualisationRegistryDto> Update([FromBody] VisualisationRegistryDto model)
+        public async Task<ActionResult<VisualisationRegistryDto>> UpdateAsync([FromBody] VisualisationRegistryDto model, CancellationToken token = default)
         {
             try
             {
@@ -214,10 +215,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Update(mapper.Map<VisualisationRegistry>(model)));
+                    return Ok(await repository.UpdateAsync(mapper.Map<VisualisationRegistry>(model), token));
                 }
 
                 return BadRequest(results);
@@ -235,7 +236,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpDelete]
         [Route("{id:int}")]
-        public ActionResult<List<VisualisationRegistryDto>> Get(int id)
+        public async Task<ActionResult<List<VisualisationRegistryDto>>> GetAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -247,7 +248,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.Delete(id);
+                await repository.DeleteAsync(id, token);
                 return Ok();
             }
             catch (KeyNotFoundException)

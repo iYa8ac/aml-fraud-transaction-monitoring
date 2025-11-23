@@ -16,7 +16,10 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetEntityAnalysisModelSynchronisationNodeStatusEntriesQuery
     {
@@ -30,20 +33,21 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute()
+        public async Task<IEnumerable<Dto>> ExecuteAsync(CancellationToken token = default)
         {
-            var schedule = dbContext.EntityAnalysisModelSynchronisationSchedule
+            var schedule = await dbContext.EntityAnalysisModelSynchronisationSchedule
                 .Where(w => w.TenantRegistryId == tenantRegistryId)
                 .OrderByDescending(o => o.Id)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync(token);
 
             if (schedule == null)
             {
                 return null;
             }
             {
-                var entries = dbContext.EntityAnalysisModelSynchronisationNodeStatusEntry
-                    .Where(w => w.TenantRegistryId == tenantRegistryId)
+                var entries = await dbContext.EntityAnalysisModelSynchronisationNodeStatusEntry
+                    .Where(w => w.TenantRegistryId == tenantRegistryId 
+                                && w.HeartbeatDate >= DateTime.Now.AddHours(-1))
                     .Select(s => new Dto
                     {
                         HeartbeatDate = s.HeartbeatDate.Value,
@@ -53,7 +57,7 @@ namespace Jube.Data.Query
                                                  DateTime.Now > schedule.ScheduleDate
                                                  || !s.SynchronisedDate.HasValue,
                         InstanceAvailable = s.HeartbeatDate > DateTime.Now.AddMinutes(-2)
-                    });
+                    }).ToListAsync(token);
 
                 return entries;
             }

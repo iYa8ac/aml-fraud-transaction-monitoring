@@ -17,6 +17,7 @@ namespace Jube.Data.Query
     using System.Collections.Generic;
     using System.Linq;
     using System.Text.RegularExpressions;
+    using System.Threading;
     using System.Threading.Tasks;
     using Context;
     using Newtonsoft.Json.Linq;
@@ -28,15 +29,15 @@ namespace Jube.Data.Query
 
         public async Task<List<Dictionary<string, object>>> ExecuteAsync(string key, string keyValue, Guid caseWorkflowGuid,
             int limit,
-            int activationRuleCount, double responseElevation)
+            int activationRuleCount, double responseElevation, CancellationToken token = default)
         {
             var values = new List<Dictionary<string, object>>();
 
             var caseWorkflowXPathByCaseWorkflowIdQuery =
                 new GetCaseWorkflowXPathByCaseWorkflowIdQuery(dbContext, user);
 
-            var xPaths = caseWorkflowXPathByCaseWorkflowIdQuery
-                .Execute(caseWorkflowGuid).ToList();
+            var xPaths = (await caseWorkflowXPathByCaseWorkflowIdQuery
+                .ExecuteAsync(caseWorkflowGuid, token)).ToList();
 
             const string sql = "select '(' || \"ActivationRuleCount\" || ') ' || r.\"Name\" as \"Activation\", a.* " +
                                "from \"Archive\" a " +
@@ -63,9 +64,11 @@ namespace Jube.Data.Query
 
             var postgres = new Postgres(connectionString);
 
-            await postgres.PrepareAsync(sql, tokens).ConfigureAwait(false);
+            await postgres.PrepareAsync(sql, tokens, token).ConfigureAwait(false);
 
-            foreach (var record in await postgres.ExecuteByOrderedParametersAsync(sql, tokens).ConfigureAwait(false))
+            var records = (await postgres.ExecuteByOrderedParametersAsync(sql, tokens, token).ConfigureAwait(false)).ToList();
+
+            foreach (var record in records)
             {
                 var json = JObject.Parse(record["Json"].ToString() ?? String.Empty);
 

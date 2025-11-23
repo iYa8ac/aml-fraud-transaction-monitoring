@@ -28,6 +28,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="AsyncFixer" Version="1.6.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="AutoMapper" Version="13.0.1"/>
         <PackageReference Include="FluentMigrator.Runner" Version="3.3.2"/>
         <PackageReference Include="Isopoh.Cryptography.Argon2" Version="1.1.12"/>
@@ -35,6 +39,10 @@
         <PackageReference Include="log4net" Version="2.0.14"/>
         <PackageReference Include="MessagePack" Version="3.1.4"/>
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="9.0.10"/>
+        <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Npgsql" Version="5.0.18"/>
         <PackageReference Include="Npgsql.Json.NET" Version="5.0.13"/>
         <PackageReference Include="StackExchange.Redis" Version="2.9.32"/>
@@ -44,6 +52,7 @@
         <ProjectReference Include="..\Accord.Statistics\Accord.Statistics.csproj"/>
         <ProjectReference Include="..\Jube.Extensions\Jube.Extensions.csproj"/>
         <ProjectReference Include="..\Jube.Dictionary\Jube.Dictionary.csproj"/>
+        <ProjectReference Include="..\Jube.TaskCancellation\Jube.TaskCancellation.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -56,6 +65,7 @@
         <Compile Remove="Cache\Callback.cs"/>
         <Compile Remove="Cache\CachePayloadLatestRepository.cs"/>
         <Compile Remove="Repository\LocalCacheInstanceKeyCounterRepository.cs"/>
+        <Compile Remove="Cache\Postgres\Callback\Callback.cs"/>
     </ItemGroup>
 
 </Project>

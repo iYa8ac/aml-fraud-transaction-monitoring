@@ -15,6 +15,8 @@ namespace Jube.Data.Repository
 {
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -33,24 +35,24 @@ namespace Jube.Data.Repository
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public ExportPeek Insert(ExportPeek model)
+        public async Task<ExportPeek> InsertAsync(ExportPeek model, CancellationToken token = default)
         {
             model.CreatedUser = userName ?? model.CreatedUser;
             model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
             model.CreatedDate = DateTime.Now;
             model.TenantRegistryId = tenantRegistryId;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
 
             return model;
         }
 
-        public ExportPeek Update(ExportPeek model)
+        public async Task<ExportPeek> UpdateAsync(ExportPeek model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
             model.TenantRegistryId = tenantRegistryId;
 
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token);
 
             return model;
         }

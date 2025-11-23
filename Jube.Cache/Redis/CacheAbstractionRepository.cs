@@ -59,7 +59,7 @@ namespace Jube.Cache.Redis
             }
         }
 
-        public async Task<double?> Get(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        public async Task<double?> GetAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             string name, string searchKey,
             string searchValue)
         {
@@ -73,7 +73,7 @@ namespace Jube.Cache.Redis
                 {
                     return null;
                 }
-                
+
                 return (double)redisValue;
             }
             catch (Exception ex)
@@ -85,7 +85,7 @@ namespace Jube.Cache.Redis
         }
 
         public async Task<Dictionary<string, double>>
-            Get(int tenantRegistryId,
+            GetAsync(int tenantRegistryId,
                 Guid entityAnalysisModelGuid,
                 List<EntityAnalysisModelIdAbstractionRuleNameSearchKeySearchValue>
                     entityAnalysisModelIdAbstractionRuleNameSearchKeySearchValueRequests)

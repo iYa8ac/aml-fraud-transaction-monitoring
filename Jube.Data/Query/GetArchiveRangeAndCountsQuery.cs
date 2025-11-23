@@ -11,29 +11,33 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Jube.Data.Context;
-using LinqToDB;
-
 namespace Jube.Data.Query
 {
+    using System;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Context;
+    using LinqToDB;
+
     public class GetArchiveRangeAndCountsQuery(DbContext dbContext)
     {
-        public async Task<Dto> Execute(Guid entityAnalysisModelGuid)
+        public Task<Dto> ExecuteAsync(Guid entityAnalysisModelGuid, CancellationToken token = default)
         {
-            return await (from archive in dbContext.Archive
+            return (from archive in dbContext.Archive
                 join model in dbContext.EntityAnalysisModel on archive.EntityAnalysisModelId equals model.Id
                 where model.Guid == entityAnalysisModelGuid
-                group archive by new { archive.EntityAnalysisModelId }
+                group archive by new
+                {
+                    archive.EntityAnalysisModelId
+                }
                 into g
                 select new Dto
                 {
                     Count = g.Count(),
                     Min = g.Min(q => q.ReferenceDate),
                     Max = g.Max(q => q.ReferenceDate)
-                }).FirstOrDefaultAsync().ConfigureAwait(false);
+                }).FirstOrDefaultAsync(token);
         }
 
         public class Dto

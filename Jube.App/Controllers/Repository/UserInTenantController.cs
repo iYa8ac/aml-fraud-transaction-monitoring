@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -59,9 +61,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<UserInTenantDto, UserInTenant>();
                 cfg.CreateMap<UserInTenant, UserInTenantDto>();
-                cfg.CreateMap<List<UserInTenant>, List<UserInTenantDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new UserInTenantRepository(dbContext, userName);
         }
@@ -78,7 +79,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpPut]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<TenantRegistryDto> Update(int tenantRegistryId)
+        public async Task<ActionResult<TenantRegistryDto>> UpdateAsync(int tenantRegistryId, CancellationToken token = default)
         {
             try
             {
@@ -87,7 +88,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.Update(userName, tenantRegistryId);
+                await repository.UpdateAsync(userName, tenantRegistryId, token);
 
                 return Ok();
             }
@@ -103,7 +104,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<UserInTenantDto>> Get()
+        public async Task<ActionResult<List<UserInTenantDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -115,7 +116,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<UserInTenantDto>>(repository.Get()));
+                return Ok(mapper.Map<List<UserInTenantDto>>(await repository.GetAsync(token)));
             }
             catch (Exception e)
             {
@@ -126,7 +127,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpGet]
         [Route("GetCurrentTenantRegistry")]
-        public ActionResult<UserInTenantDto> GetCurrentTenantRegistry()
+        public Task<ActionResult<UserInTenantDto>> GetCurrentTenantRegistryAsync()
         {
             try
             {
@@ -135,15 +136,15 @@ namespace Jube.App.Controllers.Repository
                         1
                     }))
                 {
-                    return Forbid();
+                    return Task.FromResult<ActionResult<UserInTenantDto>>(Forbid());
                 }
 
-                return Ok(mapper.Map<UserInTenantDto>(repository.GetCurrentTenantRegistry()));
+                return Task.FromResult<ActionResult<UserInTenantDto>>(Ok(mapper.Map<UserInTenantDto>(repository.GetCurrentTenantRegistry())));
             }
             catch (Exception e)
             {
                 log.Error(e);
-                return StatusCode(500);
+                return Task.FromResult<ActionResult<UserInTenantDto>>(StatusCode(500));
             }
         }
     }

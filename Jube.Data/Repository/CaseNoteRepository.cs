@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -45,29 +47,29 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<CaseEvent> Get()
+        public async Task<IEnumerable<CaseEvent>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.CaseEvent.Where(w =>
+            return await dbContext.CaseEvent.Where(w =>
                 w.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
-                !tenantRegistryId.HasValue);
+                !tenantRegistryId.HasValue).ToListAsync(token);
         }
 
-        public IEnumerable<CaseNote> GetByCaseKeyValue(string key, string value)
+        public async Task<IEnumerable<CaseNote>> GetByCaseKeyValueAsync(string key, string value, CancellationToken token = default)
         {
-            return dbContext.CaseNote.Where(w
+            return await dbContext.CaseNote.Where(w
                     => (w.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                         !tenantRegistryId.HasValue)
                        && (w.Case.CaseWorkflow.EntityAnalysisModel.Deleted == 0 ||
                            w.Case.CaseWorkflow.EntityAnalysisModel.Deleted == null)
                        && w.CaseKey == key && w.CaseKeyValue == value)
-                .OrderByDescending(o => o.Id);
+                .OrderByDescending(o => o.Id).ToListAsync(token);
         }
 
-        public CaseNote Insert(CaseNote model)
+        public async Task<CaseNote> InsertAsync(CaseNote model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
     }

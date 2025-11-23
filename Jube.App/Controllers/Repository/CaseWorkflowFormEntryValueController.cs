@@ -15,6 +15,8 @@ namespace Jube.App.Controllers.Repository
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -57,9 +59,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<CaseWorkflowFormEntryValue, CaseWorkflowFormEntryValueDto>();
                 cfg.CreateMap<CaseWorkflowFormEntryValueDto, CaseWorkflowFormEntryValue>();
-                cfg.CreateMap<List<CaseWorkflowFormEntryValue>, List<CaseWorkflowFormEntryValueDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new CaseWorkflowFormEntryValueRepository(dbContext, userName);
         }
@@ -75,7 +76,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCaseWorkflowFormEntryId")]
-        public ActionResult<List<CaseWorkflowFormEntryValueDto>> GetByCaseKeyValue(int id)
+        public async Task<ActionResult<List<CaseWorkflowFormEntryValueDto>>> GetByCaseKeyValueAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -87,7 +88,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseWorkflowFormEntryValue>>(repository.GetByCaseWorkflowFormEntryId(id)));
+                return Ok(mapper.Map<List<CaseWorkflowFormEntryValue>>(await repository.GetByCaseWorkflowFormEntryIdAsync(id, token)));
             }
             catch (Exception e)
             {

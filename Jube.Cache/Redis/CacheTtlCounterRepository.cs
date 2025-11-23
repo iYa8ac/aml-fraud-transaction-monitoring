@@ -22,7 +22,7 @@ namespace Jube.Cache.Redis
         ILog log,
         CommandFlags commandFlag = CommandFlags.FireAndForget) : ICacheTtlCounterRepository
     {
-        public async Task DecrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        public async Task<long> DecrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             Guid entityAnalysisModelTtlCounterGuid,
             string dataName, string dataValue, int decrement)
         {
@@ -32,13 +32,22 @@ namespace Jube.Cache.Redis
                     $"TtlCounter:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{entityAnalysisModelTtlCounterGuid:N}:{dataName}";
                 var redisHSetKey = $"{dataValue}";
 
-                await redisDatabase.HashDecrementAsync(redisKey, redisHSetKey, decrement,
-                    commandFlag).ConfigureAwait(false);
+                var value = await redisDatabase.HashDecrementAsync(redisKey, redisHSetKey, decrement).ConfigureAwait(false);
+
+                if (value > 0)
+                {
+                    return value;
+                }
+
+                await redisDatabase.HashDeleteAsync(redisKey, redisHSetKey);
+                return 0;
             }
             catch (Exception ex)
             {
                 log.Error($"Cache Redis: Has created an exception as {ex}.");
             }
+
+            return 0;
         }
 
         public async Task<int> GetByNameDataNameDataValueAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,

@@ -15,6 +15,8 @@ namespace Jube.App.Controllers.Repository
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -58,10 +60,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<VisualisationRegistryDatasourceSeriesDto, VisualisationRegistryDatasourceSeries>();
                 cfg.CreateMap<VisualisationRegistryDatasourceSeries, VisualisationRegistryDatasourceSeriesDto>();
-                cfg.CreateMap<List<VisualisationRegistryDatasourceSeries>,
-                        List<VisualisationRegistryDatasourceSeriesDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
         }
 
@@ -76,8 +76,8 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByVisualisationRegistryDatasourceId/{id:int}")]
-        public ActionResult<List<VisualisationRegistryDatasourceSeriesDto>>
-            GetByVisualisationRegistryDatasourceId(int id)
+        public async Task<ActionResult<List<VisualisationRegistryDatasourceSeriesDto>>>
+            GetByVisualisationRegistryDatasourceIdAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -90,7 +90,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<List<VisualisationRegistryDatasourceSeriesDto>>(
-                    repository.GetByVisualisationRegistryDatasourceId(id)));
+                    await repository.GetByVisualisationRegistryDatasourceIdAsync(id, token)));
             }
             catch (Exception e)
             {

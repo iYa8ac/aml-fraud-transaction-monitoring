@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -64,9 +66,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<CaseWorkflowFormEntry, CaseWorkflowFormEntryDto>();
                 cfg.CreateMap<CaseWorkflowFormEntryDto, CaseWorkflowFormEntry>();
-                cfg.CreateMap<List<CaseWorkflowFormEntry>, List<CaseWorkflowFormEntryDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new CaseWorkflowFormEntryRepository(dbContext, userName);
             validator = new CaseWorkflowFormEntryDtoValidator();
@@ -87,7 +88,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(CaseWorkflowFormEntryDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<CaseWorkflowFormEntryDto> Create([FromBody] CaseWorkflowFormEntryDto model)
+        public async Task<ActionResult<CaseWorkflowFormEntryDto>> CreateAsync([FromBody] CaseWorkflowFormEntryDto model, CancellationToken token = default)
         {
             try
             {
@@ -99,14 +100,14 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
 
                 if (!results.IsValid)
                 {
                     return BadRequest(results);
                 }
 
-                var entry = repository.Insert(mapper.Map<CaseWorkflowFormEntry>(model));
+                var entry = await repository.InsertAsync(mapper.Map<CaseWorkflowFormEntry>(model), token);
 
                 if (model.Payload == null)
                 {
@@ -140,12 +141,12 @@ namespace Jube.App.Controllers.Repository
                         Value = value.ToString()
                     };
 
-                    repositoryCaseWorkflowFormEntryValue.Insert(caseWorkflowFormEntryValue);
+                    await repositoryCaseWorkflowFormEntryValue.InsertAsync(caseWorkflowFormEntryValue, token);
                 }
 
                 var caseWorkflowFormRepository = new CaseWorkflowFormRepository(dbContext, userName);
 
-                var caseWorkflowForm = caseWorkflowFormRepository.GetById(model.CaseWorkflowFormId);
+                var caseWorkflowForm = await caseWorkflowFormRepository.GetByIdAsync(model.CaseWorkflowFormId, token);
 
                 if (caseWorkflowForm.EnableNotification != 1 && caseWorkflowForm.EnableHttpEndpoint != 1)
                 {
@@ -155,10 +156,10 @@ namespace Jube.App.Controllers.Repository
                 if (caseWorkflowForm.EnableNotification == 1)
                 {
                     var notification = new Notification(log, dynamicEnvironment);
-                    notification.Send(caseWorkflowForm.NotificationTypeId ?? 1,
+                    await notification.SendAsync(caseWorkflowForm.NotificationTypeId ?? 1,
                         caseWorkflowForm.NotificationDestination,
                         caseWorkflowForm.NotificationSubject,
-                        caseWorkflowForm.NotificationBody, values);
+                        caseWorkflowForm.NotificationBody, values, token);
                 }
 
                 if (caseWorkflowForm.EnableHttpEndpoint != 1)
@@ -169,7 +170,7 @@ namespace Jube.App.Controllers.Repository
                 var sendHttpEndpoint = new SendHttpEndpoint();
                 if (caseWorkflowForm.HttpEndpointTypeId != null)
                 {
-                    sendHttpEndpoint.Send(caseWorkflowForm.HttpEndpoint,
+                    await sendHttpEndpoint.SendAsync(caseWorkflowForm.HttpEndpoint,
                         caseWorkflowForm.HttpEndpointTypeId.Value
                         , values);
                 }
@@ -184,7 +185,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByCaseKeyValue")]
-        public ActionResult<List<CaseWorkflowFormEntryDto>> GetByCaseKeyValue(string key, string value)
+        public async Task<ActionResult<List<CaseWorkflowFormEntryDto>>> GetByCaseKeyValueAsync(string key, string value, CancellationToken token = default)
         {
             try
             {
@@ -196,7 +197,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseWorkflowFormEntry>>(repository.GetByCaseKeyValue(key, value)));
+                return Ok(mapper.Map<List<CaseWorkflowFormEntry>>(await repository.GetByCaseKeyValueAsync(key, value, token)));
             }
             catch (Exception e)
             {

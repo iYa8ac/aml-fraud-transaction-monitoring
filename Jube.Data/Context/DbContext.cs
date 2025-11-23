@@ -151,6 +151,15 @@ namespace Jube.Data.Context
                 return GetTable<ArchiveKey>();
             }
         }
+
+        public ITable<ArchiveKeyVersion> ArchiveKeyVersion
+        {
+            get
+            {
+                return GetTable<ArchiveKeyVersion>();
+            }
+        }
+
         public ITable<ExhaustiveSearchInstance> ExhaustiveSearchInstance
         {
             get
@@ -316,6 +325,15 @@ namespace Jube.Data.Context
                 return GetTable<Archive>();
             }
         }
+
+        public ITable<ArchiveVersion> ArchiveVersion
+        {
+            get
+            {
+                return GetTable<ArchiveVersion>();
+            }
+        }
+
         public ITable<MockArchive> MockArchive
         {
             get
@@ -954,6 +972,70 @@ namespace Jube.Data.Context
             get
             {
                 return GetTable<LocalCacheInstanceLru>();
+            }
+        }
+
+        public ITable<CachePayloadRemovalBatch> CachePayloadRemovalBatch
+        {
+            get
+            {
+                return GetTable<CachePayloadRemovalBatch>();
+            }
+        }
+
+        public ITable<CachePayloadRemovalBatchEntry> CachePayloadRemovalBatchEntry
+        {
+            get
+            {
+                return GetTable<CachePayloadRemovalBatchEntry>();
+            }
+        }
+
+        public ITable<CachePayloadLatestRemovalBatchEntry> CachePayloadLatestRemovalBatchEntry
+        {
+            get
+            {
+                return GetTable<CachePayloadLatestRemovalBatchEntry>();
+            }
+        }
+
+        public ITable<CachePayloadRemovalBatchResponseTime> CachePayloadRemovalBatchResponseTime
+        {
+            get
+            {
+                return GetTable<CachePayloadRemovalBatchResponseTime>();
+            }
+        }
+
+        public ITable<CachePayloadLatestRemovalBatch> CachePayloadLatestRemovalBatch
+        {
+            get
+            {
+                return GetTable<CachePayloadLatestRemovalBatch>();
+            }
+        }
+
+        public ITable<CachePayloadLatestRemovalBatchResponseTime> CachePayloadLatestRemovalBatchResponseTime
+        {
+            get
+            {
+                return GetTable<CachePayloadLatestRemovalBatchResponseTime>();
+            }
+        }
+
+        public ITable<CacheTtlCounterEntryRemovalBatch> CacheTtlCounterEntryRemovalBatch
+        {
+            get
+            {
+                return GetTable<CacheTtlCounterEntryRemovalBatch>();
+            }
+        }
+
+        public ITable<CacheTtlCounterEntryRemovalBatchEntry> CacheTtlCounterEntryRemovalBatchEntry
+        {
+            get
+            {
+                return GetTable<CacheTtlCounterEntryRemovalBatchEntry>();
             }
         }
     }

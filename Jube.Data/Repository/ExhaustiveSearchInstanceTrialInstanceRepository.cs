@@ -14,38 +14,40 @@
 namespace Jube.Data.Repository
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class ExhaustiveSearchInstanceTrialInstanceRepository(DbContext dbContext)
     {
-
-        public ExhaustiveSearchInstanceTrialInstance Insert(ExhaustiveSearchInstanceTrialInstance model)
+        public async Task<ExhaustiveSearchInstanceTrialInstance> InsertAsync(ExhaustiveSearchInstanceTrialInstance model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
 
-        public IQueryable<ExhaustiveSearchInstanceTrialInstance> GetByExhaustiveSearchInstanceIdOrderById(
-            int exhaustiveSearchInstanceId)
+        public async Task<IEnumerable<ExhaustiveSearchInstanceTrialInstance>> GetByExhaustiveSearchInstanceIdOrderByIdAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstanceTrialInstance.Where(w
+            return await dbContext.ExhaustiveSearchInstanceTrialInstance.Where(w
                     => w.ExhaustiveSearchInstanceId == exhaustiveSearchInstanceId)
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstanceTrialInstance
+            return dbContext.ExhaustiveSearchInstanceTrialInstance
                 .Where(d =>
                     d.ExhaustiveSearchInstance.EntityAnalysisModel.TenantRegistryId == tenantRegistryIdOutsideOfInstance
                     && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

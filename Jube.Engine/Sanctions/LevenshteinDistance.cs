@@ -19,11 +19,12 @@ namespace Jube.Engine.Sanctions
     using System.Linq;
     using System.Threading.Tasks;
     using Fastenshtein;
+    using Models;
 
     public static class LevenshteinDistance
     {
         public static List<SanctionEntryReturn> CheckMultipartString(string multiPartString, int distance,
-            Dictionary<int, SanctionEntryDto> sanctionsEntries)
+            Dictionary<int, SanctionEntry> sanctionsEntries)
         {
             var sanctionsEntriesReturn = new ConcurrentDictionary<int, SanctionEntryReturn>();
 
@@ -62,11 +63,11 @@ namespace Jube.Engine.Sanctions
                     {
                         continue;
                     }
-                    
+
                     sanctionsEntriesReturn.TryAdd(entry.SanctionEntryId,
                         new SanctionEntryReturn
                         {
-                            SanctionEntryDto = entry,
+                            SanctionEntry = entry,
                             LevenshteinDistance = dist
                         });
                     break;

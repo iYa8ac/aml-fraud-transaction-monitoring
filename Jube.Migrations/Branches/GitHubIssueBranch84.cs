@@ -42,7 +42,7 @@ namespace Jube.Migrations.Branches
             UpdateInlineScriptCodeForDictionaryNoBoxingAndDeprecatedAttributes();
             ChangeKeyNamesIfNeededOrMigrateDataToEnvelopeNoBoxing();
         }
-        
+
         private void CreateLocalCacheInstance()
         {
 
@@ -63,7 +63,7 @@ namespace Jube.Migrations.Branches
                 .WithColumn("TotalCommittedBytes").AsInt64().Nullable()
                 .WithColumn("UpdatedDate").AsDateTime().Nullable();
         }
-        
+
         private void CreateLocalCacheInstanceKey()
         {
 
@@ -89,7 +89,7 @@ namespace Jube.Migrations.Branches
             Create.ForeignKey().FromTable("LocalCacheInstanceKey").ForeignColumn("LocalCacheInstanceId")
                 .ToTable("LocalCacheInstance").PrimaryColumn("Id");
         }
-        
+
         private void CreateLocalCacheInstanceLru()
         {
 
@@ -116,7 +116,7 @@ namespace Jube.Migrations.Branches
             Create.ForeignKey().FromTable("LocalCacheInstanceLru").ForeignColumn("LocalCacheInstanceId")
                 .ToTable("LocalCacheInstance").PrimaryColumn("Id");
         }
-        
+
         private void UpdateInlineScriptCodeForDictionaryNoBoxingAndDeprecatedAttributes()
         {
 
@@ -154,7 +154,7 @@ namespace Jube.Migrations.Branches
                 Id = 1
             });
         }
-        
+
         private void ChangeKeyNamesIfNeededOrMigrateDataToEnvelopeNoBoxing()
         {
             var redisServers = cacheService.ConnectionMultiplexer?.GetEndPoints()
@@ -207,19 +207,12 @@ namespace Jube.Migrations.Branches
                 }
             }
         }
-        
+
         private void CorrectWrongGuidFormatInThePayloadCountHashSet(string[] splits)
         {
 
             var redisKeyPayloadCount = String.Join(":", splits);
-            var hashEntries = cacheService.RedisDatabase?.HashGetAll(redisKeyPayloadCount);
-
-            if (hashEntries == null)
-            {
-                return;
-            }
-
-            foreach (var hashEntry in hashEntries)
+            foreach (var hashEntry in cacheService.RedisDatabase.HashScan(redisKeyPayloadCount))
             {
                 try
                 {
@@ -231,7 +224,7 @@ namespace Jube.Migrations.Branches
                 }
             }
         }
-        
+
         private void RenameHashKeyForCorrectGuidFormat(HashEntry hashEntry, string redisKeyPayloadCount)
         {
 
@@ -257,7 +250,7 @@ namespace Jube.Migrations.Branches
             }
             return false;
         }
-        
+
         private void MigrateAllHashKeyValuesFromDictionaryToEnvelopeOfDictionaryNoBoxing(MessagePackSerializerOptions messagePackSerializerOptionsOld,
             MessagePackSerializerOptions messagePackSerializerOptionsNew, RedisKey key)
         {
@@ -278,7 +271,7 @@ namespace Jube.Migrations.Branches
                 }
             }
         }
-        
+
         private void MigrateHashKeyValueFromDictionaryToEnvelopeOfDictionaryNoBoxing(MessagePackSerializerOptions messagePackSerializerOptionsOld,
             MessagePackSerializerOptions messagePackSerializerOptionsNew, HashEntry hashEntry, RedisKey key)
         {
@@ -287,9 +280,9 @@ namespace Jube.Migrations.Branches
 
             var bytes = SerializeToMessagePackFormatForEnvelopeDictionaryNoBoxing(messagePackSerializerOptionsNew, oldKeyValuePairs);
 
-            cacheService.RedisDatabase.HashSetAsync(key, hashEntry.Name, bytes);
+            cacheService.RedisDatabase.HashSet(key, hashEntry.Name, bytes);
         }
-        
+
         private byte[] SerializeToMessagePackFormatForEnvelopeDictionaryNoBoxing(MessagePackSerializerOptions messagePackSerializerOptions, Dictionary<string, object> oldKeyValuePairs)
         {
             var ms = new MemoryStream();
@@ -298,7 +291,7 @@ namespace Jube.Migrations.Branches
             var bytes = ms.ToArray();
             return bytes;
         }
-        
+
         private static EnvelopeDictionaryNoBoxing MapToEnvelopeForDictionaryNoBoxing(Dictionary<string, object> oldKeyValuePairs)
         {
 
@@ -309,7 +302,7 @@ namespace Jube.Migrations.Branches
             };
             return dictionaryNoBoxingWrapper;
         }
-        
+
         private static DictionaryNoBoxing MapToDictionaryNoBoxing(Dictionary<string, object> oldKeyValuePairs)
         {
 

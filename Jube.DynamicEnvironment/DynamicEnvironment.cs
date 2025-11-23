@@ -286,9 +286,24 @@ namespace Jube.DynamicEnvironment
                 },
                 {
                     "RedisPublishSubscribeEvents", "False"
+                },
+                {
+                    "MaxInvokeControllerRequestBytes", "4000"
+                },
+                {
+                    "SearchKeyCacheServerIntervalType", "h"
+                },
+                {
+                    "SearchKeyCacheServerIntervalValue", "1"
+                },
+                {
+                    "AMQPHeartbeatSeconds", "30"
+                },
+                {
+                    "CaseCreationThreads", "4"
                 }
             };
-            
+
             foreach (var environmentVariable in from DictionaryEntry environmentVariable in
                          Environment.GetEnvironmentVariables()
                      where appSettings.ContainsKey(Convert.ToString(environmentVariable.Key) ?? String.Empty)

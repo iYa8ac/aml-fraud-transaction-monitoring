@@ -15,24 +15,23 @@ namespace Jube.Data.Repository
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class HttpProcessingCounterRepository(DbContext dbContext)
     {
-
-
-        public IEnumerable<HttpProcessingCounter> Get(int limit)
+        public async Task<IEnumerable<HttpProcessingCounter>> GetAsync(int limit, CancellationToken token = default)
         {
-            return (IOrderedQueryable<HttpProcessingCounter>)dbContext.HttpProcessingCounter
-                .OrderByDescending(o => o.Id)
-                .Take(limit);
+            return await dbContext.HttpProcessingCounter
+                .OrderByDescending(o => o.Id).Take(limit).ToListAsync(token);
         }
 
-        public HttpProcessingCounter Insert(HttpProcessingCounter model)
+        public async Task<HttpProcessingCounter> InsertAsync(HttpProcessingCounter model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
     }

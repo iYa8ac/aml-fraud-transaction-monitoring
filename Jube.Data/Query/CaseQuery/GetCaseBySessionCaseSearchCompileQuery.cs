@@ -15,6 +15,7 @@ namespace Jube.Data.Query.CaseQuery
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Context;
     using Dto;
@@ -38,7 +39,7 @@ namespace Jube.Data.Query.CaseQuery
             processCaseQuery = new ProcessCaseQuery(this.dbContext, userName);
         }
 
-        public async Task<CaseQueryDto> ExecuteAsync(Guid guid)
+        public async Task<CaseQueryDto> ExecuteAsync(Guid guid, CancellationToken token = default)
         {
             var sessionCaseSearchCompiledSqlRepository =
                 new SessionCaseSearchCompiledSqlRepository(dbContext, userName);
@@ -57,9 +58,12 @@ namespace Jube.Data.Query.CaseQuery
 
             var postgres = new Postgres(dbContext.ConnectionString);
 
-            var value = await postgres.ExecuteByOrderedParametersAsync(modelCompiled.SelectSqlDisplay + " "
-                                                                                                      + modelCompiled.WhereSql
-                                                                                                      + " " + modelCompiled.OrderSql + " limit 1", tokens).ConfigureAwait(false);
+            var value = await
+                postgres.ExecuteByOrderedParametersAsync(modelCompiled.SelectSqlDisplay 
+                    + " "
+                    + modelCompiled.WhereSql
+                    + " " + modelCompiled.OrderSql + " limit 1", tokens, token).ConfigureAwait(false);
+
             sw.Stop();
 
             var modelInsert = new SessionCaseSearchCompiledSqlExecution
@@ -72,7 +76,7 @@ namespace Jube.Data.Query.CaseQuery
             var sessionCaseSearchCompiledSqlExecutionRepository =
                 new SessionCaseSearchCompiledSqlExecutionRepository(dbContext, userName);
 
-            sessionCaseSearchCompiledSqlExecutionRepository.Insert(modelInsert);
+            await sessionCaseSearchCompiledSqlExecutionRepository.InsertAsync(modelInsert, token);
 
             var caseQueryDto = new CaseQueryDto();
 
@@ -237,7 +241,7 @@ namespace Jube.Data.Query.CaseQuery
 
             caseQueryDto.Json = value[0].ContainsKey("Json") ? value[0]["Json"]?.AsString() : null;
 
-            return processCaseQuery.Process(caseQueryDto);
+            return await processCaseQuery.ProcessAsync(caseQueryDto, token);
         }
     }
 }

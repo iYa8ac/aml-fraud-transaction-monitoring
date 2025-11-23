@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -39,21 +41,21 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<EntityAnalysisModelSynchronisationSchedule> Get()
+        public async Task<IEnumerable<EntityAnalysisModelSynchronisationSchedule>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelSynchronisationSchedule
-                .Where(w => w.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue);
+            return await dbContext.EntityAnalysisModelSynchronisationSchedule
+                .Where(w => w.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue).ToListAsync(token);
         }
 
-        public EntityAnalysisModelSynchronisationSchedule GetCurrent()
+        public Task<EntityAnalysisModelSynchronisationSchedule> GetCurrentAsync(CancellationToken token = default)
         {
             return dbContext.EntityAnalysisModelSynchronisationSchedule.Where(w
                     => w.TenantRegistryId == tenantRegistryId)
                 .OrderByDescending(o => o.Id)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync(token);
         }
 
-        public EntityAnalysisModelSynchronisationSchedule Insert(EntityAnalysisModelSynchronisationSchedule model)
+        public async Task<EntityAnalysisModelSynchronisationSchedule> InsertAsync(EntityAnalysisModelSynchronisationSchedule model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.TenantRegistryId = tenantRegistryId;
@@ -64,7 +66,7 @@ namespace Jube.Data.Repository
                 model.ScheduleDate = model.CreatedDate;
             }
 
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
     }

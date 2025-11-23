@@ -23,7 +23,7 @@ namespace Jube.Cache.Redis
         ILog log,
         CommandFlags commandFlag = CommandFlags.FireAndForget) : ICacheReferenceDate
     {
-        public async Task UpsertReferenceDate(int tenantRegistryId, Guid entityAnalysisModelGuid, DateTime referenceDate)
+        public async Task UpsertReferenceDateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, DateTime referenceDate)
         {
             try
             {
@@ -40,7 +40,7 @@ namespace Jube.Cache.Redis
             }
         }
 
-        public async Task<DateTime?> GetReferenceDate(int tenantRegistryId, Guid entityAnalysisModelGuid)
+        public async Task<DateTime?> GetReferenceDateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid)
         {
             try
             {

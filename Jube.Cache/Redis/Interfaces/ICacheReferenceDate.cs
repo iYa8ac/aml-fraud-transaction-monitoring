@@ -15,7 +15,7 @@ namespace Jube.Cache.Redis.Interfaces
 {
     public interface ICacheReferenceDate
     {
-        Task UpsertReferenceDate(int tenantRegistryId, Guid entityAnalysisModelGuid, DateTime referenceDate);
-        Task<DateTime?> GetReferenceDate(int tenantRegistryId, Guid entityAnalysisModelGuid);
+        Task UpsertReferenceDateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, DateTime referenceDate);
+        Task<DateTime?> GetReferenceDateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid);
     }
 }

@@ -16,7 +16,10 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetEntityAnalysisModelSuppressionQuery
     {
@@ -30,16 +33,16 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute(string suppressionKey, string suppressionKeyValue)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(string suppressionKey, string suppressionKeyValue, CancellationToken token = default)
         {
-            var suppressions = dbContext.EntityAnalysisModelSuppression
+            var suppressions = await dbContext.EntityAnalysisModelSuppression
                 .Where(w => w.SuppressionKey == suppressionKey && w.SuppressionKeyValue == suppressionKeyValue
                                                                && (w.Deleted == 0 || w.Deleted == null)
                                                                && w.EntityAnalysisModel.TenantRegistryId ==
                                                                tenantRegistryId)
-                .Select(s => s.EntityAnalysisModelGuid).ToList();
+                .Select(s => s.EntityAnalysisModelGuid).ToListAsync(token: token);
 
-            var models =
+            var models = await
                 (from m in dbContext.EntityAnalysisModel
                     join x in dbContext.EntityAnalysisModelRequestXpath
                         on m.Id equals x.EntityAnalysisModelId
@@ -48,7 +51,7 @@ namespace Jube.Data.Query
                           && (m.Deleted == 0 || m.Deleted == null)
                           && m.TenantRegistryId == tenantRegistryId
                           && x.Name == suppressionKey
-                    select m).Distinct().ToList();
+                    select m).Distinct().ToListAsync(token);
 
             var responses = models
                 .Select(model => new Dto

@@ -44,10 +44,10 @@ namespace Jube.Data.Security
             return permissionValidationDto;
         }
 
-        public async Task<PermissionValidationDto> GetPermissionsAsync(DbContext dbContext, string userName)
+        public Task<PermissionValidationDto> GetPermissionsAsync(DbContext dbContext, string userName)
         {
             var connection = (NpgsqlConnection)dbContext.Connection;
-            return await GetPermissionsFromDatabaseAsync(connection, userName).ConfigureAwait(false);
+            return GetPermissionsFromDatabaseAsync(connection, userName);
         }
 
         private async Task<bool> LandlordAsync(NpgsqlConnection connection, string userName)
@@ -71,7 +71,7 @@ namespace Jube.Data.Security
             var readerLandlord = await commandSqlLandlord.ExecuteReaderAsync().ConfigureAwait(false);
             while (await readerLandlord.ReadAsync().ConfigureAwait(false))
             {
-                if (!readerLandlord.IsDBNull(0))
+                if (!await readerLandlord.IsDBNullAsync(0))
                 {
                     if (readerLandlord.GetValue(0).AsShort() == 1)
                     {

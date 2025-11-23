@@ -15,7 +15,7 @@ namespace Jube.Data.Security
 {
     using System;
     using System.Text;
-    using Dictionary.Extensions.System.String;
+    using Dictionary.Extensions;
     using Isopoh.Cryptography.Argon2;
 
     public static class HashPassword

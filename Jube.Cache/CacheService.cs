@@ -13,24 +13,31 @@
 
 namespace Jube.Cache
 {
-    using System.Net;
+    using System.Collections.Concurrent;
     using Data.Context;
-    using Extensions;
     using log4net;
     using Redis;
+    using Redis.Callback;
     using StackExchange.Redis;
+    using TaskCancellation;
 
     public class CacheService
     {
+        private readonly ConcurrentDictionary<Guid, TaskCompletionSource<Callback>> callbacks;
+        private readonly int callbackTimeout;
         private readonly bool localCache;
         private readonly long localCacheBytes;
         private readonly bool localCacheFill;
         private readonly bool messagePackCompression;
-        private readonly bool storePayloadCountsAndBytes;
         private readonly bool publishSubscribe;
+        private readonly bool storePayloadCountsAndBytes;
+        private readonly string postgresConnectionString;
 
-        public CacheService(string redisConnectionString, string postgresConnectionString, bool localCache, bool localCacheFill, long localCacheBytes,
-            bool messagePackCompression, bool storePayloadCountsAndBytes,bool publishSubscribe, ILog log)
+        public CacheService(string redisConnectionString,
+            string postgresConnectionString,
+            ConcurrentDictionary<Guid, TaskCompletionSource<Callback>> callbacks, int callbackTimeout,
+            bool localCache, bool localCacheFill, long localCacheBytes,
+            bool messagePackCompression, bool storePayloadCountsAndBytes, bool publishSubscribe, ILog log)
         {
             Log = log;
             this.localCache = localCache;
@@ -39,20 +46,17 @@ namespace Jube.Cache
             this.messagePackCompression = messagePackCompression;
             this.storePayloadCountsAndBytes = storePayloadCountsAndBytes;
             this.publishSubscribe = publishSubscribe;
+            this.callbacks = callbacks;
+            this.callbackTimeout = callbackTimeout;
+            this.postgresConnectionString = postgresConnectionString;
 
             ConnectionMultiplexer =
                 ConnectionMultiplexer.Connect(redisConnectionString);
 
             RedisDatabase = ConnectionMultiplexer.GetDatabase();
-
-            DbContext =
-                DataConnectionDbContext.GetDbContextDataConnection(postgresConnectionString);
-        }
-        private DbContext DbContext
-        {
-            get;
         }
 
+        public Task InstantiateRepositoriesTask { get; set; }
         public ConnectionMultiplexer ConnectionMultiplexer { get; set; }
         public IDatabase RedisDatabase { get; set; }
         public CacheAbstractionRepository CacheAbstractionRepository { get; set; }
@@ -62,25 +66,30 @@ namespace Jube.Cache
         public CacheSanctionRepository CacheSanctionRepository { get; set; }
         public CacheTtlCounterEntryRepository CacheTtlCounterEntryRepository { get; set; }
         public CacheTtlCounterRepository CacheTtlCounterRepository { get; set; }
+        public CacheCallbackPublishSubscribe CacheCallbackPublishSubscribe { get; set; }
+        public bool Ready { get; private set; }
 
         private ILog Log
         {
             get;
         }
 
-        public async Task InstantiateRepositories()
+        public async Task InstantiateRepositoriesAsync(TaskCoordinator taskCoordinator)
         {
             CacheAbstractionRepository = new CacheAbstractionRepository(RedisDatabase, Log);
-            CachePayloadLatestRepository = new CachePayloadLatestRepository(RedisDatabase, Log);
+            CachePayloadLatestRepository = new CachePayloadLatestRepository(postgresConnectionString, RedisDatabase, Log);
 
             CachePayloadRepository = await CachePayloadRepository.CreateAsync(ConnectionMultiplexer, RedisDatabase,
-                DbContext, Log, CommandFlags.FireAndForget,
-                localCache, localCacheFill, localCacheBytes, messagePackCompression, storePayloadCountsAndBytes,publishSubscribe);
+                postgresConnectionString, Log, CommandFlags.FireAndForget,
+                localCache, localCacheFill, localCacheBytes, messagePackCompression, storePayloadCountsAndBytes, publishSubscribe, taskCoordinator.CancellationToken).ConfigureAwait(false);
 
             CacheReferenceDate = new CacheReferenceDate(RedisDatabase, Log);
             CacheSanctionRepository = new CacheSanctionRepository(RedisDatabase, Log);
             CacheTtlCounterEntryRepository = new CacheTtlCounterEntryRepository(RedisDatabase, Log);
             CacheTtlCounterRepository = new CacheTtlCounterRepository(RedisDatabase, Log);
+            CacheCallbackPublishSubscribe = new CacheCallbackPublishSubscribe(ConnectionMultiplexer, RedisDatabase, callbacks, callbackTimeout, Log, taskCoordinator);
+
+            Ready = true;
         }
     }
 }

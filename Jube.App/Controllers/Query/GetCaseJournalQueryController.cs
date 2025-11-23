@@ -14,6 +14,7 @@
 namespace Jube.App.Controllers.Query
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Code;
     using Data.Context;
@@ -64,8 +65,8 @@ namespace Jube.App.Controllers.Query
         }
 
         [HttpGet]
-        public async Task<ActionResult> Get(string drillName, string drillValue, Guid caseWorkflowGuid, int limit,
-            bool activationsOnly, double responseElevation)
+        public async Task<ActionResult> GetAsync(string drillName, string drillValue, Guid caseWorkflowGuid, int limit,
+            bool activationsOnly, double responseElevation, CancellationToken token = default)
         {
             try
             {
@@ -78,7 +79,7 @@ namespace Jube.App.Controllers.Query
                 }
 
                 return Ok(await query.ExecuteAsync(drillName, drillValue, caseWorkflowGuid, limit,
-                    activationsOnly ? 1 : 0, responseElevation).ConfigureAwait(false));
+                    activationsOnly ? 1 : 0, responseElevation, token).ConfigureAwait(false));
             }
             catch (Exception e)
             {

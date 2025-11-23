@@ -16,6 +16,7 @@ namespace Jube.App.Code.WatcherDispatch
     using System;
     using System.Text;
     using System.Threading;
+    using System.Threading.Tasks;
     using Data.Context;
     using Data.Repository;
     using DynamicEnvironment;
@@ -29,53 +30,68 @@ namespace Jube.App.Code.WatcherDispatch
     using RabbitMQ.Client;
     using RabbitMQ.Client.Events;
     using signalr;
+    using TaskCancellation;
 
     public class Relay
     {
+        private IModel channel;
+        public Task ConnectToAmqpForActivationWatcherStreamingTask;
+        public Task ConnectToDatabaseForActivationWatcherStreamingTask;
+        private EventingBasicConsumer consumer;
         private DefaultContractResolver contractResolver;
         private DynamicEnvironment dynamicEnvironment;
         private ILog log;
-        private IModel rabbitMqChannel;
+        private IConnection rabbitMqConnection;
+        public bool Ready;
+        public Task StreamingActivationWatcherFromDatabaseTableTask;
+        private ITaskCoordinator taskCoordinator;
         private IHubContext<WatcherHub> watcherHub;
-        private bool Stopping { get; set; }
 
-        public void Start(IHubContext<WatcherHub> watcherHubContext,
-            DynamicEnvironment dynamicEnvironmentContext, ILog logContext, IModel rabbitMqChannelContext,
-            DefaultContractResolver contractResolverContext)
+        public Task StartAsync(IHubContext<WatcherHub> watcherHubContext,
+            DynamicEnvironment dynamicEnvironmentContext, ILog logContext, IConnection rabbitMqConnectionContext,
+            DefaultContractResolver contractResolverContext, TaskCoordinator taskCoordinatorContext)
         {
             watcherHub = watcherHubContext;
             log = logContext;
             dynamicEnvironment = dynamicEnvironmentContext;
             contractResolver = contractResolverContext;
+            taskCoordinator = taskCoordinatorContext;
 
             if (dynamicEnvironment.AppSettings("AMQP").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
-                rabbitMqChannel = rabbitMqChannelContext;
-                ConnectToAmqp();
+                if (!dynamicEnvironment.AppSettings("StreamingActivationWatcher")
+                        .Equals("True", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.CompletedTask;
+                }
+
+                rabbitMqConnection = rabbitMqConnectionContext;
+
+                ConnectToAmqpForActivationWatcherStreamingTask = taskCoordinator.RunAsync("ConnectToAmqpForActivationWatcherStreamingTask", ConnectToAmqpForActivationWatcherStreamingAsync);
             }
             else
             {
                 if (dynamicEnvironment.AppSettings("StreamingActivationWatcher")
                     .Equals("True", StringComparison.OrdinalIgnoreCase))
                 {
-                    var fromDatabaseNotifications = new Thread(ConnectToDatabaseNotifications);
-                    fromDatabaseNotifications.Start();
+                    ConnectToDatabaseForActivationWatcherStreamingTask = taskCoordinator.RunAsync("ConnectToDatabaseForActivationWatcherStreamingTask", ConnectToDatabaseForActivationWatcherStreamingAsync);
                 }
                 else
                 {
-                    if (!dynamicEnvironment.AppSettings("ActivationWatcherAllowPersist")
-                            .Equals("True", StringComparison.OrdinalIgnoreCase))
+                    if (dynamicEnvironment.AppSettings("ActivationWatcherAllowPersist")
+                        .Equals("True", StringComparison.OrdinalIgnoreCase))
                     {
-                        return;
+                        StreamingActivationWatcherFromDatabaseTableTask = taskCoordinator.RunAsync("StreamingActivationWatcherFromDatabaseTableTask", StreamingActivationWatcherFromDatabaseTableAsync);
                     }
-
-                    var fromDbContext = new Thread(FromDbContext);
-                    fromDbContext.Start();
                 }
             }
+
+            Ready = true;
+
+            return Task.CompletedTask;
         }
 
-        private void EventHandlerDatabase(string payload)
+        private async Task EventHandlerDatabaseAsync(string payload, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -87,16 +103,16 @@ namespace Jube.App.Code.WatcherDispatch
                 var json = JObject.Parse(payload);
                 var tenantRegistryId = (json.SelectToken("tenantRegistryId") ?? 0).Value<string>();
 
-                watcherHub.Clients.Group("Tenant_" + tenantRegistryId)
-                    .SendAsync("ReceiveMessage", "RealTime", payload);
+                await watcherHub.Clients.Group("Tenant_" + tenantRegistryId)
+                    .SendAsync("ReceiveMessage", "RealTime", payload, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 log.Error(ex.ToString());
             }
         }
 
-        private void EventHandlerSignalR(object sender, BasicDeliverEventArgs e)
+        private async Task EventHandlerSignalRAsync(BasicDeliverEventArgs e, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -115,75 +131,133 @@ namespace Jube.App.Code.WatcherDispatch
                 var json = JObject.Parse(bodyString);
                 var tenantRegistryId = (json.SelectToken("tenantRegistryId") ?? 0).Value<string>();
 
-                watcherHub.Clients.Group("Tenant_" + tenantRegistryId)
-                    .SendAsync("ReceiveMessage", "RealTime", bodyString);
+                await watcherHub.Clients.Group("Tenant_" + tenantRegistryId)
+                    .SendAsync("ReceiveMessage", "RealTime", bodyString, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                log.Error(ex.ToString());
+                log.Error($"EventHandlerSignalRAsync: has produced an error {ex}");
             }
         }
 
-        private void ConnectToDatabaseNotifications()
+        private async Task ConnectToDatabaseForActivationWatcherStreamingAsync(CancellationToken token = default)
+        {
+            var connection = new NpgsqlConnection(dynamicEnvironment.AppSettings("ConnectionString"));
+            try
+            {
+                await connection.OpenAsync(token).ConfigureAwait(false);
+
+                connection.Notification += (sender, e) =>
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await EventHandlerDatabaseAsync(e.Payload, token).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Ignore
+                        }
+                        catch (Exception ex)
+                        {
+                            log.Error($"Error processing notification: {ex}");
+                        }
+                    }, token);
+                };
+
+
+                var cmd = new NpgsqlCommand("LISTEN activation", connection);
+                await using (cmd.ConfigureAwait(false))
+                {
+                    await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                }
+
+                while (true)
+                {
+                    await connection.WaitAsync(token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException ex)
+            {
+                log.Info($"Graceful Cancellation ConnectToDatabaseForActivationWatcherStreamingAsync: has produced an error {ex}");
+            }
+            catch (Exception ex)
+            {
+                log.Error($"ConnectToDatabaseForActivationWatcherStreamingAsync: has produced an error {ex}");
+            }
+            finally
+            {
+                await connection.CloseAsync().ConfigureAwait(false);
+            }
+        }
+
+        private Task ConnectToAmqpForActivationWatcherStreamingAsync(CancellationToken token = default)
         {
             try
             {
-                var connection = new NpgsqlConnection(dynamicEnvironment.AppSettings("ConnectionString"));
-                try
+                channel = rabbitMqConnection.CreateModel();
+                channel.ExchangeDeclare("jubeActivations", ExchangeType.Fanout);
+
+                var rabbitMqQueueName = channel.QueueDeclare();
+                channel.QueueBind(rabbitMqQueueName, "jubeActivations", "");
+
+                consumer = new EventingBasicConsumer(channel);
+                consumer.Received += (o, ea) =>
                 {
-                    connection.Open();
-
-                    connection.Notification += (_, e)
-                        => EventHandlerDatabase(e.Payload);
-
-                    using (var cmd = new NpgsqlCommand("LISTEN activation", connection))
+                    if (token.IsCancellationRequested)
                     {
-                        cmd.ExecuteNonQuery();
+                        return;
                     }
 
-                    while (true)
+                    _ = Task.Run(async () =>
                     {
-                        connection.Wait();
+                        try
+                        {
+                            await EventHandlerSignalRAsync(ea, token).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            if (log.IsInfoEnabled)
+                            {
+                                log.Info($"Could not relay event with exception {ex}.");
+                            }
+                        }
+                    }, token);
+                };
+
+                var basicConsume = channel.BasicConsume(rabbitMqQueueName, true, consumer);
+                token.Register(() =>
+                {
+                    try
+                    {
+                        channel.BasicCancel(basicConsume);
+                        channel.Close();
                     }
-                }
-                catch (Exception ex)
-                {
-                    log.Error($"Streaming Activations Database: Has created an exception as {ex}.");
-                }
-                finally
-                {
-                    connection.Close();
-                }
+                    catch (Exception ex)
+                    {
+                        log.Error("Error during RabbitMQ teardown: " + ex);
+                    }
+                });
+            }
+            catch (OperationCanceledException ex)
+            {
+                log.Info($"Graceful Cancellation ConnectToAmqpForActivationWatcherStreaming: has produced an error {ex}");
             }
             catch (Exception ex)
             {
-                log.Error("Dispatch to SignalR: Error making connections for the Activation Watcher relay " + ex +
-                          ".");
+                log.Error($"ConnectToAmqpForActivationWatcherStreaming: has produced an error {ex}");
             }
+
+            return Task.CompletedTask;
         }
 
-        private void ConnectToAmqp()
-        {
-            try
-            {
-                rabbitMqChannel.ExchangeDeclare("jubeActivations", ExchangeType.Fanout);
-
-                var rabbitMqQueueName = rabbitMqChannel.QueueDeclare();
-                rabbitMqChannel.QueueBind(rabbitMqQueueName, "jubeActivations", "");
-
-                var consumer = new EventingBasicConsumer(rabbitMqChannel);
-                consumer.Received += EventHandlerSignalR;
-
-                rabbitMqChannel.BasicConsume(rabbitMqQueueName, true, consumer);
-            }
-            catch (Exception ex)
-            {
-                log.Error("Dispatch to SignalR: Error making connections for the Activation Watcher relay " + ex +
-                          ".");
-            }
-        }
-
-        private void FromDbContext()
+        private async Task StreamingActivationWatcherFromDatabaseTableAsync(CancellationToken token = default)
         {
             if (log.IsInfoEnabled)
             {
@@ -204,7 +278,7 @@ namespace Jube.App.Code.WatcherDispatch
 
             var activationWatcherRepository = new ActivationWatcherRepository(dbContext);
 
-            var lastActivationWatcher = activationWatcherRepository.GetLast();
+            var lastActivationWatcher = await activationWatcherRepository.GetLastAsync(token);
             var lastActivationWatcherId = 0;
 
             if (lastActivationWatcher != null)
@@ -212,24 +286,36 @@ namespace Jube.App.Code.WatcherDispatch
                 lastActivationWatcherId = lastActivationWatcher.Id;
             }
 
-            while (!Stopping)
+            while (!token.IsCancellationRequested)
             {
-                foreach (var activationWatcher in activationWatcherRepository.GetAllSinceId(lastActivationWatcherId,
-                             100))
+                try
                 {
-                    lastActivationWatcherId = activationWatcher.Id;
+                    foreach (var activationWatcher in await activationWatcherRepository.GetAllSinceIdAsync(lastActivationWatcherId,
+                                 100, token))
+                    {
+                        lastActivationWatcherId = activationWatcher.Id;
 
-                    var stringRepresentationOfObj = JsonConvert.SerializeObject(activationWatcher,
-                        new JsonSerializerSettings
-                        {
-                            ContractResolver = contractResolver
-                        });
+                        var stringRepresentationOfObj = JsonConvert.SerializeObject(activationWatcher,
+                            new JsonSerializerSettings
+                            {
+                                ContractResolver = contractResolver
+                            });
 
-                    watcherHub.Clients.Group("Tenant_" + 1)
-                        .SendAsync("ReceiveMessage", "RealTime", stringRepresentationOfObj);
+                        await watcherHub.Clients.Group("Tenant_" + 1)
+                            .SendAsync("ReceiveMessage", "RealTime", stringRepresentationOfObj, token).ConfigureAwait(false);
+                    }
+
+                    await Task.Delay(Int32.Parse(dynamicEnvironment.AppSettings("WaitPollFromActivationWatcherTable")), token).ConfigureAwait(false);
                 }
-
-                Thread.Sleep(Int32.Parse(dynamicEnvironment.AppSettings("WaitPollFromActivationWatcherTable")));
+                catch (OperationCanceledException ex)
+                {
+                    log.Info($"Graceful Cancellation StreamingActivationWatcherFromDatabaseTableAsync: has produced an error {ex}");
+                }
+                catch (Exception ex)
+                {
+                    log.Error($"StreamingActivationWatcherFromDatabaseTableAsync: has produced an error {ex}");
+                    break;
+                }
             }
         }
     }

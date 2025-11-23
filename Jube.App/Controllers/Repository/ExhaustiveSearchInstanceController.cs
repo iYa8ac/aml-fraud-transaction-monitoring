@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -62,9 +64,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<ExhaustiveSearchInstanceDto, ExhaustiveSearchInstance>();
                 cfg.CreateMap<ExhaustiveSearchInstance, ExhaustiveSearchInstanceDto>();
-                cfg.CreateMap<List<ExhaustiveSearchInstance>, List<ExhaustiveSearchInstanceDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new ExhaustiveSearchInstanceRepository(dbContext, userName);
             validator = new ExhaustiveSearchInstanceDtoValidator();
@@ -82,7 +83,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<ExhaustiveSearchInstanceDto>> Get()
+        public async Task<ActionResult<List<ExhaustiveSearchInstanceDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -94,7 +95,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<ExhaustiveSearchInstanceDto>>(repository.Get()));
+                return Ok(mapper.Map<List<ExhaustiveSearchInstanceDto>>(await repository.GetAsync(token).ConfigureAwait(false)));
             }
             catch (Exception e)
             {
@@ -104,7 +105,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("ByEntityAnalysisModelId/{entityAnalysisModelId:int}")]
-        public ActionResult<List<ExhaustiveSearchInstanceDto>> GetByEntityAnalysisModelId(int entityAnalysisModelId)
+        public async Task<ActionResult<List<ExhaustiveSearchInstanceDto>>> GetByEntityAnalysisModelIdAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             try
             {
@@ -117,7 +118,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<List<ExhaustiveSearchInstanceDto>>(
-                    repository.GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)));
+                    await repository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false)));
             }
             catch (Exception e)
             {
@@ -127,7 +128,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("{id:int}")]
-        public ActionResult<ExhaustiveSearchInstanceDto> GetByExhaustiveSearchInstanceId(int id)
+        public async Task<ActionResult<ExhaustiveSearchInstanceDto>> GetByExhaustiveSearchInstanceIdAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -139,7 +140,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<ExhaustiveSearchInstanceDto>(repository.GetById(id)));
+                return Ok(mapper.Map<ExhaustiveSearchInstanceDto>(await repository.GetByIdAsync(id, token).ConfigureAwait(false)));
             }
             catch (Exception e)
             {
@@ -151,7 +152,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(ExhaustiveSearchInstanceDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<ExhaustiveSearchInstanceDto> Create([FromBody] ExhaustiveSearchInstanceDto model)
+        public async Task<ActionResult<ExhaustiveSearchInstanceDto>> CreateAsync([FromBody] ExhaustiveSearchInstanceDto model, CancellationToken token = default)
         {
             try
             {
@@ -163,10 +164,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token).ConfigureAwait(false);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Insert(mapper.Map<ExhaustiveSearchInstance>(model)));
+                    return Ok(await repository.InsertAsync(mapper.Map<ExhaustiveSearchInstance>(model), token).ConfigureAwait(false));
                 }
 
                 return BadRequest(results);
@@ -181,7 +182,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPut]
         [ProducesResponseType(typeof(ExhaustiveSearchInstanceDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<ExhaustiveSearchInstanceDto> Update([FromBody] ExhaustiveSearchInstanceDto model)
+        public async Task<ActionResult<ExhaustiveSearchInstanceDto>> UpdateAsync([FromBody] ExhaustiveSearchInstanceDto model, CancellationToken token = default)
         {
             try
             {
@@ -193,10 +194,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token).ConfigureAwait(false);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Update(mapper.Map<ExhaustiveSearchInstance>(model)));
+                    return Ok(await repository.UpdateAsync(mapper.Map<ExhaustiveSearchInstance>(model), token).ConfigureAwait(false));
                 }
 
                 return BadRequest(results);
@@ -215,7 +216,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPut("stop/{guid:guid}")]
         [ProducesResponseType(typeof(ExhaustiveSearchInstanceDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult Stop(Guid guid)
+        public async Task<ActionResult> StopAsync(Guid guid, CancellationToken token = default)
         {
             try
             {
@@ -227,7 +228,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.Stop(guid);
+                await repository.StopAsync(guid, token).ConfigureAwait(false);
                 return Ok();
             }
             catch (KeyNotFoundException)
@@ -243,7 +244,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpDelete]
         [Route("{id:int}")]
-        public ActionResult<List<ExhaustiveSearchInstanceDto>> Delete(int id)
+        public async Task<ActionResult<List<ExhaustiveSearchInstanceDto>>> DeleteAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -255,7 +256,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                repository.Delete(id);
+                await repository.DeleteAsync(id, token).ConfigureAwait(false);
                 return Ok();
             }
             catch (KeyNotFoundException)

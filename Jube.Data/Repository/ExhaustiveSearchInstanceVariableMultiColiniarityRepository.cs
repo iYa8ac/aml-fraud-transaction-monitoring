@@ -14,33 +14,35 @@
 namespace Jube.Data.Repository
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class ExhaustiveSearchInstanceVariableMultiColiniarityRepository(DbContext dbContext)
     {
-
-        public ExhaustiveSearchInstanceVariableMultiCollinearity Insert(
-            ExhaustiveSearchInstanceVariableMultiCollinearity model)
+        public async Task<ExhaustiveSearchInstanceVariableMultiCollinearity> InsertAsync(
+            ExhaustiveSearchInstanceVariableMultiCollinearity model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
 
-        public IQueryable<ExhaustiveSearchInstanceVariableMultiCollinearity>
-            GetByExhaustiveSearchInstanceVariableIdOrderById(
-                int exhaustiveSearchInstanceVariableId)
+        public async Task<IEnumerable<ExhaustiveSearchInstanceVariableMultiCollinearity>>
+            GetByExhaustiveSearchInstanceVariableIdOrderByIdAsync(
+                int exhaustiveSearchInstanceVariableId, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstanceVariableMultiCollinearity.Where(w =>
+            return await dbContext.ExhaustiveSearchInstanceVariableMultiCollinearity.Where(w =>
                     w.ExhaustiveSearchInstanceVariableId == exhaustiveSearchInstanceVariableId)
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstanceVariableMultiCollinearity
+            return dbContext.ExhaustiveSearchInstanceVariableMultiCollinearity
                 .Where(d =>
                     d.ExhaustiveSearchInstanceVariable.ExhaustiveSearchInstance.EntityAnalysisModel.TenantRegistryId ==
                     tenantRegistryIdOutsideOfInstance
@@ -48,7 +50,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

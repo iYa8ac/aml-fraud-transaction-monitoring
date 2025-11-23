@@ -25,7 +25,7 @@ namespace Jube.Cache.Redis
         CommandFlags commandFlag = CommandFlags.FireAndForget) : ICacheTtlCounterEntryRepository
     {
         public async Task<List<ExpiredTtlCounterEntry>>
-            GetExpiredTtlCounterCacheCountsAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
+            GetAllExpiredByTtlCounterAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
                 Guid entityAnalysisModelTtlCounterGuid, string dataName, DateTime referenceDate)
         {
             var expired = new List<ExpiredTtlCounterEntry>();
@@ -34,27 +34,26 @@ namespace Jube.Cache.Redis
                 var redisKeyTtlCounter =
                     $"TtlCounter:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{entityAnalysisModelTtlCounterGuid:N}:{dataName}";
 
-                foreach (var dataValue in await redisDatabase.HashKeysAsync(redisKeyTtlCounter).ConfigureAwait(false))
+                await foreach (var dataValue in redisDatabase.HashScanAsync(redisKeyTtlCounter))
                 {
                     var redisKeyTtlCounterEntry = $"TtlCounterEntry:{tenantRegistryId}" +
                                                   $":{entityAnalysisModelGuid:N}:{entityAnalysisModelTtlCounterGuid:N}" +
-                                                  $":{dataName}:{dataValue}";
+                                                  $":{dataName}:{dataValue.Name}";
 
-                    foreach (var keyTtlCounterEntry in await redisDatabase.HashKeysAsync(redisKeyTtlCounterEntry).ConfigureAwait(false))
+                    await foreach (var keyTtlCounterEntry in redisDatabase.HashScanAsync(redisKeyTtlCounterEntry))
                     {
-                        var referenceDateTimestamp = Int64.Parse(keyTtlCounterEntry).FromUnixTimeMilliSeconds();
+                        var referenceDateTimestamp = Int64.Parse(keyTtlCounterEntry.Name).FromUnixTimeMilliSeconds();
                         if (referenceDateTimestamp >= referenceDate)
                         {
                             continue;
                         }
-
-                        var redisValue = await redisDatabase.HashGetAsync(redisKeyTtlCounterEntry, keyTtlCounterEntry).ConfigureAwait(false);
-                        if (redisValue.HasValue)
+                        
+                        if (keyTtlCounterEntry.Value.HasValue)
                         {
                             expired.Add(new ExpiredTtlCounterEntry
                             {
-                                Value = (int)redisValue,
-                                DataValue = dataValue,
+                                Value = (int)keyTtlCounterEntry.Value,
+                                DataValue = dataValue.Name,
                                 ReferenceDate = referenceDateTimestamp
                             });
                         }
@@ -69,7 +68,7 @@ namespace Jube.Cache.Redis
             return expired;
         }
 
-        public async Task<int> GetAsync(int tenantRegistryId,
+        public async Task<long> GetAggregationAsync(int tenantRegistryId,
             Guid entityAnalysisModelGuid, Guid entityAnalysisModelTtlCounterGuid,
             string dataName, string dataValue,
             DateTime referenceDateFrom, DateTime referenceDateTo)
@@ -89,11 +88,18 @@ namespace Jube.Cache.Redis
                 $"TtlCounterEntry:{tenantRegistryId}:{entityAnalysisModelGuid:N}" +
                 $":{entityAnalysisModelTtlCounterGuid:N}:{dataName}:{dataValue}";
 
-            return (from hashEntry in await redisDatabase.HashGetAllAsync(redisKey).ConfigureAwait(false)
-                let referenceDateTimestamp = Int64.Parse(hashEntry.Name)
-                where referenceDateTimestamp >= referenceDateFromTimestamp
-                      && referenceDateTimestamp <= referenceDateToTimestamp
-                select (int)hashEntry.Value).Sum();
+            var sum = 0L;
+            await foreach (var hashEntry in redisDatabase.HashScanAsync(redisKey))
+            {
+                var timestamp = (int)hashEntry.Name;
+                if (timestamp >= referenceDateFromTimestamp && timestamp <= referenceDateToTimestamp)
+                {
+                    sum += (long)hashEntry.Value;
+                }
+            }
+
+            return sum;
+
         }
 
         public async Task UpsertAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string dataName, string dataValue,

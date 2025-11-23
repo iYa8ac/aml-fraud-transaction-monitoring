@@ -14,65 +14,53 @@
 namespace Jube.App.Controllers.Invoke
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Net;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Cache;
-    using Data.Cache.Postgres.Callback;
+    using Cache.Redis.Callback;
     using Data.Extension;
     using Dto;
     using DynamicEnvironment;
     using Engine;
-    using Engine.Invoke;
-    using Engine.Model;
-    using Engine.Model.Archive;
+    using Engine.BackgroundTasks.TaskStarters.Models;
+    using Engine.EntityAnalysisModelInvoke;
+    using Engine.EntityAnalysisModelInvoke.Exceptions;
+    using Engine.EntityAnalysisModelManager.EntityAnalysisModel;
+    using Engine.Exhaustive.Extensions;
+    using Engine.Sanctions;
     using FluentValidation.Results;
     using log4net;
     using Microsoft.AspNetCore.Mvc;
     using Newtonsoft.Json.Linq;
-    using RabbitMQ.Client;
+    using SanctionEntryDto=Dto.SanctionEntryDto;
 
     [Route("api/[controller]")]
     [Produces("application/json")]
     public class InvokeController : Controller
     {
         private readonly DynamicEnvironment dynamicEnvironment;
-        private readonly Program engine;
+        private readonly Engine engine;
         private readonly ILog log;
-        private readonly ConcurrentQueue<EntityAnalysisModelInvoke> pendingEntityInvoke;
-        private readonly IModel rabbitMqChannel;
-        private readonly CacheService redisDatabase;
-        private readonly Random seeded;
 
-        public InvokeController(ILog log,
-            Random seeded, DynamicEnvironment dynamicEnvironment,
-            ConcurrentQueue<EntityAnalysisModelInvoke> pendingEntityInvoke,
-            Program engine = null,
-            IModel rabbitMqChannel = null,
-            CacheService redisDatabase = null)
+        public InvokeController(ILog log, DynamicEnvironment dynamicEnvironment,
+            Engine engine = null)
         {
             this.engine = engine;
             this.log = log;
-            this.seeded = seeded;
             this.dynamicEnvironment = dynamicEnvironment;
-            this.pendingEntityInvoke = pendingEntityInvoke;
-            this.rabbitMqChannel = rabbitMqChannel;
-            this.redisDatabase = redisDatabase;
             if (this.engine != null)
             {
-                this.engine.HttpCounterAllRequests += 1;
+                this.engine.Context.Counters.HttpCounterAllRequests += 1;
             }
         }
 
         [HttpGet("EntityAnalysisModel/Callback/{guid:Guid}")]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> EntityAnalysisModelCallback(Guid guid, int? timeout)
+        public async Task<ActionResult> EntityAnalysisModelCallbackAsync(Guid guid, int? timeout, CancellationToken token = default)
         {
             try
             {
@@ -82,66 +70,49 @@ namespace Jube.App.Controllers.Invoke
                     return await Task.FromResult<ActionResult>(Forbid()).ConfigureAwait(false);
                 }
 
-                timeout ??= 3000;
+                engine.Context.Counters.HttpCounterCallback += 1;
 
-                engine.HttpCounterCallback += 1;
+                var tcs = engine.Context.Services.CacheService.CacheCallbackPublishSubscribe.Callbacks.GetOrAdd(guid, _ => new TaskCompletionSource<Callback>(TaskCreationOptions.RunContinuationsAsynchronously));
+                var callback = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(timeout ?? 30000), token);
 
-                var sw = new Stopwatch();
-                sw.Start();
+                await engine.Context.Services.CacheService
+                    .CacheCallbackPublishSubscribe
+                    .DeleteAsync(guid, token).ConfigureAwait(false);
 
-                var spinWait = new SpinWait();
-                while (true)
-                {
-                    engine.EntityAnalysisModelManager.PendingCallbacks.TryGetValue(guid, out var value);
+                return File(callback.Payload, "application/json");
 
-                    if (value != null)
-                    {
-                        var cacheCallbackRepository = new CacheCallbackRepository(
-                            dynamicEnvironment.AppSettings("ConnectionString"),
-                            log);
-
-                        await cacheCallbackRepository.DeleteAsync(guid).ConfigureAwait(false);
-
-                        Response.ContentType = "application/json";
-                        Response.ContentLength = value.Payload.Length;
-                        return await Task.FromResult<ActionResult>(Ok(value.Payload)).ConfigureAwait(false);
-                    }
-
-                    if (sw.ElapsedMilliseconds > timeout)
-                    {
-                        return await Task.FromResult<ActionResult>(NotFound()).ConfigureAwait(false);
-                    }
-
-                    spinWait.SpinOnce();
-                }
+            }
+            catch (TimeoutException)
+            {
+                return StatusCode(408);
             }
             catch (Exception ex)
             {
                 log.Error($"Callback Fetch: Has seen an error as {ex}. Returning 500.");
 
-                engine.HttpCounterCallback += 1;
+                engine.Context.Counters.HttpCounterCallback += 1;
                 return await Task.FromResult<ActionResult>(StatusCode(500)).ConfigureAwait(false);
             }
         }
 
         [HttpGet("Sanction")]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<List<SanctionEntryDto>> Sanction(string multiPartString, int distance)
+        public Task<ActionResult<List<SanctionEntryDto>>> SanctionAsync(string multiPartString, int distance)
         {
             try
             {
                 if (!dynamicEnvironment.AppSettings("EnablePublicInvokeController")
                         .Equals("True", StringComparison.OrdinalIgnoreCase))
                 {
-                    return Forbid();
+                    return Task.FromResult<ActionResult<List<SanctionEntryDto>>>(Forbid());
                 }
 
-                if (!engine.SanctionsHasLoadedForStartup)
+                if (!engine.Context.Ready)
                 {
-                    return NotFound();
+                    return Task.FromResult<ActionResult<List<SanctionEntryDto>>>(StatusCode(503));
                 }
 
-                engine.HttpCounterSanction += 1;
+                engine.Context.Counters.HttpCounterSanction += 1;
 
                 if (log.IsInfoEnabled)
                 {
@@ -149,44 +120,45 @@ namespace Jube.App.Controllers.Invoke
                         $"Sanction Fetch: Reached Sanction Get controller with distance of {distance} and string of {multiPartString}.");
                 }
 
-                return engine.HttpHandlerSanctions(multiPartString, distance)
-                    .Select(sanctionEntryReturn => new SanctionEntryDto
-                    {
-                        Reference = sanctionEntryReturn.SanctionEntryDto.SanctionEntryReference,
-                        Value = String.Join(' ', sanctionEntryReturn.SanctionEntryDto.SanctionElementValue),
-                        Source = engine.SanctionSources.TryGetValue(sanctionEntryReturn.SanctionEntryDto
-                            .SanctionEntrySourceId, out var source)
-                            ? source.Name
-                            : "Missing",
-                        Distance = sanctionEntryReturn.LevenshteinDistance,
-                        Id = sanctionEntryReturn.SanctionEntryDto.SanctionEntryId
-                    })
-                    .ToList();
+                return Task.FromResult<ActionResult<List<SanctionEntryDto>>>(
+                    LevenshteinDistance.CheckMultipartString(multiPartString, distance, engine.Context.Sanctions.SanctionsEntries)
+                        .Select(sanctionEntryReturn => new SanctionEntryDto
+                        {
+                            Reference = sanctionEntryReturn.SanctionEntry.SanctionEntryReference,
+                            Value = String.Join(' ', sanctionEntryReturn.SanctionEntry.SanctionElementValue),
+                            Source = engine.Context.Sanctions.SanctionsSources.TryGetValue(sanctionEntryReturn.SanctionEntry
+                                .SanctionEntrySourceId, out var source)
+                                ? source.Name
+                                : "Missing",
+                            Distance = sanctionEntryReturn.LevenshteinDistance,
+                            Id = sanctionEntryReturn.SanctionEntry.SanctionEntryId
+                        })
+                        .ToList());
             }
             catch (Exception ex)
             {
                 log.Error($"Sanction Fetch: Has seen an error as {ex}. Returning 500.");
 
-                engine.HttpCounterAllError += 1;
-                return StatusCode(500);
+                engine.Context.Counters.HttpCounterAllError += 1;
+                return Task.FromResult<ActionResult<List<SanctionEntryDto>>>(StatusCode(500));
             }
         }
 
         [HttpPut("Archive/Tag")]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult EntityAnalysisModelInstanceEntryGuid([FromBody] TagRequestDto model)
+        public Task<ActionResult> EntityAnalysisModelInstanceEntryGuidAsync([FromBody] TagRequestDto model)
         {
             try
             {
                 if (!dynamicEnvironment.AppSettings("EnablePublicInvokeController")
                         .Equals("True", StringComparison.OrdinalIgnoreCase))
                 {
-                    return Forbid();
+                    return Task.FromResult<ActionResult>(Forbid());
                 }
 
-                if (!engine.EntityModelsHasLoadedForStartup)
+                if (!engine.Context.Ready)
                 {
-                    return NotFound();
+                    return Task.FromResult<ActionResult>(StatusCode(503));
                 }
 
                 if (log.IsInfoEnabled)
@@ -196,17 +168,17 @@ namespace Jube.App.Controllers.Invoke
                         $" name {model.Name} and value {model.Value}.");
                 }
 
-                engine.HttpCounterTag += 1;
+                engine.Context.Counters.HttpCounterTag += 1;
 
                 var entityAnalysisModelGuid = Guid.Parse(model.EntityAnalysisModelGuid);
                 foreach (var (_, value) in
-                         from modelKvp in engine.EntityAnalysisModelManager.ActiveEntityAnalysisModels
-                         where entityAnalysisModelGuid == modelKvp.Value.Guid
+                         from modelKvp in engine.Context.Tasks.EntityAnalysisModelManager.Context.EntityAnalysisModels.ActiveEntityAnalysisModels
+                         where entityAnalysisModelGuid == modelKvp.Value.Instance.Guid
                          select modelKvp)
                 {
-                    if (value.EntityAnalysisModelTags.Find(w => w.Name == model.Name) == null)
+                    if (value.Collections.EntityAnalysisModelTags.Find(w => w.Name == model.Name) == null)
                     {
-                        return BadRequest();
+                        return Task.FromResult<ActionResult>(BadRequest());
                     }
 
                     var tag = new Tag
@@ -214,7 +186,7 @@ namespace Jube.App.Controllers.Invoke
                         Name = model.Name,
                         Value = model.Value,
                         EntityAnalysisModelInstanceEntryGuid = Guid.Parse(model.EntityAnalysisModelInstanceEntryGuid),
-                        EntityAnalysisModelId = value.Id
+                        EntityAnalysisModelId = value.Instance.Id
                     };
 
                     if (log.IsInfoEnabled)
@@ -224,7 +196,7 @@ namespace Jube.App.Controllers.Invoke
                             $"{tag.EntityAnalysisModelInstanceEntryGuid} and model {tag.EntityAnalysisModelId}.");
                     }
 
-                    engine.PendingTagging.Enqueue(tag);
+                    engine.Context.ConcurrentQueues.PendingTagging.Enqueue(tag);
 
                     if (log.IsInfoEnabled)
                     {
@@ -234,10 +206,10 @@ namespace Jube.App.Controllers.Invoke
                             $"name {model.Name} and value {model.Value}.  Returning Ok.");
                     }
 
-                    return Ok();
+                    return Task.FromResult<ActionResult>(Ok());
                 }
 
-                return NotFound();
+                return Task.FromResult<ActionResult>(NotFound());
             }
             catch (Exception ex)
             {
@@ -246,9 +218,9 @@ namespace Jube.App.Controllers.Invoke
                     $"{model.EntityAnalysisModelInstanceEntryGuid} " +
                     $"and model {model.EntityAnalysisModelGuid} as {ex}.");
 
-                engine.HttpCounterAllError += 1;
+                engine.Context.Counters.HttpCounterAllError += 1;
 
-                return StatusCode(500);
+                return Task.FromResult<ActionResult>(StatusCode(500));
             }
         }
 #pragma warning disable ASP0018
@@ -269,12 +241,12 @@ namespace Jube.App.Controllers.Invoke
                     return Forbid();
                 }
 
-                if (engine is not { EntityModelsHasLoadedForStartup: true })
+                if (engine.Context is not { Ready: true })
                 {
-                    return NotFound();
+                    return StatusCode(503);
                 }
 
-                engine.HttpCounterModel += 1;
+                engine.Context.Counters.HttpCounterModel += 1;
 
                 var ms = new MemoryStream();
                 await Request.Body.CopyToAsync(ms).ConfigureAwait(false);
@@ -288,13 +260,13 @@ namespace Jube.App.Controllers.Invoke
                     {
                         async = Request.RouteValues["async"].AsString()
                             .Equals("Async", StringComparison.OrdinalIgnoreCase);
-                        engine.HttpCounterModelAsync += 1;
+                        engine.Context.Counters.HttpCounterModelAsync += 1;
                     }
 
                     EntityAnalysisModel entityAnalysisModel = null;
                     foreach (var (_, value) in
-                             from modelKvp in engine.EntityAnalysisModelManager.ActiveEntityAnalysisModels
-                             where guid == modelKvp.Value.Guid
+                             from modelKvp in engine.Context.Tasks.EntityAnalysisModelManager.Context.EntityAnalysisModels.ActiveEntityAnalysisModels
+                             where guid == modelKvp.Value.Instance.Guid
                              select modelKvp)
                     {
                         entityAnalysisModel = value;
@@ -302,7 +274,7 @@ namespace Jube.App.Controllers.Invoke
                         if (log.IsInfoEnabled)
                         {
                             log.Info(
-                                $"HTTP Handler Entity: GUID matched for Requested Model GUID {guid}.  Model id is {entityAnalysisModel.Id}.");
+                                $"HTTP Handler Entity: GUID matched for Requested Model GUID {guid}.  Model id is {entityAnalysisModel.Instance.Id}.");
                         }
 
                         break;
@@ -310,41 +282,42 @@ namespace Jube.App.Controllers.Invoke
 
                     if (entityAnalysisModel != null)
                     {
-                        if (!entityAnalysisModel.Started)
-                        {
-                            return StatusCode(204);
-                        }
-
                         if (log.IsInfoEnabled)
                         {
                             log.Info(
-                                $"HTTP Handler Entity: GUID payload {guid} model id is {entityAnalysisModel.Id} will now begin payload parsing.");
+                                $"HTTP Handler Entity: GUID payload {guid} model id is {entityAnalysisModel.Instance.Id} will now begin payload parsing.");
                         }
-
-                        var entityModelInvoke = new EntityAnalysisModelInvoke(log, dynamicEnvironment,
-                            rabbitMqChannel, redisDatabase, engine.PendingNotification, seeded,
-                            engine.EntityAnalysisModelManager.ActiveEntityAnalysisModels);
 
                         if (Request.ContentLength != null)
                         {
-                            if (!(Request.ContentLength > 0))
+                            try
                             {
-                                return BadRequest("Content body is zero length.");
+                                var context = await EntityAnalysisModelInvoke.InvokeAsync(
+                                    entityAnalysisModel,
+                                    ms, Int32.Parse(dynamicEnvironment.AppSettings("MaxInvokeControllerRequestBytes")),
+                                    async).ConfigureAwait(false);
+
+                                Response.ContentType = "application/json";
+                                Response.ContentLength = context.JsonResult.Length;
+
+                                return Ok(context.JsonResult);
                             }
-
-                            await entityModelInvoke.ParseAndInvoke(entityAnalysisModel, ms, async,
-                                Request.ContentLength.Value,
-                                pendingEntityInvoke).ConfigureAwait(false);
-
-                            if (entityModelInvoke.InError)
+                            catch (ExceededBytesException)
                             {
-                                return BadRequest(entityModelInvoke.ErrorMessage);
+                                return BadRequest("Exceeded the maximum allowed bytes in POST body.");
                             }
-
-                            Response.ContentType = "application/json";
-                            Response.ContentLength = entityModelInvoke.ResponseJson.Length;
-
-                            return Ok(entityModelInvoke.ResponseJson);
+                            catch (ExceededQueueLengthException)
+                            {
+                                return StatusCode(429, "Too many asynchronous requests in the queue.");
+                            }
+                            catch (ReferenceDateInFutureException)
+                            {
+                                return BadRequest("Reference Date can't be in the future.");
+                            }
+                            catch (ZeroBytesException)
+                            {
+                                return BadRequest("Empty POST body.");
+                            }
                         }
 
                         if (log.IsInfoEnabled)
@@ -376,7 +349,7 @@ namespace Jube.App.Controllers.Invoke
 
                 if (engine != null)
                 {
-                    engine.HttpCounterAllError += 1;
+                    engine.Context.Counters.HttpCounterAllError += 1;
                 }
 
                 return StatusCode(500);
@@ -398,12 +371,12 @@ namespace Jube.App.Controllers.Invoke
                     return Forbid();
                 }
 
-                if (!engine.EntityModelsHasLoadedForStartup)
+                if (!engine.Context.Ready)
                 {
-                    return NotFound();
+                    return StatusCode(503);
                 }
 
-                engine.HttpCounterExhaustive += 1;
+                engine.Context.Counters.HttpCounterExhaustive += 1;
 
                 var ms = new MemoryStream();
                 await Request.Body.CopyToAsync(ms).ConfigureAwait(false);
@@ -415,7 +388,7 @@ namespace Jube.App.Controllers.Invoke
                     log.Info($"Exhaustive Recall:  Recall received for {guid}.  Invoking handler.");
                 }
 
-                var value = Math.Round(engine.ThreadPoolCallBackHttpHandlerExhaustive(
+                var value = Math.Round(engine.Context.RecallExhaustive(
                     Guid.Parse(guid),
                     JObject.Parse(Encoding.UTF8.GetString(ms.ToArray()))), 2);
 
@@ -430,7 +403,7 @@ namespace Jube.App.Controllers.Invoke
             {
                 log.Error($"Exhaustive Recall:  An error has been raised as {ex}.  Returning 500.");
 
-                engine.HttpCounterAllError += 1;
+                engine.Context.Counters.HttpCounterAllError += 1;
                 return StatusCode(500);
             }
         }

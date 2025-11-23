@@ -16,6 +16,7 @@ namespace Jube.App.Controllers.Authentication
     using System;
     using System.IdentityModel.Tokens.Jwt;
     using System.Net;
+    using System.Threading;
     using System.Threading.Tasks;
     using Code;
     using Data.Context;
@@ -59,8 +60,8 @@ namespace Jube.App.Controllers.Authentication
 
         [HttpPost("Register")]
         [ProducesResponseType(typeof(SandboxRegistrationResponseDto), (int)HttpStatusCode.OK)]
-        public async Task<ActionResult<AuthenticationResponseDto>> Register(
-            [FromBody] SandboxRegistrationRequestDto model)
+        public async Task<ActionResult<AuthenticationResponseDto>> RegisterAsync(
+            [FromBody] SandboxRegistrationRequestDto model, CancellationToken token = default)
         {
             if (!dynamicEnvironment.AppSettings("EnableSandbox").Equals("True"))
             {
@@ -68,7 +69,7 @@ namespace Jube.App.Controllers.Authentication
             }
 
             var validator = new SandboxRegistrationRequestDtoValidator();
-            var results = await validator.ValidateAsync(model);
+            var results = await validator.ValidateAsync(model, token).ConfigureAwait(false);
             if (!results.IsValid)
             {
                 return BadRequest(results);
@@ -77,8 +78,10 @@ namespace Jube.App.Controllers.Authentication
             try
             {
                 var sandboxRegistrationResponseDto =
-                    await service.Register(model, dynamicEnvironment.AppSettings("PasswordHashingKey"));
+                    await service.RegisterAsync(model, dynamicEnvironment.AppSettings("PasswordHashingKey"), token).ConfigureAwait(false);
+
                 SetAuthenticationCookie(model);
+
                 return Ok(sandboxRegistrationResponseDto);
             }
             catch (ConflictException)

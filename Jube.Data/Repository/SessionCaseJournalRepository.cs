@@ -15,6 +15,8 @@ namespace Jube.Data.Repository
 {
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -33,39 +35,39 @@ namespace Jube.Data.Repository
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public SessionCaseJournal GetByCaseWorkflowId(int id)
+        public Task<SessionCaseJournal> GetByCaseWorkflowIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.SessionCaseJournal.FirstOrDefault(w
+            return dbContext.SessionCaseJournal.FirstOrDefaultAsync(w
                 => w.CreatedUser == userName &&
-                   w.CaseWorkflowId == id);
+                   w.CaseWorkflowId == id, token);
         }
 
-        public SessionCaseJournal GetByCaseWorkflowGuid(Guid guid)
+        public Task<SessionCaseJournal> GetByCaseWorkflowGuidAsync(Guid guid, CancellationToken token = default)
         {
-            return dbContext.SessionCaseJournal.FirstOrDefault(w
+            return dbContext.SessionCaseJournal.FirstOrDefaultAsync(w
                 => w.CreatedUser == userName &&
-                   w.CaseWorkflow.Guid == guid);
+                   w.CaseWorkflow.Guid == guid, token);
         }
 
-        public SessionCaseJournal Upsert(SessionCaseJournal model)
+        public async Task<SessionCaseJournal> UpsertAsync(SessionCaseJournal model, CancellationToken token = default)
         {
-            var existing = dbContext.SessionCaseJournal
-                .FirstOrDefault(w => w.CaseWorkflowId == model.CaseWorkflowId
-                                     && w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
-                                     && w.CreatedUser == userName);
+            var existing = await dbContext.SessionCaseJournal
+                .FirstOrDefaultAsync(w => w.CaseWorkflowId == model.CaseWorkflowId
+                                          && w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                                          && w.CreatedUser == userName, token);
 
 
             if (existing == null)
             {
                 model.CreatedDate = DateTime.Now;
                 model.CreatedUser = userName;
-                model.Id = dbContext.InsertWithInt32Identity(model);
+                model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
                 return model;
             }
 
             existing.CreatedDate = DateTime.Now;
             existing.Json = model.Json;
-            dbContext.Update(existing);
+            await dbContext.UpdateAsync(existing, token: token);
             return model;
         }
     }

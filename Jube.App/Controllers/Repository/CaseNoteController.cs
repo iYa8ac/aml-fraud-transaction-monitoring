@@ -15,6 +15,8 @@ namespace Jube.App.Controllers.Repository
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -63,9 +65,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<CaseNote, CaseNoteDto>();
                 cfg.CreateMap<CaseNoteDto, CaseNote>();
-                cfg.CreateMap<List<CaseNote>, List<CaseNoteDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new CaseNoteRepository(dbContext, userName);
             validator = new CaseNoteDtoValidator();
@@ -84,7 +85,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpPost]
-        public ActionResult<CaseNoteDto> Insert([FromBody] CaseNoteDto model)
+        public async Task<ActionResult<CaseNoteDto>> InsertAsync([FromBody] CaseNoteDto model, CancellationToken token = default)
         {
             if (!permissionValidation.Validate(new[]
                 {
@@ -94,11 +95,11 @@ namespace Jube.App.Controllers.Repository
                 return Forbid();
             }
 
-            var results = validator.Validate(model);
+            var results = await validator.ValidateAsync(model, token);
 
             if (!results.IsValid)
             {
-                return Ok(repository.Insert(mapper.Map<CaseNote>(model)));
+                return Ok(await repository.InsertAsync(mapper.Map<CaseNote>(model), token));
             }
 
             var jObject = JObject.Parse(model.Payload);
@@ -114,40 +115,40 @@ namespace Jube.App.Controllers.Repository
 
             var caseWorkflowActionRepository = new CaseWorkflowActionRepository(dbContext, userName);
 
-            var caseWorkflowAction = caseWorkflowActionRepository.GetById(model.ActionId);
+            var caseWorkflowAction = await caseWorkflowActionRepository.GetByIdAsync(model.ActionId, token);
 
             if (caseWorkflowAction.EnableNotification != 1 && caseWorkflowAction.EnableHttpEndpoint != 1)
             {
-                return Ok(repository.Insert(mapper.Map<CaseNote>(model)));
+                return Ok(await repository.InsertAsync(mapper.Map<CaseNote>(model), token));
             }
 
             if (caseWorkflowAction.EnableNotification == 1)
             {
                 var notification = new Notification(log, dynamicEnvironment);
-                notification.Send(caseWorkflowAction.NotificationTypeId ?? 1,
+                await notification.SendAsync(caseWorkflowAction.NotificationTypeId ?? 1,
                     caseWorkflowAction.NotificationDestination,
                     caseWorkflowAction.NotificationSubject,
-                    caseWorkflowAction.NotificationBody, values);
+                    caseWorkflowAction.NotificationBody, values, token);
             }
 
             if (caseWorkflowAction.EnableHttpEndpoint != 1)
             {
-                return Ok(repository.Insert(mapper.Map<CaseNote>(model)));
+                return Ok(await repository.InsertAsync(mapper.Map<CaseNote>(model), token));
             }
 
             var sendHttpEndpoint = new SendHttpEndpoint();
             if (caseWorkflowAction.HttpEndpointTypeId != null)
             {
-                sendHttpEndpoint.Send(caseWorkflowAction.HttpEndpoint,
+                await sendHttpEndpoint.SendAsync(caseWorkflowAction.HttpEndpoint,
                     caseWorkflowAction.HttpEndpointTypeId.Value
                     , values);
             }
 
-            return Ok(repository.Insert(mapper.Map<CaseNote>(model)));
+            return Ok(await repository.InsertAsync(mapper.Map<CaseNote>(model), token));
         }
 
         [HttpGet("ByCaseKeyValue")]
-        public ActionResult<List<CaseNoteDto>> GetByCaseKeyValue(string key, string value)
+        public async Task<ActionResult<List<CaseNoteDto>>> GetByCaseKeyValueAsync(string key, string value, CancellationToken token = default)
         {
             try
             {
@@ -159,7 +160,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseNote>>(repository.GetByCaseKeyValue(key, value)));
+                return Ok(mapper.Map<List<CaseNote>>(await repository.GetByCaseKeyValueAsync(key, value, token)));
             }
             catch (Exception e)
             {

@@ -24,13 +24,26 @@ namespace Jube.App.Code
         public PermissionValidation(DbContext dbContext, string userName)
         {
             var permissionValidation = new Data.Security.PermissionValidation();
-            permissionValidationDto = permissionValidation.GetPermissionsAsync(dbContext, userName).Result;
+            permissionValidationDto = permissionValidation
+                .GetPermissionsAsync(dbContext, userName)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+ #pragma warning disable VSTHRD002
+                .GetResult();
+ #pragma warning restore VSTHRD002
         }
 
         public PermissionValidation(string connectionString, string userName)
         {
             var permissionValidation = new Data.Security.PermissionValidation();
-            permissionValidationDto = permissionValidation.GetPermissionsAsync(connectionString, userName).Result;
+
+            permissionValidationDto = permissionValidation
+                .GetPermissionsAsync(connectionString, userName)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+ #pragma warning disable VSTHRD002
+                .GetResult();
+ #pragma warning restore VSTHRD002
         }
 
         public bool Landlord

@@ -14,6 +14,8 @@
 namespace Jube.App.Controllers.Helper
 {
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Repository;
@@ -64,7 +66,7 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpPost]
-        public ActionResult<CaseWorkflowMacroExecutionDto> Execute([FromBody] CaseWorkflowMacroExecutionDto model)
+        public async Task<ActionResult<CaseWorkflowMacroExecutionDto>> ExecuteAsync([FromBody] CaseWorkflowMacroExecutionDto model, CancellationToken token = default)
         {
             if (!permissionValidation.Validate(new[]
                 {
@@ -92,7 +94,7 @@ namespace Jube.App.Controllers.Helper
 
             var caseWorkflowMacroRepository = new CaseWorkflowMacroRepository(dbContext, userName);
 
-            var caseWorkflowMacro = caseWorkflowMacroRepository.GetById(model.CaseWorkflowMacroId);
+            var caseWorkflowMacro = await caseWorkflowMacroRepository.GetByIdAsync(model.CaseWorkflowMacroId, token);
 
             if (caseWorkflowMacro.EnableNotification != 1 && caseWorkflowMacro.EnableHttpEndpoint != 1)
             {
@@ -102,10 +104,10 @@ namespace Jube.App.Controllers.Helper
             if (caseWorkflowMacro.EnableNotification == 1)
             {
                 var notification = new Notification(log, dynamicEnvironment);
-                notification.Send(caseWorkflowMacro.NotificationTypeId ?? 1,
+                await notification.SendAsync(caseWorkflowMacro.NotificationTypeId ?? 1,
                     caseWorkflowMacro.NotificationDestination,
                     caseWorkflowMacro.NotificationSubject,
-                    caseWorkflowMacro.NotificationBody, values);
+                    caseWorkflowMacro.NotificationBody, values, token);
             }
 
             if (caseWorkflowMacro.EnableHttpEndpoint != 1)
@@ -116,7 +118,7 @@ namespace Jube.App.Controllers.Helper
             var sendHttpEndpoint = new SendHttpEndpoint();
             if (caseWorkflowMacro.HttpEndpointTypeId != null)
             {
-                sendHttpEndpoint.Send(caseWorkflowMacro.HttpEndpoint,
+                await sendHttpEndpoint.SendAsync(caseWorkflowMacro.HttpEndpoint,
                     caseWorkflowMacro.HttpEndpointTypeId.Value
                     , values);
             }

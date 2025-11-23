@@ -17,7 +17,7 @@ namespace Jube.CLI
 
     public static class CommandLine
     {
-        public static void Main(string?[] args)
+        public static async Task Main(string?[] args)
         {
             string? connectionString = null;
 
@@ -62,7 +62,7 @@ namespace Jube.CLI
                     return;
                 }
 
-                PasswordReset.Execute(connectionString, hash, userName, password);
+                await PasswordReset.ExecuteAsync(connectionString, hash, userName, password);
             }
         }
     }

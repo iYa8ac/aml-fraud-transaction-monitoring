@@ -15,6 +15,8 @@ namespace Jube.Data.Repository
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -42,21 +44,21 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<CaseWorkflowFormEntryValue> GetByCaseWorkflowFormEntryId(int caseWorkflowFormEntryId)
+        public async Task<IEnumerable<CaseWorkflowFormEntryValue>> GetByCaseWorkflowFormEntryIdAsync(int caseWorkflowFormEntryId, CancellationToken token = default)
         {
-            return dbContext.CaseWorkflowFormEntryValue.Where(w
+            return await dbContext.CaseWorkflowFormEntryValue.Where(w
                     => (w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId ==
                         tenantRegistryId ||
                         !tenantRegistryId.HasValue)
                        && w.CaseWorkflowFormEntryId == caseWorkflowFormEntryId
                        & (w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.EntityAnalysisModel.Deleted == 0 ||
                           w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.EntityAnalysisModel.Deleted == null))
-                .OrderByDescending(o => o.Id);
+                .OrderByDescending(o => o.Id).ToListAsync(token);
         }
 
-        public CaseWorkflowFormEntryValue Insert(CaseWorkflowFormEntryValue model)
+        public async Task<CaseWorkflowFormEntryValue> InsertAsync(CaseWorkflowFormEntryValue model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
     }

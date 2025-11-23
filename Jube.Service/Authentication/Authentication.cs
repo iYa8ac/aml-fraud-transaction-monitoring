@@ -22,11 +22,11 @@ namespace Jube.Service.Authentication
 
     public class Authentication(DbContext dbContext)
     {
-        public void AuthenticateByUserNamePassword(AuthenticationRequestDto authenticationRequestDto,
-            string? passwordHashingKey)
+        public async Task AuthenticateByUserNamePasswordAsync(AuthenticationRequestDto authenticationRequestDto,
+            string? passwordHashingKey, CancellationToken token = default)
         {
             var userRegistryRepository = new UserRegistryRepository(dbContext);
-            var userRegistry = userRegistryRepository.GetByUserName(authenticationRequestDto.UserName);
+            var userRegistry = await userRegistryRepository.GetByUserNameAsync(authenticationRequestDto.UserName, token);
 
             var userLogin = new UserLogin
             {
@@ -36,19 +36,19 @@ namespace Jube.Service.Authentication
 
             if (userRegistry == null)
             {
-                LogLoginFailed(userLogin, authenticationRequestDto.UserName ?? "", 1);
+                await LogLoginFailedAsync(userLogin, authenticationRequestDto.UserName ?? "", 1, token);
                 throw new NoUserException();
             }
 
             if (userRegistry.Active != 1)
             {
-                LogLoginFailed(userLogin, userRegistry.Name, 2);
+                await LogLoginFailedAsync(userLogin, userRegistry.Name, 2, token);
                 throw new NotActiveException();
             }
 
             if (userRegistry.PasswordLocked == 1)
             {
-                LogLoginFailed(userLogin, userRegistry.Name, 3);
+                await LogLoginFailedAsync(userLogin, userRegistry.Name, 3, token);
                 throw new PasswordLockedException();
             }
 
@@ -56,20 +56,20 @@ namespace Jube.Service.Authentication
                 || String.IsNullOrEmpty(userRegistry.Password)
                 || !userRegistry.PasswordCreatedDate.HasValue)
             {
-                LogLoginFailed(userLogin, userRegistry.Name, 4);
+                await LogLoginFailedAsync(userLogin, userRegistry.Name, 4, token);
                 throw new PasswordNewMustChangeException();
             }
 
             if (!HashPassword.Verify(userRegistry.Password, authenticationRequestDto.Password, passwordHashingKey))
             {
-                userRegistryRepository.IncrementFailedPassword(userRegistry.Id);
+                await userRegistryRepository.IncrementFailedPasswordAsync(userRegistry.Id, token);
 
                 if (userRegistry.FailedPasswordCount > 8)
                 {
-                    userRegistryRepository.SetLocked(userRegistry.Id);
+                    await userRegistryRepository.SetLockedAsync(userRegistry.Id, token);
                 }
 
-                LogLoginFailed(userLogin, userRegistry.Name, 5);
+                await LogLoginFailedAsync(userLogin, userRegistry.Name, 5, token);
 
                 throw new BadCredentialsException();
             }
@@ -78,7 +78,7 @@ namespace Jube.Service.Authentication
             {
                 var hashedPassword = HashPassword.GenerateHash(authenticationRequestDto.NewPassword, passwordHashingKey);
 
-                userRegistryRepository.SetPassword(userRegistry.Id, hashedPassword, DateTime.Now.AddDays(90));
+                await userRegistryRepository.SetPasswordAsync(userRegistry.Id, hashedPassword, DateTime.Now.AddDays(90), token);
             }
             else
             {
@@ -88,20 +88,20 @@ namespace Jube.Service.Authentication
                 }
             }
 
-            LogLoginSuccess(userLogin, userRegistry.Name);
+            await LogLoginSuccessAsync(userLogin, userRegistry.Name, token);
 
             if (userRegistry.FailedPasswordCount > 0)
             {
-                userRegistryRepository.ResetFailedPasswordCount(userRegistry.Id);
+                await userRegistryRepository.ResetFailedPasswordCountAsync(userRegistry.Id, token);
             }
 
         }
 
-        public void ChangePassword(string? userName, ChangePasswordRequestDto changePasswordRequestDto,
-            string? passwordHashingKey)
+        public async Task ChangePasswordAsync(string? userName, ChangePasswordRequestDto changePasswordRequestDto,
+            string? passwordHashingKey, CancellationToken token = default)
         {
             var userRegistryRepository = new UserRegistryRepository(dbContext);
-            var userRegistry = userRegistryRepository.GetByUserName(userName);
+            var userRegistry = await userRegistryRepository.GetByUserNameAsync(userName, token);
 
             if (!HashPassword.Verify(userRegistry.Password,
                     changePasswordRequestDto.Password, passwordHashingKey))
@@ -111,22 +111,22 @@ namespace Jube.Service.Authentication
 
             var hashedPassword = HashPassword.GenerateHash(changePasswordRequestDto.NewPassword, passwordHashingKey);
 
-            userRegistryRepository.SetPassword(userRegistry.Id, hashedPassword, DateTime.Now.AddDays(90));
+            await userRegistryRepository.SetPasswordAsync(userRegistry.Id, hashedPassword, DateTime.Now.AddDays(90), token);
         }
 
-        private void LogLoginFailed(UserLogin userLogin, string createdUser, int failureTypeId)
+        private Task LogLoginFailedAsync(UserLogin userLogin, string createdUser, int failureTypeId, CancellationToken token = default)
         {
             var userLoginRepository = new UserLoginRepository(dbContext, createdUser);
             userLogin.Failed = 1;
             userLogin.FailureTypeId = failureTypeId;
-            userLoginRepository.Insert(userLogin);
+            return userLoginRepository.InsertAsync(userLogin, token);
         }
 
-        private void LogLoginSuccess(UserLogin userLogin, string createdUser)
+        private Task LogLoginSuccessAsync(UserLogin userLogin, string createdUser, CancellationToken token = default)
         {
             var userLoginRepository = new UserLoginRepository(dbContext, createdUser);
             userLogin.Failed = 0;
-            userLoginRepository.Insert(userLogin);
+            return userLoginRepository.InsertAsync(userLogin, token);
         }
     }
 }

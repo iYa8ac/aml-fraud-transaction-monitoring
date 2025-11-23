@@ -15,7 +15,10 @@ namespace Jube.Data.Repository
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
     using Poco;
 
     public class VisualisationRegistryDatasourceSeriesRepository
@@ -30,15 +33,15 @@ namespace Jube.Data.Repository
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<VisualisationRegistryDatasourceSeries> GetByVisualisationRegistryDatasourceId(
-            int visualisationRegistryDatasourceId)
+        public async Task<IEnumerable<VisualisationRegistryDatasourceSeries>> GetByVisualisationRegistryDatasourceIdAsync(
+            int visualisationRegistryDatasourceId, CancellationToken token = default)
         {
-            return dbContext.VisualisationRegistryDatasourceSeries
+            return await dbContext.VisualisationRegistryDatasourceSeries
                 .Where(w => w.VisualisationRegistryDatasource.VisualisationRegistry.TenantRegistryId ==
                             tenantRegistryId
                             && w.VisualisationRegistryDatasourceId == visualisationRegistryDatasourceId &&
                             (w.VisualisationRegistryDatasource.Deleted == 0 ||
-                             w.VisualisationRegistryDatasource.Deleted == null));
+                             w.VisualisationRegistryDatasource.Deleted == null)).ToListAsync(token);
         }
     }
 }

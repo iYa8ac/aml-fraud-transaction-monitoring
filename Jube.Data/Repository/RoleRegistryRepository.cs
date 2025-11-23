@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Context;
     using LinqToDB;
@@ -41,37 +43,37 @@ namespace Jube.Data.Repository
             tenantRegistryId = tenantRegistry.Id;
         }
 
-        public IEnumerable<RoleRegistry> Get()
+        public async Task<IEnumerable<RoleRegistry>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.RoleRegistry.Where(w => w.TenantRegistryId == tenantRegistryId
-                                                     && (w.Deleted == 0 || w.Deleted == null));
+            return await dbContext.RoleRegistry.Where(w => w.TenantRegistryId == tenantRegistryId
+                                                           && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
         }
 
-        public RoleRegistry GetById(int id)
+        public Task<RoleRegistry> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.RoleRegistry.FirstOrDefault(w => w.Id == id
-                                                              && w.TenantRegistryId == tenantRegistryId
-                                                              && (w.Deleted == 0 || w.Deleted == null));
+            return dbContext.RoleRegistry.FirstOrDefaultAsync(w => w.Id == id
+                                                                   && w.TenantRegistryId == tenantRegistryId
+                                                                   && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public RoleRegistry Insert(RoleRegistry model)
+        public async Task<RoleRegistry> InsertAsync(RoleRegistry model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.TenantRegistryId = tenantRegistryId;
             model.Version = 1;
             model.CreatedDate = DateTime.Now;
             model.Guid = Guid.NewGuid();
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public RoleRegistry Update(RoleRegistry model)
+        public async Task<RoleRegistry> UpdateAsync(RoleRegistry model, CancellationToken token = default)
         {
-            var existing = dbContext.RoleRegistry
-                .FirstOrDefault(u => u.TenantRegistryId == tenantRegistryId
-                                     && u.Id == model.Id
-                                     && (u.Deleted == 0 || u.Deleted == null)
-                                     && (u.Locked == 0 || u.Locked == null));
+            var existing = await dbContext.RoleRegistry
+                .FirstOrDefaultAsync(u => u.TenantRegistryId == tenantRegistryId
+                                          && u.Id == model.Id
+                                          && (u.Deleted == 0 || u.Deleted == null)
+                                          && (u.Locked == 0 || u.Locked == null), token);
 
             if (existing == null)
             {
@@ -84,26 +86,25 @@ namespace Jube.Data.Repository
             model.CreatedDate = DateTime.Now;
             model.TenantRegistryId = tenantRegistryId;
 
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token);
 
-            var config = new MapperConfiguration(cfg => { cfg.CreateMap<RoleRegistry, RoleRegistryVersion>(); });
-            var mapper = new Mapper(config);
+            var mapper = new Mapper(new MapperConfiguration(cfg => { cfg.CreateMap<RoleRegistry, RoleRegistryVersion>(); }));
 
             var audit = mapper.Map<RoleRegistryVersion>(existing);
             audit.RoleRegistryId = existing.Id;
 
-            dbContext.Insert(audit);
+            await dbContext.InsertAsync(audit, token: token);
 
             return model;
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.RoleRegistry
+            var records = await dbContext.RoleRegistry
                 .Where(d => d.Id == id
                             && d.TenantRegistryId == tenantRegistryId
                             && (d.Deleted == 0 || d.Deleted == null)
-                            && (d.Locked == 0 || d.Locked == null)).Delete();
+                            && (d.Locked == 0 || d.Locked == null)).DeleteAsync(token);
 
             if (records == 0)
             {

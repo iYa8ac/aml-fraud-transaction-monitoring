@@ -14,8 +14,9 @@
 namespace Jube.App.Controllers.Session
 {
     using System;
-    using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -62,9 +63,8 @@ namespace Jube.App.Controllers.Session
             {
                 cfg.CreateMap<SessionCaseJournal, SessionCaseJournalDto>();
                 cfg.CreateMap<SessionCaseJournalDto, SessionCaseJournal>();
-                cfg.CreateMap<List<SessionCaseJournal>, List<SessionCaseJournalDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repository = new SessionCaseJournalRepository(dbContext, userName);
             validator = new SessionCaseJournalDtoValidator();
@@ -82,7 +82,7 @@ namespace Jube.App.Controllers.Session
         }
 
         [HttpGet("ByCasesWorkflowId/{id:int}")]
-        public ActionResult<SessionCaseJournal> GetByCaseWorkflowId(int id)
+        public async Task<ActionResult<SessionCaseJournal>> GetByCaseWorkflowIdAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -94,7 +94,7 @@ namespace Jube.App.Controllers.Session
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<SessionCaseJournalDto>(repository.GetByCaseWorkflowId(id)));
+                return Ok(mapper.Map<SessionCaseJournalDto>(await repository.GetByCaseWorkflowIdAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -104,7 +104,7 @@ namespace Jube.App.Controllers.Session
         }
 
         [HttpGet("ByCasesWorkflowGuid/{guid:guid}")]
-        public ActionResult<SessionCaseJournal> GetByCaseWorkflowGuid(Guid guid)
+        public async Task<ActionResult<SessionCaseJournal>> GetByCaseWorkflowGuidAsync(Guid guid, CancellationToken token = default)
         {
             try
             {
@@ -116,7 +116,7 @@ namespace Jube.App.Controllers.Session
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<SessionCaseJournalDto>(repository.GetByCaseWorkflowGuid(guid)));
+                return Ok(mapper.Map<SessionCaseJournalDto>(await repository.GetByCaseWorkflowGuidAsync(guid, token)));
             }
             catch (Exception e)
             {
@@ -128,7 +128,7 @@ namespace Jube.App.Controllers.Session
         [HttpPost]
         [ProducesResponseType(typeof(SessionCaseJournalDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<SessionCaseJournalDto> Create([FromBody] SessionCaseJournalDto model)
+        public async Task<ActionResult<SessionCaseJournalDto>> CreateAsync([FromBody] SessionCaseJournalDto model, CancellationToken token = default)
         {
             try
             {
@@ -140,10 +140,10 @@ namespace Jube.App.Controllers.Session
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repository.Upsert(mapper.Map<SessionCaseJournal>(model)));
+                    return Ok(await repository.UpsertAsync(mapper.Map<SessionCaseJournal>(model), token));
                 }
 
                 return BadRequest(results);

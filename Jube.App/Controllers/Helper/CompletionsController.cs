@@ -16,6 +16,8 @@ namespace Jube.App.Controllers.Helper
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Query;
@@ -64,7 +66,7 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpGet("ByCaseWorkflowId")]
-        public ActionResult<List<CompletionDto>> GetByCaseWorkflowId(int caseWorkflowId)
+        public async Task<ActionResult<List<CompletionDto>>> GetByCaseWorkflowIdAsync(int caseWorkflowId, CancellationToken token = default)
         {
             try
             {
@@ -77,14 +79,14 @@ namespace Jube.App.Controllers.Helper
                 }
 
                 var caseWorkflowRepository = new CaseWorkflowRepository(dbContext, userName);
-                var entityAnalysisModelId = caseWorkflowRepository.GetById(caseWorkflowId).EntityAnalysisModelId;
+                var entityAnalysisModelId = (await caseWorkflowRepository.GetByIdAsync(caseWorkflowId, token)).EntityAnalysisModelId;
 
                 if (entityAnalysisModelId == null)
                 {
                     return NotFound();
                 }
 
-                var completionDtos = CompletionDtos(entityAnalysisModelId.Value, 5, true);
+                var completionDtos = await CompletionDtosAsync(entityAnalysisModelId.Value, 5, true, token);
 
                 return Ok(completionDtos);
             }
@@ -96,7 +98,7 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpGet("ByCaseWorkflowGuidIncludingDeleted")]
-        public ActionResult<List<CompletionDto>> GetByCaseWorkflowGuidIncludingDeleted(Guid caseWorkflowGuid)
+        public async Task<ActionResult<List<CompletionDto>>> GetByCaseWorkflowGuidIncludingDeletedAsync(Guid caseWorkflowGuid, CancellationToken token = default)
         {
             try
             {
@@ -110,14 +112,14 @@ namespace Jube.App.Controllers.Helper
 
                 var caseWorkflowRepository = new CaseWorkflowRepository(dbContext, userName);
                 var entityAnalysisModelId =
-                    caseWorkflowRepository.GetByGuidIncludingDeleted(caseWorkflowGuid).EntityAnalysisModelId;
+                    (await caseWorkflowRepository.GetByGuidIncludingDeletedAsync(caseWorkflowGuid, token)).EntityAnalysisModelId;
 
                 if (entityAnalysisModelId == null)
                 {
                     return NotFound();
                 }
 
-                var completionDtos = CompletionDtos(entityAnalysisModelId.Value, 5, true);
+                var completionDtos = await CompletionDtosAsync(entityAnalysisModelId.Value, 5, true, token);
 
                 return Ok(completionDtos);
             }
@@ -133,7 +135,7 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpGet("ByCaseWorkflowIdIncludingDeleted")]
-        public ActionResult<List<CompletionDto>> GetByCaseWorkflowIdIncludingDeleted(int caseWorkflowId)
+        public async Task<ActionResult<List<CompletionDto>>> GetByCaseWorkflowIdIncludingDeletedAsync(int caseWorkflowId, CancellationToken token = default)
         {
             try
             {
@@ -147,14 +149,14 @@ namespace Jube.App.Controllers.Helper
 
                 var caseWorkflowRepository = new CaseWorkflowRepository(dbContext, userName);
                 var entityAnalysisModelId =
-                    caseWorkflowRepository.GetByIdIncludingDeleted(caseWorkflowId).EntityAnalysisModelId;
+                    (await caseWorkflowRepository.GetByIdIncludingDeletedAsync(caseWorkflowId, token)).EntityAnalysisModelId;
 
                 if (entityAnalysisModelId == null)
                 {
                     return NotFound();
                 }
 
-                var completionDtos = CompletionDtos(entityAnalysisModelId.Value, 5, true);
+                var completionDtos = await CompletionDtosAsync(entityAnalysisModelId.Value, 5, true, token);
 
                 return Ok(completionDtos);
             }
@@ -170,7 +172,7 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpGet("ByEntityAnalysisModelId")]
-        public ActionResult<List<CompletionDto>> GetByEntityAnalysisModelId(int entityAnalysisModelId)
+        public async Task<ActionResult<List<CompletionDto>>> GetByEntityAnalysisModelIdAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             try
             {
@@ -182,7 +184,7 @@ namespace Jube.App.Controllers.Helper
                     return Forbid();
                 }
 
-                var completionDtos = CompletionDtos(entityAnalysisModelId, 6, true);
+                var completionDtos = await CompletionDtosAsync(entityAnalysisModelId, 6, true, token).ConfigureAwait(false);
 
                 return Ok(completionDtos);
             }
@@ -194,8 +196,8 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpGet("ByEntityAnalysisModelIdParseTypeId")]
-        public ActionResult<List<CompletionDto>> GetByEntityAnalysisModelIdParseTypeId(int entityAnalysisModelId,
-            int parseTypeId)
+        public async Task<ActionResult<List<CompletionDto>>> GetByEntityAnalysisModelIdParseTypeIdAsync(int entityAnalysisModelId,
+            int parseTypeId, CancellationToken token = default)
         {
             try
             {
@@ -207,7 +209,7 @@ namespace Jube.App.Controllers.Helper
                     return Forbid();
                 }
 
-                var completionDtos = CompletionDtos(entityAnalysisModelId, parseTypeId, false);
+                var completionDtos = await CompletionDtosAsync(entityAnalysisModelId, parseTypeId, false, token);
 
                 return Ok(completionDtos);
             }
@@ -218,14 +220,15 @@ namespace Jube.App.Controllers.Helper
             }
         }
 
-        private List<CompletionDto> CompletionDtos(int entityAnalysisModelId, int parseTypeId, bool reporting)
+        private async Task<List<CompletionDto>> CompletionDtosAsync(int entityAnalysisModelId, int parseTypeId, bool reporting, CancellationToken token = default)
         {
             var getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
                 = new GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery(dbContext, userName);
 
-            var completionDtos = getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
-                .Execute(entityAnalysisModelId, parseTypeId, reporting)
-                .Select(field => new CompletionDto
+            var modelFields = await getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
+                .ExecuteAsync(entityAnalysisModelId, parseTypeId, reporting, token).ConfigureAwait(false);
+
+            return modelFields.Select(field => new CompletionDto
                 {
                     Score = 1000,
                     Name = field.Name,
@@ -237,8 +240,6 @@ namespace Jube.App.Controllers.Helper
                     XPath = field.ValueJsonPath
                 })
                 .ToList();
-
-            return completionDtos;
         }
     }
 }

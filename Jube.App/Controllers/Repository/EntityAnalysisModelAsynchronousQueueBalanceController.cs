@@ -15,6 +15,8 @@ namespace Jube.App.Controllers.Repository
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -57,10 +59,8 @@ namespace Jube.App.Controllers.Repository
                     GetEntityAnalysisModelAsynchronousQueueBalancesQuery.Dto>();
                 cfg.CreateMap<GetEntityAnalysisModelAsynchronousQueueBalancesQuery.Dto,
                     EntityAnalysisModelAsynchronousQueueBalanceDto>();
-                cfg.CreateMap<List<GetEntityAnalysisModelAsynchronousQueueBalancesQuery.Dto>,
-                        List<EntityAnalysisModelAsynchronousQueueBalanceDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
         }
 
@@ -76,7 +76,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<EntityAnalysisModelAsynchronousQueueBalanceDto>> Get()
+        public async Task<ActionResult<List<EntityAnalysisModelAsynchronousQueueBalanceDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -89,7 +89,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 var query = new GetEntityAnalysisModelAsynchronousQueueBalancesQuery(dbContext);
-                return Ok(mapper.Map<List<EntityAnalysisModelAsynchronousQueueBalanceDto>>(query.Execute(1000)));
+                return Ok(mapper.Map<List<EntityAnalysisModelAsynchronousQueueBalanceDto>>(await query.ExecuteAsync(1000, token)));
             }
             catch (Exception e)
             {

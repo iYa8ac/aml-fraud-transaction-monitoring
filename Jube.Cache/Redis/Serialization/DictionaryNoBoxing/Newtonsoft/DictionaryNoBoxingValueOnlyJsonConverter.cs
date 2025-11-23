@@ -13,8 +13,8 @@
 
 namespace Jube.Cache.Redis.Serialization.DictionaryNoBoxing.Newtonsoft
 {
+    using Dictionary.Models;
     using global::Newtonsoft.Json;
-    using Jube.Dictionary.Models;
     using DictionaryNoBoxing=Dictionary.DictionaryNoBoxing;
 
     public class DictionaryNoBoxingValueOnlyNewtonsoftConverter : JsonConverter<DictionaryNoBoxing>
@@ -52,6 +52,9 @@ namespace Jube.Cache.Redis.Serialization.DictionaryNoBoxing.Newtonsoft
                             break;
                         case InternalValue.ValueType.Int:
                             writer.WriteValue(kv.Value.AsInt());
+                            break;
+                        case InternalValue.ValueType.Guid:
+                            writer.WriteValue(kv.Value.AsGuid());
                             break;
                         case InternalValue.ValueType.None:
                             break;

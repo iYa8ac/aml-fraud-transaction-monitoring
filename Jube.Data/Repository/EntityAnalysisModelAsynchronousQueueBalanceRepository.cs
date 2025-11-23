@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -37,29 +39,29 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<EntityAnalysisModelAsynchronousQueueBalance> Get(int limit)
+        public async Task<IEnumerable<EntityAnalysisModelAsynchronousQueueBalance>> GetAsync(int limit, CancellationToken token = default)
         {
-            return (IOrderedQueryable<EntityAnalysisModelAsynchronousQueueBalance>)dbContext
+            return await dbContext
                 .EntityAnalysisModelAsynchronousQueueBalance
                 .Where(w => w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId)
                 .OrderByDescending(o => o.Id)
-                .Take(limit);
+                .Take(limit).ToListAsync(token);
         }
 
-        public IEnumerable<EntityAnalysisModelAsynchronousQueueBalance> GetByEntityModelId(Guid entityAnalysisModelGuid,
-            int limit)
+        public async Task<IEnumerable<EntityAnalysisModelAsynchronousQueueBalance>> GetByEntityModelIdAsync(Guid entityAnalysisModelGuid,
+            int limit, CancellationToken token = default)
         {
-            return (IOrderedQueryable<EntityAnalysisModelAsynchronousQueueBalance>)dbContext
+            return await dbContext
                 .EntityAnalysisModelAsynchronousQueueBalance
                 .Where(w => w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && w.EntityAnalysisModelGuid == entityAnalysisModelGuid)
                 .OrderByDescending(o => o.Id)
-                .Take(limit);
+                .Take(limit).ToListAsync(token);
         }
 
-        public EntityAnalysisModelAsynchronousQueueBalance Insert(EntityAnalysisModelAsynchronousQueueBalance model)
+        public async Task<EntityAnalysisModelAsynchronousQueueBalance> InsertAsync(EntityAnalysisModelAsynchronousQueueBalance model, CancellationToken token = default)
         {
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
     }

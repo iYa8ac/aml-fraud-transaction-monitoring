@@ -11,25 +11,27 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using System;
-using System.Collections.Generic;
-using Jube.Data.Context;
-using Jube.Data.Poco;
-using LinqToDB;
-
 namespace Jube.Data.Repository
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Context;
+    using LinqToDB;
+    using Poco;
+
     public class EntityAnalysisInlineScriptRepository(DbContext dbContext)
     {
-        public IEnumerable<EntityAnalysisInlineScript> Get()
+        public async Task<IEnumerable<EntityAnalysisInlineScript>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisInlineScript;
+            return await dbContext.EntityAnalysisInlineScript.ToListAsync(token).ConfigureAwait(false);
         }
 
-        public EntityAnalysisInlineScript Insert(EntityAnalysisInlineScript model)
+        public async Task<EntityAnalysisInlineScript> InsertAsync(EntityAnalysisInlineScript model, CancellationToken token = default)
         {
             model.CreatedDate = DateTime.Now;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
     }

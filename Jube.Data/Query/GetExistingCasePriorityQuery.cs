@@ -15,12 +15,14 @@ namespace Jube.Data.Query
 {
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExistingCasePriorityQuery(DbContext dbContext)
     {
-
-        public Dto Execute(Guid casesWorkflowGuid, string caseKey, string caseKeyValue)
+        public Task<Dto> ExecuteAsync(Guid casesWorkflowGuid, string caseKey, string caseKeyValue, CancellationToken token = default)
         {
             return (from c in dbContext.Case
                 join s in dbContext.CaseWorkflowStatus on c.CaseWorkflowStatusGuid
@@ -37,7 +39,7 @@ namespace Jube.Data.Query
                 {
                     Priority = s.Priority,
                     CaseId = c.Id
-                }).FirstOrDefault();
+                }).FirstOrDefaultAsync(token);
         }
 
         public class Dto

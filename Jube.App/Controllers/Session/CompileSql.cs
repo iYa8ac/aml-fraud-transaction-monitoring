@@ -2,6 +2,7 @@ namespace Jube.App.Controllers.Session
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Code.QueryBuilder;
     using Data.Context;
@@ -12,14 +13,15 @@ namespace Jube.App.Controllers.Session
 
     public static class CompileSql
     {
-        public static async Task<SessionCaseSearchCompiledSql> Compile(DbContext dbContext,
-            SessionCaseSearchCompiledSql model, string userName)
+        public static async Task<SessionCaseSearchCompiledSql> CompileAsync(DbContext dbContext,
+            SessionCaseSearchCompiledSql model, string userName, CancellationToken token = default)
         {
             var filterJsonRule = JsonConvert.DeserializeObject<Rule>(model.FilterJson);
-            var filterRule = new Parser(filterJsonRule, dbContext, model.CaseWorkflowGuid, userName);
+            var filterRule = await Parser.CreateAsync(filterJsonRule, dbContext, model.CaseWorkflowGuid, userName, token).ConfigureAwait(false);
+
             var selectTokensRule = JsonConvert.DeserializeObject<Rule>(model.SelectJson);
             var selectRule =
-                new Parser(selectTokensRule, dbContext, model.CaseWorkflowGuid, userName);
+                await Parser.CreateAsync(selectTokensRule, dbContext, model.CaseWorkflowGuid, userName, token).ConfigureAwait(false);
 
             model.SelectSqlDisplay = "select \"Case\".\"Id\" as \"Id\"," +
                                      "\"Case\".\"EntityAnalysisModelInstanceEntryGuid\" as \"EntityAnalysisModelInstanceEntryGuid\"," +
@@ -99,7 +101,7 @@ namespace Jube.App.Controllers.Session
             var repository = new SessionCaseSearchCompiledSqlRepository(dbContext, userName);
             if (filterRule.Tokens == null)
             {
-                return repository.Insert(model);
+                return await repository.InsertAsync(model, token);
             }
 
             filterRule.Tokens.Add(model.CaseWorkflowGuid);
@@ -131,7 +133,7 @@ namespace Jube.App.Controllers.Session
             {
                 var postgres = new Postgres(dbContext.ConnectionString);
                 await postgres.PrepareAsync(model.SelectSqlSearch + " " + model.WhereSql + " " + model.OrderSql,
-                    filterRule.Tokens).ConfigureAwait(false);
+                    filterRule.Tokens, token).ConfigureAwait(false);
                 model.Prepared = 1;
             }
             catch (Exception e)
@@ -145,7 +147,7 @@ namespace Jube.App.Controllers.Session
                 model.RebuildDate = DateTime.Now;
             }
 
-            return repository.Insert(model);
+            return await repository.InsertAsync(model, token);
         }
     }
 }

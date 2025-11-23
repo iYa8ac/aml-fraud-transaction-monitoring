@@ -19,24 +19,26 @@ namespace Jube.CLI.UserRegistry
 
     public static class PasswordReset
     {
-        public static void Execute(string? connectionString, string? hash, string? userName, string? password)
+        public static async Task ExecuteAsync(string? connectionString, string? hash, string? userName, string? password, CancellationToken token = default)
         {
             var dbContext = DataConnectionDbContext.GetDbContextDataConnection(connectionString);
             var repository = new UserRegistryRepository(dbContext);
 
-            var userRegistry = repository.GetByUserName(userName);
+            var userRegistry = await repository.GetByUserNameAsync(userName, token);
 
             if (userRegistry != null)
             {
-                repository.SetPassword(userRegistry.Id, HashPassword.GenerateHash(password, hash), DateTime.Now);
+                await repository.SetPasswordAsync(userRegistry.Id, HashPassword.GenerateHash(password, hash), DateTime.Now, token);
             }
             else
             {
                 Console.WriteLine(@"User Registry Password Reset: User Name not found.");
             }
 
-            dbContext.Close();
-            dbContext.Dispose();
+            // ReSharper disable once MethodSupportsCancellation
+            await dbContext.CloseAsync();
+            // ReSharper disable once MethodSupportsCancellation
+            await dbContext.DisposeAsync();
         }
     }
 }

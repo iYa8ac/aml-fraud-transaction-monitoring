@@ -15,6 +15,8 @@ namespace Jube.App.Code
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using DynamicEnvironment;
     using log4net;
 
@@ -29,8 +31,8 @@ namespace Jube.App.Code
             this.log = log;
         }
 
-        public void Send(int notificationType, string notificationDestination, string notificationSubject,
-            string notificationBody, Dictionary<string, string> values
+        public async Task SendAsync(int notificationType, string notificationDestination, string notificationSubject,
+            string notificationBody, Dictionary<string, string> values, CancellationToken token = default
         )
         {
             var notificationTokenization = new Tokenisation();
@@ -97,7 +99,7 @@ namespace Jube.App.Code
             else
             {
                 var sendSms = new SendSms(dynamicEnvironment, log);
-                sendSms.Send(replacedNotificationDestination, replacedNotificationBody);
+                await sendSms.SendAsync(replacedNotificationDestination, replacedNotificationBody, token);
             }
         }
     }

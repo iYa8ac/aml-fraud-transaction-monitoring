@@ -13,27 +13,61 @@
 
 namespace Jube.App
 {
+    using System;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Middlewares;
+    using TaskCancellation;
+    using TaskCancellation.Interfaces;
 
     public static class Program
     {
         public static void Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
+            var host = CreateHostBuilder(args).Build();
+
+            var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+            lifetime.ApplicationStopping.Register(OnShutdown);
+
+            Console.CancelKeyPress += (_, e) =>
+            {
+                OnShutdown();
+                e.Cancel = true;
+            };
+
+            host.Run();
+            return;
+
+            void OnShutdown()
+            {
+#pragma warning disable VSTHRD002
+                host.StopAsync().GetAwaiter().GetResult();
+
+                RequestTrackingMiddleware.WaitForRequestsToDrainAsync().GetAwaiter().GetResult();
+
+                var cancellationTokenProvider = host.Services.GetService<ICancellationTokenProvider>();
+                cancellationTokenProvider?.Cancel();
+
+                var taskCoordinator = host.Services.GetService<TaskCoordinator>();
+                taskCoordinator?.StillRunningAsync().GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002
+            }
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); }).ConfigureLogging(
-                    logging =>
-                    {
-                        logging.SetMinimumLevel(LogLevel.Trace);
-                        logging.ClearProviders();
-                        logging.SetMinimumLevel(LogLevel.Trace);
-                    });
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                })
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(LogLevel.Trace);
+                });
         }
     }
 }

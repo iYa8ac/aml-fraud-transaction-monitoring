@@ -5,12 +5,20 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="AsyncFixer" Version="1.6.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="FluentMigrator" Version="3.3.2"/>
         <PackageReference Include="FluentMigrator.Extensions.Postgres" Version="3.3.2"/>
         <PackageReference Include="FluentMigrator.Runner" Version="3.3.2"/>
         <PackageReference Include="FluentMigrator.Runner.Postgres" Version="3.3.2"/>
         <PackageReference Include="log4net" Version="2.0.14"/>
         <PackageReference Include="Microsoft.Extensions.Primitives" Version="9.0.10"/>
+        <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Npgsql" Version="5.0.18"/>
     </ItemGroup>
 

@@ -2,29 +2,37 @@
  *
  * This file is part of Jube™ software.
  *
- * Jube™ is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License 
+ * Jube™ is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
- * Jube™ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty  
+ * Jube™ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
  * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
- * You should have received a copy of the GNU Affero General Public License along with Jube™. If not, 
+ * You should have received a copy of the GNU Affero General Public License along with Jube™. If not,
  * see <https://www.gnu.org/licenses/>.
  */
-
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Jube.App.Code
 {
     namespace Jube.WebApp.Code
     {
+        using System.Threading.Tasks;
+        using Engine;
+        using Microsoft.AspNetCore.Builder;
+        using Microsoft.Extensions.DependencyInjection;
+
         public static class EngineExtension
         {
-            public static void StartEngine(this IApplicationBuilder app)
+            public static async Task StartEngineAsync(this IApplicationBuilder app)
             {
                 using var scope = app.ApplicationServices.CreateScope();
-                var engine = scope.ServiceProvider.GetService<Engine.Program>();
-                engine?.Start();
+                var engine = scope.ServiceProvider.GetService<Engine>();
+
+                if (engine == null)
+                {
+                    return;
+                }
+
+                await engine.StartAsync().ConfigureAwait(false);
             }
         }
     }

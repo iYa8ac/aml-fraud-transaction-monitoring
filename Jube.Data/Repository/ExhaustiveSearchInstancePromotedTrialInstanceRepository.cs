@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
@@ -43,15 +45,15 @@ namespace Jube.Data.Repository
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public void UpdateActive(int id, bool active)
+        public async Task UpdateActiveAsync(int id, bool active, CancellationToken token = default)
         {
-            var records = dbContext.ExhaustiveSearchInstancePromotedTrialInstance
+            var records = await dbContext.ExhaustiveSearchInstancePromotedTrialInstance
                 .Where(d =>
                     (d.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance
                         .EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && d.Id == id)
                 .Set(s => s.Active, (byte)(active ? 1 : 0))
-                .Update();
+                .UpdateAsync(token).ConfigureAwait(false);
 
             if (records == 0)
             {
@@ -59,25 +61,25 @@ namespace Jube.Data.Repository
             }
         }
 
-        public ExhaustiveSearchInstancePromotedTrialInstance Insert(ExhaustiveSearchInstancePromotedTrialInstance model)
+        public async Task<ExhaustiveSearchInstancePromotedTrialInstance> InsertAsync(ExhaustiveSearchInstancePromotedTrialInstance model, CancellationToken token = default)
         {
             model.CreatedDate = DateTime.Now;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
             return model;
         }
 
-        public IQueryable<ExhaustiveSearchInstancePromotedTrialInstance>
-            GetByExhaustiveSearchInstanceTrialInstanceIdOrderById(
-                int exhaustiveSearchInstanceTrialInstanceId)
+        public async Task<IEnumerable<ExhaustiveSearchInstancePromotedTrialInstance>>
+            GetByExhaustiveSearchInstanceTrialInstanceIdOrderByIdAsync(
+                int exhaustiveSearchInstanceTrialInstanceId, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstancePromotedTrialInstance.Where(w =>
+            return await dbContext.ExhaustiveSearchInstancePromotedTrialInstance.Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstanceId == exhaustiveSearchInstanceTrialInstanceId)
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstancePromotedTrialInstance
+            return dbContext.ExhaustiveSearchInstancePromotedTrialInstance
                 .Where(d =>
                     d.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance.EntityAnalysisModel
                         .TenantRegistryId == tenantRegistryIdOutsideOfInstance
@@ -85,7 +87,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

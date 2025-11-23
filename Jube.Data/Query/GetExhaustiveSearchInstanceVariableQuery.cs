@@ -15,7 +15,10 @@ namespace Jube.Data.Query
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstanceVariableQuery
     {
@@ -29,20 +32,20 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute(
-            int exhaustiveSearchInstanceId)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            var histograms = dbContext.ExhaustiveSearchInstanceVariableHistogram
+            var histograms = await dbContext.ExhaustiveSearchInstanceVariableHistogram
                 .Where(w =>
                     w.ExhaustiveSearchInstanceVariable.ExhaustiveSearchInstance.EntityAnalysisModel.TenantRegistryId ==
                     tenantRegistryId
                     && w.ExhaustiveSearchInstanceVariable.ExhaustiveSearchInstanceId == exhaustiveSearchInstanceId)
-                .ToList();
+                .ToListAsync(token);
 
-            var variables = dbContext.ExhaustiveSearchInstanceVariable
+            var variables = await dbContext.ExhaustiveSearchInstanceVariable
                 .Where(w =>
                     w.ExhaustiveSearchInstance.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
-                    && w.ExhaustiveSearchInstanceId == exhaustiveSearchInstanceId).ToList();
+                    && w.ExhaustiveSearchInstanceId == exhaustiveSearchInstanceId).ToListAsync(token);
 
             var joined = new List<Dto>();
             foreach (var variable in variables)

@@ -124,9 +124,114 @@ namespace Jube.Data.Poco
 
     [Table]
     [MessagePackObject]
-    public class ArchiveKey
+    public class CacheTtlCounterEntryRemovalBatch
     {
         [Column] [Identity] [Key(0)] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public Guid EntityAnalysisModelTtlCounterGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? ReferenceDate { get; set; }
+        [Column] [Nullable] [Key(4)] public int? ExpiredHashSetCount { get; set; }
+        [Column] [Nullable] [Key(5)] public DateTime? FirstExpiredHashSetReferenceDate { get; set; }
+        [Column] [Nullable] [Key(6)] public DateTime? LastExpiredHashSetReferenceDate { get; set; }
+        [Column] [Nullable] [Key(7)] public DateTime? FinishedDate { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CachePayloadLatestRemovalBatch
+    {
+        [Column] [Identity] [Key(0)] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public Guid EntityAnalysisModelGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? ReferenceDate { get; set; }
+        [Column] [Nullable] [Key(4)] public string Key { get; set; }
+        [Column] [Nullable] [Key(5)] public int? ExpiredSortedSetCount { get; set; }
+        [Column] [Nullable] [Key(6)] public DateTime? FirstExpiredSortedSetReferenceDate { get; set; }
+        [Column] [Nullable] [Key(7)] public DateTime? LastExpiredSortedSetReferenceDate { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? FinishedDate { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CachePayloadRemovalBatch
+    {
+        [Column] [Identity] [Key(0)] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public Guid EntityAnalysisModelGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? ReferenceDate { get; set; }
+        [Column] [Nullable] [Key(4)] public int? ExpiredSortedSetCount { get; set; }
+        [Column] [Nullable] [Key(5)] public DateTime? FirstExpiredSortedSetReferenceDate { get; set; }
+        [Column] [Nullable] [Key(6)] public DateTime? LastExpiredSortedSetReferenceDate { get; set; }
+        [Column] [Nullable] [Key(7)] public DateTime? FinishedDate { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CacheTtlCounterEntryRemovalBatchEntry
+    {
+        [Column] [Identity] [Key(0)] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public long CacheTtlCounterEntryRemovalBatchId { get; set; }
+        [Column] [Nullable] [Key(2)] public DateTime? ReferenceDate { get; set; }
+        [Column] [Nullable] [Key(3)] public string Value { get; set; }
+        [Column] [Nullable] [Key(4)] public long DecrementCount { get; set; }
+        [Column] [Nullable] [Key(5)] public long RevisedCount { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CachePayloadLatestRemovalBatchEntry
+    {
+        [Column] [Identity] [Key(0)] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public long CachePayloadLatestRemovalBatchId { get; set; }
+        [Column] [Nullable] [Key(2)] public string Value { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime ReferenceDate { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CachePayloadRemovalBatchEntry
+    {
+        [Column] [Identity] [Key(0)] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public long CachePayloadRemovalBatchId { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid EntityAnalysisModelGuid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime ReferenceDate { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CacheTtlCounterEntryRemovalBatchResponseTime
+    {
+        [Column] [Identity] [Key(0)] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public long CacheTtlCounterEntryRemovalBatchId { get; set; }
+        [Column] [Nullable] [Key(2)] public int TaskTypeId { get; set; }
+        [Column] [Nullable] [Key(3)] public long ResponseTime { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CachePayloadRemovalBatchResponseTime
+    {
+        [Column] [Identity] [Key(0)] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public long CachePayloadRemovalBatchId { get; set; }
+        [Column] [Nullable] [Key(2)] public int TaskTypeId { get; set; }
+        [Column] [Nullable] [Key(3)] public long ResponseTime { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CachePayloadLatestRemovalBatchResponseTime
+    {
+        [Column] [Identity] [Key(0)] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public long CachePayloadLatestRemovalBatchId { get; set; }
+        [Column] [Nullable] [Key(2)] public int TaskTypeId { get; set; }
+        [Column] [Nullable] [Key(3)] public long ResponseTime { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class ArchiveKey
+    {
+        [Column] [Identity] [Key(0)] [PrimaryKey] public long Id { get; set; }
         [Column] [Nullable] [Key(1)] public byte? ProcessingTypeId { get; set; }
         [Column] [Nullable] [Key(2)] public string Key { get; set; }
         [Column] [Nullable] [Key(3)] public string KeyValueString { get; set; }
@@ -134,7 +239,31 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(5)] public double? KeyValueFloat { get; set; }
         [Column] [Nullable] [Key(6)] public byte? KeyValueBoolean { get; set; }
         [Column] [Nullable] [Key(7)] public DateTime? KeyValueDate { get; set; }
-        [Column] [Nullable] [Key(8)] public Guid EntityAnalysisModelInstanceEntryGuid { get; set; }
+        [Column] [Nullable] [Key(8)] public long? KeyValueLong { get; set; }
+        [Column] [Nullable] [Key(9)] public Guid EntityAnalysisModelInstanceEntryGuid { get; set; }
+        [Key(10)] public int? Version { get; set; }
+        [Key(11)] public int? EntityAnalysisModelsReprocessingRuleInstanceId { get; set; }
+        [Key(12)] public byte? Deleted { get; set; }
+        [Key(13)] public DateTime? DeletedDate { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class ArchiveKeyVersion
+    {
+        [Column] [Identity] [Key(0)] [PrimaryKey] public long Id { get; set; }
+        [Column] [Nullable] [Key(1)] public long ArchiveKeyId { get; set; }
+        [Column] [Nullable] [Key(2)] public byte? ProcessingTypeId { get; set; }
+        [Column] [Nullable] [Key(3)] public string Key { get; set; }
+        [Column] [Nullable] [Key(4)] public string KeyValueString { get; set; }
+        [Column] [Nullable] [Key(5)] public int? KeyValueInteger { get; set; }
+        [Column] [Nullable] [Key(6)] public double? KeyValueFloat { get; set; }
+        [Column] [Nullable] [Key(7)] public byte? KeyValueBoolean { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? KeyValueDate { get; set; }
+        [Column] [Nullable] [Key(9)] public long? KeyValueLong { get; set; }
+        [Column] [Nullable] [Key(10)] public Guid EntityAnalysisModelInstanceEntryGuid { get; set; }
+        [Key(11)] public int? Version { get; set; }
+        [Key(12)] public int? EntityAnalysisModelsReprocessingRuleInstanceId { get; set; }
     }
 
     [Table]
@@ -1884,7 +2013,10 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(2)] public int? AsynchronousInvoke { get; set; }
         [Column] [Nullable] [Key(3)] public int? AsynchronousCallback { get; set; }
         [Column] [Nullable] [Key(4)] public int? AsynchronousCallbackTimeout { get; set; }
-        [Column] [Nullable] [Key(5)] public string Instance { get; set; }
+        [Column] [Nullable] [Key(5)] public int? CaseCreation { get; set; }
+        [Column] [Nullable] [Key(6)] public int? Tagging { get; set; }
+        [Column] [Nullable] [Key(7)] public int? Notification { get; set; }
+        [Column] [Nullable] [Key(8)] public string Instance { get; set; }
     }
 
     [Table]
@@ -3748,7 +3880,7 @@ namespace Jube.Data.Poco
         [PrimaryKey]
         [Identity]
         [Key(0)]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [Column]
         [DataType(DataType.BinaryJson)]
@@ -3764,11 +3896,47 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(7)] public int? ActivationRuleCount { get; set; }
         [Column] [Nullable] [Key(8)] public DateTime? CreatedDate { get; set; }
         [Column] [Nullable] [Key(9)] public DateTime? ReferenceDate { get; set; }
-        
+
         [Association(ThisKey = "EntityAnalysisModelId", OtherKey = "Id", CanBeNull = false,
             Relationship = Relationship.ManyToOne)]
         [Key(10)]
         public EntityAnalysisModel EntityAnalysisModel { get; set; }
+        [Key(11)] public int? Version { get; set; }
+        [Key(12)] public int? EntityAnalysisModelsReprocessingRuleInstanceId { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class ArchiveVersion
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column]
+        [DataType(DataType.BinaryJson)]
+        [Nullable]
+        [Key(1)]
+        public string Json { get; set; }
+
+        [Column] [Nullable] [Key(2)] public Guid EntityAnalysisModelInstanceEntryGuid { get; set; }
+        [Column] [Nullable] [Key(3)] public long ArchiveId { get; set; }
+        [Column] [Nullable] [Key(4)] public string EntryKeyValue { get; set; }
+        [Column] [Nullable] [Key(5)] public double? ResponseElevation { get; set; }
+        [Column] [Nullable] [Key(6)] public int? EntityAnalysisModelActivationRuleId { get; set; }
+        [Column] [Nullable] [Key(7)] public int? EntityAnalysisModelId { get; set; }
+        [Column] [Nullable] [Key(8)] public int? ActivationRuleCount { get; set; }
+        [Column] [Nullable] [Key(9)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(10)] public DateTime? ReferenceDate { get; set; }
+
+        [Association(ThisKey = "EntityAnalysisModelId", OtherKey = "Id", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public EntityAnalysisModel EntityAnalysisModel { get; set; }
+        [Key(12)] public int? Version { get; set; }
+        [Key(13)] public int? EntityAnalysisModelsReprocessingRuleInstanceId { get; set; }
     }
 
     [Table]

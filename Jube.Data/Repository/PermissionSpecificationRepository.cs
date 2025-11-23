@@ -14,15 +14,17 @@
 namespace Jube.Data.Repository
 {
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
     using Poco;
 
     public class PermissionSpecificationRepository(DbContext dbContext)
     {
-
-        public IEnumerable<PermissionSpecification> Get()
+        public async Task<IEnumerable<PermissionSpecification>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.PermissionSpecification;
+            return await dbContext.PermissionSpecification.ToListAsync(token);
         }
     }
 }

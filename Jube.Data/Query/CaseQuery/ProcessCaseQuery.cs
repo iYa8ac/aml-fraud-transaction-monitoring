@@ -14,14 +14,15 @@
 namespace Jube.Data.Query.CaseQuery
 {
     using System.Text.RegularExpressions;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using Dto;
     using Newtonsoft.Json.Linq;
 
     public class ProcessCaseQuery(DbContext dbContext, string userName)
     {
-
-        public CaseQueryDto Process(CaseQueryDto getCaseByIdDto)
+        public async Task<CaseQueryDto> ProcessAsync(CaseQueryDto getCaseByIdDto, CancellationToken token = default)
         {
             if (getCaseByIdDto == null)
             {
@@ -31,8 +32,8 @@ namespace Jube.Data.Query.CaseQuery
             var caseWorkflowXPathByCaseWorkflowIdQuery =
                 new GetCaseWorkflowXPathByCaseWorkflowIdQuery(dbContext, userName);
 
-            var xPaths = caseWorkflowXPathByCaseWorkflowIdQuery
-                .Execute(getCaseByIdDto.CaseWorkflowGuid);
+            var xPaths = await caseWorkflowXPathByCaseWorkflowIdQuery
+                .ExecuteAsync(getCaseByIdDto.CaseWorkflowGuid, token);
 
             var json = JObject.Parse(getCaseByIdDto.Json);
 

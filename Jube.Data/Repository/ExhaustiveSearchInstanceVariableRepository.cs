@@ -14,7 +14,10 @@
 namespace Jube.Data.Repository
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using Interface;
     using LinqToDB;
@@ -22,39 +25,38 @@ namespace Jube.Data.Repository
 
     public class ExhaustiveSearchInstanceVariableRepository(DbContext dbContext) : IGenericRepository
     {
-
-        public int Insert(object arg)
+        public Task<int> InsertAsync(object arg, CancellationToken token = default)
         {
-            return dbContext.InsertWithInt32Identity((ExhaustiveSearchInstanceVariable)arg);
+            return dbContext.InsertWithInt32IdentityAsync((ExhaustiveSearchInstanceVariable)arg, token: token);
         }
 
-        public void UpdateCorrelation(int id, double correlation, int rank)
+        public Task UpdateCorrelationAsync(int id, double correlation, int rank, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstanceVariable
+            return dbContext.ExhaustiveSearchInstanceVariable
                 .Where(d => d.Id == id)
                 .Set(s => s.Correlation, correlation)
                 .Set(s => s.CorrelationAbsRank, rank)
-                .Update();
+                .UpdateAsync(token);
         }
 
-        public IQueryable<ExhaustiveSearchInstanceVariable> GetByExhaustiveSearchInstanceIdOrderById(
-            int exhaustiveSearchInstanceId)
+        public async Task<IEnumerable<ExhaustiveSearchInstanceVariable>> GetByExhaustiveSearchInstanceIdOrderByIdAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstanceVariable.Where(w =>
+            return await dbContext.ExhaustiveSearchInstanceVariable.Where(w =>
                     w.ExhaustiveSearchInstanceId == exhaustiveSearchInstanceId)
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstanceVariable
+            return dbContext.ExhaustiveSearchInstanceVariable
                 .Where(d =>
                     d.ExhaustiveSearchInstance.EntityAnalysisModel.TenantRegistryId == tenantRegistryIdOutsideOfInstance
                     && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

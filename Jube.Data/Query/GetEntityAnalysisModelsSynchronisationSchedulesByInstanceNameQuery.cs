@@ -16,16 +16,17 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
 
     public class GetEntityAnalysisModelsSynchronisationSchedulesByInstanceNameQuery(DbContext dbContext)
     {
-
-        public List<Dto>
-            Execute(string instance)
+        public async Task<List<Dto>>
+            ExecuteAsync(string instance, CancellationToken token = default)
         {
-            var tenants = (from e
+            var tenants = await (from e
                         in dbContext.EntityAnalysisModelSynchronisationNodeStatusEntry
                     from t
                         in dbContext.TenantRegistry.RightJoin
@@ -36,9 +37,9 @@ namespace Jube.Data.Query
                         t.Id,
                         SynchronisedDate = e.SynchronisedDate ?? default(DateTime)
                     })
-                .ToDictionary(s => s.Id, s => s.SynchronisedDate);
+                .ToDictionaryAsync(s => s.Id, s => s.SynchronisedDate, token).ConfigureAwait(false);
 
-            return (from y in dbContext.EntityAnalysisModelSynchronisationSchedule
+            return await (from y in dbContext.EntityAnalysisModelSynchronisationSchedule
                     join m in from t in dbContext.EntityAnalysisModelSynchronisationSchedule
                         group t by t.TenantRegistryId
                         into g
@@ -56,7 +57,7 @@ namespace Jube.Data.Query
                                                      && DateTime.Now > y.ScheduleDate,
                             TenantRegistryId = y.TenantRegistryId.Value
                         }
-                ).ToList();
+                ).ToListAsync(token).ConfigureAwait(false);
         }
 
         public class Dto

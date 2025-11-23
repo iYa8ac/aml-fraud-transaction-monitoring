@@ -49,6 +49,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jube.Cache", "Jube.Cache\Ju
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jube.Dictionary", "Jube.Dictionary\Jube.Dictionary.csproj", "{76CCE6A8-12BE-452C-B07F-C4ED5179DDC7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jube.TaskCancellation", "Jube.TaskCancellation\Jube.TaskCancellation.csproj", "{7CF877F3-5A74-403C-9A9C-5A56B7269E22}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jube.HealthCheck", "Jube.HealthCheck\Jube.HealthCheck.csproj", "{7D382CC2-5340-4A90-BCA7-A6E1551CF035}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -147,6 +151,14 @@ Global
 		{76CCE6A8-12BE-452C-B07F-C4ED5179DDC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76CCE6A8-12BE-452C-B07F-C4ED5179DDC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76CCE6A8-12BE-452C-B07F-C4ED5179DDC7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CF877F3-5A74-403C-9A9C-5A56B7269E22}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CF877F3-5A74-403C-9A9C-5A56B7269E22}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CF877F3-5A74-403C-9A9C-5A56B7269E22}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CF877F3-5A74-403C-9A9C-5A56B7269E22}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D382CC2-5340-4A90-BCA7-A6E1551CF035}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D382CC2-5340-4A90-BCA7-A6E1551CF035}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D382CC2-5340-4A90-BCA7-A6E1551CF035}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D382CC2-5340-4A90-BCA7-A6E1551CF035}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection

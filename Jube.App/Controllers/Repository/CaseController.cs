@@ -17,6 +17,8 @@ namespace Jube.App.Controllers.Repository
     using System.Collections.Generic;
     using System.Globalization;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Code;
     using Data.Context;
@@ -66,9 +68,8 @@ namespace Jube.App.Controllers.Repository
             {
                 cfg.CreateMap<Case, CaseDto>();
                 cfg.CreateMap<CaseDto, Case>();
-                cfg.CreateMap<List<Case>, List<CaseDto>>()
-                    .ForMember("Item", opt => opt.Ignore());
             });
+
             mapper = new Mapper(config);
             repositoryCase = new CaseRepository(dbContext, userName);
             repositoryCaseEvent = new CaseEventRepository(dbContext, userName);
@@ -88,7 +89,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet]
-        public ActionResult<List<CaseDto>> Get()
+        public async Task<ActionResult<List<CaseDto>>> GetAsync(CancellationToken token = default)
         {
             try
             {
@@ -100,7 +101,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseDto>>(repositoryCase.Get()));
+                return Ok(mapper.Map<List<CaseDto>>(await repositoryCase.GetAsync(token)));
             }
             catch (Exception e)
             {
@@ -111,7 +112,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpGet]
         [Route("{id:int}")]
-        public ActionResult<CaseDto> GetByCaseId(int id)
+        public async Task<ActionResult<CaseDto>> GetByCaseIdAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -124,7 +125,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<CaseDto>(
-                    repositoryCase.GetById(id)));
+                    await repositoryCase.GetByIdAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -136,7 +137,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPost]
         [ProducesResponseType(typeof(CaseDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<CaseDto> CreateCase([FromBody] CaseDto model)
+        public async Task<ActionResult<CaseDto>> CreateCaseAsync([FromBody] CaseDto model, CancellationToken token = default)
         {
             try
             {
@@ -148,10 +149,10 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
                 if (results.IsValid)
                 {
-                    return Ok(repositoryCase.Insert(mapper.Map<Case>(model)));
+                    return Ok(await repositoryCase.InsertAsync(mapper.Map<Case>(model), token));
                 }
 
                 return BadRequest(results);
@@ -166,7 +167,7 @@ namespace Jube.App.Controllers.Repository
         [HttpPut]
         [ProducesResponseType(typeof(CaseDto), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ValidationResult), (int)HttpStatusCode.BadRequest)]
-        public ActionResult<CaseDto> UpdateCase([FromBody] CaseDto model)
+        public async Task<ActionResult<CaseDto>> UpdateCaseAsync([FromBody] CaseDto model, CancellationToken token = default)
         {
             try
             {
@@ -178,14 +179,14 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                var results = validator.Validate(model);
+                var results = await validator.ValidateAsync(model, token);
 
                 if (!results.IsValid)
                 {
                     return BadRequest(results);
                 }
 
-                var existing = repositoryCase.GetById(model.Id);
+                var existing = await repositoryCase.GetByIdAsync(model.Id, token);
 
                 var caseEvents = new List<CaseEvent>();
 
@@ -391,7 +392,7 @@ namespace Jube.App.Controllers.Repository
                             new CaseWorkflowStatusRepository(dbContext, userName);
 
                         var caseWorkflowStatus =
-                            caseWorkflowStatusRepository.GetByGuid(model.CaseWorkflowStatusGuid);
+                            await caseWorkflowStatusRepository.GetByGuidAsync(model.CaseWorkflowStatusGuid, token);
 
                         if (caseWorkflowStatus.EnableNotification == 1 ||
                             caseWorkflowStatus.EnableHttpEndpoint == 1)
@@ -399,10 +400,10 @@ namespace Jube.App.Controllers.Repository
                             if (caseWorkflowStatus.EnableNotification == 1)
                             {
                                 var notification = new Notification(log, dynamicEnvironment);
-                                notification.Send(caseWorkflowStatus.NotificationTypeId ?? 1,
+                                await notification.SendAsync(caseWorkflowStatus.NotificationTypeId ?? 1,
                                     caseWorkflowStatus.NotificationDestination,
                                     caseWorkflowStatus.NotificationSubject,
-                                    caseWorkflowStatus.NotificationBody, values);
+                                    caseWorkflowStatus.NotificationBody, values, token);
                             }
 
                             if (caseWorkflowStatus.EnableHttpEndpoint == 1)
@@ -410,7 +411,7 @@ namespace Jube.App.Controllers.Repository
                                 var sendHttpEndpoint = new SendHttpEndpoint();
                                 if (caseWorkflowStatus.HttpEndpointTypeId != null)
                                 {
-                                    sendHttpEndpoint.Send(caseWorkflowStatus.HttpEndpoint,
+                                    await sendHttpEndpoint.SendAsync(caseWorkflowStatus.HttpEndpoint,
                                         caseWorkflowStatus.HttpEndpointTypeId.Value
                                         , values);
                                 }
@@ -439,9 +440,9 @@ namespace Jube.App.Controllers.Repository
 
                 existing.Rating = model.Rating;
 
-                existing = repositoryCase.Update(existing);
+                existing = await repositoryCase.UpdateCaseAsync(existing, token);
 
-                repositoryCaseEvent.BulkInsert(caseEvents);
+                await repositoryCaseEvent.BulkInsertAsync(caseEvents, token);
 
                 return Ok(existing);
             }

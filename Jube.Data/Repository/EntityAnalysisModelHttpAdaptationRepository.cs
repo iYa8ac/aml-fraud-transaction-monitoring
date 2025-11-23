@@ -16,6 +16,8 @@ namespace Jube.Data.Repository
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using AutoMapper;
     using Context;
     using LinqToDB;
@@ -46,50 +48,50 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
-        public IEnumerable<EntityAnalysisModelHttpAdaptation> Get()
+        public async Task<IEnumerable<EntityAnalysisModelHttpAdaptation>> GetAsync(CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelHttpAdaptation
+            return await dbContext.EntityAnalysisModelHttpAdaptation
                 .Where(w =>
                     w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue
-                );
+                ).ToListAsync(token);
         }
 
-        public IEnumerable<EntityAnalysisModelHttpAdaptation> GetByEntityAnalysisModelIdOrderById(int entityAnalysisModelId)
+        public async Task<IEnumerable<EntityAnalysisModelHttpAdaptation>> GetByEntityAnalysisModelIdOrderByIdAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelHttpAdaptation
+            return await dbContext.EntityAnalysisModelHttpAdaptation
                 .Where(w =>
                     (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && w.EntityAnalysisModelId == entityAnalysisModelId
                     && (w.Deleted == 0 || w.Deleted == null))
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public EntityAnalysisModelHttpAdaptation GetById(int id)
+        public Task<EntityAnalysisModelHttpAdaptation> GetByIdAsync(int id, CancellationToken token = default)
         {
-            return dbContext.EntityAnalysisModelHttpAdaptation.FirstOrDefault(w =>
+            return dbContext.EntityAnalysisModelHttpAdaptation.FirstOrDefaultAsync(w =>
                 (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
-                && w.Id == id && (w.Deleted == 0 || w.Deleted == null));
+                && w.Id == id && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public EntityAnalysisModelHttpAdaptation Insert(EntityAnalysisModelHttpAdaptation model)
+        public async Task<EntityAnalysisModelHttpAdaptation> InsertAsync(EntityAnalysisModelHttpAdaptation model, CancellationToken token = default)
         {
             model.CreatedUser = userName ?? model.CreatedUser;
             model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
             model.CreatedDate = DateTime.Now;
             model.Version = 1;
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }
 
-        public EntityAnalysisModelHttpAdaptation Update(EntityAnalysisModelHttpAdaptation model)
+        public async Task<EntityAnalysisModelHttpAdaptation> UpdateAsync(EntityAnalysisModelHttpAdaptation model, CancellationToken token = default)
         {
-            var existing = dbContext.EntityAnalysisModelHttpAdaptation
-                .FirstOrDefault(w => w.Id
-                                     == model.Id
-                                     && (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
-                                         !tenantRegistryId.HasValue)
-                                     && (w.Deleted == 0 || w.Deleted == null)
-                                     && (w.Locked == 0 || w.Locked == null));
+            var existing = await dbContext.EntityAnalysisModelHttpAdaptation
+                .FirstOrDefaultAsync(w => w.Id
+                                          == model.Id
+                                          && (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
+                                              !tenantRegistryId.HasValue)
+                                          && (w.Deleted == 0 || w.Deleted == null)
+                                          && (w.Locked == 0 || w.Locked == null), token);
 
             if (existing == null)
             {
@@ -101,25 +103,24 @@ namespace Jube.Data.Repository
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
 
-            dbContext.Update(model);
+            await dbContext.UpdateAsync(model, token: token);
 
-            var config = new MapperConfiguration(cfg =>
+            var mapper = new Mapper(new MapperConfiguration(cfg =>
             {
                 cfg.CreateMap<EntityAnalysisModelHttpAdaptation, EntityAnalysisModelHttpAdaptationVersion>();
-            });
-            var mapper = new Mapper(config);
+            }));
 
             var audit = mapper.Map<EntityAnalysisModelHttpAdaptationVersion>(existing);
             audit.EntityAnalysisModelHttpAdaptationId = existing.Id;
 
-            dbContext.Insert(audit);
+            await dbContext.InsertAsync(audit, token: token);
 
             return model;
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id, CancellationToken token = default)
         {
-            var records = dbContext.EntityAnalysisModelHttpAdaptation
+            var records = await dbContext.EntityAnalysisModelHttpAdaptation
                 .Where(d =>
                     (d.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && d.Id == id
@@ -128,7 +129,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
                 .Set(s => s.DeletedUser, userName)
-                .Update();
+                .UpdateAsync(token);
 
             if (records == 0)
             {
@@ -136,16 +137,16 @@ namespace Jube.Data.Repository
             }
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.EntityAnalysisModelHttpAdaptation
+            return dbContext.EntityAnalysisModelHttpAdaptation
                 .Where(d =>
                     d.EntityAnalysisModel.TenantRegistryId == tenantRegistryIdOutsideOfInstance
                     && (d.Deleted == 0 || d.Deleted == null))
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

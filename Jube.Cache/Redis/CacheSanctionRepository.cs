@@ -13,9 +13,9 @@
 
 namespace Jube.Cache.Redis
 {
-    using MessagePack;
     using Interfaces;
     using log4net;
+    using MessagePack;
     using Models;
     using Serialization;
     using StackExchange.Redis;
@@ -79,20 +79,6 @@ namespace Jube.Cache.Redis
                     MessagePackSerializerOptionsHelper.StandardMessagePackSerializerWithCompressionOptions(false)).ConfigureAwait(false);
                 await redisDatabase.HashSetAsync(redisKey, redisHSetKey, ms.ToArray(),
                     When.Always, commandFlag).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                log.Error($"Cache Redis: Has created an exception as {ex}.");
-            }
-        }
-
-        public async Task UpdateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string multiPartString,
-            int distanceThreshold,
-            double? value)
-        {
-            try
-            {
-                await InsertAsync(tenantRegistryId, entityAnalysisModelGuid, multiPartString, distanceThreshold, value).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

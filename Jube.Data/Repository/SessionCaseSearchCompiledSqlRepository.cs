@@ -15,34 +15,35 @@ namespace Jube.Data.Repository
 {
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
     using Poco;
 
     public class SessionCaseSearchCompiledSqlRepository(DbContext dbContext, string userName)
     {
-
         public SessionCaseSearchCompiledSql GetByGuid(Guid guid)
         {
             return dbContext.SessionCaseSearchCompiledSql
                 .FirstOrDefault(w => w.Guid == guid);
         }
 
-        public SessionCaseSearchCompiledSql GetByLast()
+        public Task<SessionCaseSearchCompiledSql> GetByLastAsync(CancellationToken token = default)
         {
             return dbContext.SessionCaseSearchCompiledSql
                 .Where(w => w.CreatedUser == userName)
                 .OrderByDescending(o => o.Id)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync(token);
         }
 
-        public SessionCaseSearchCompiledSql Insert(SessionCaseSearchCompiledSql model)
+        public async Task<SessionCaseSearchCompiledSql> InsertAsync(SessionCaseSearchCompiledSql model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
             model.Guid = Guid.NewGuid();
 
-            model.Id = dbContext.InsertWithInt32Identity(model);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
 
             return model;
         }

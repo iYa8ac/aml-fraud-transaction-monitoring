@@ -22,6 +22,13 @@ COPY ["Jube.Parser/Jube.Parser.csproj", "Jube.Parser/"]
 COPY ["Jube.Migrations/Jube.Migrations.csproj", "Jube.Migrations/"]
 COPY ["Jube.Service/Jube.Service.csproj", "Jube.Service/"]
 COPY ["Jube.Validations/Jube.Validations.csproj", "Jube.Validations/"]
+COPY ["Jube.Cache/Jube.Cache.csproj", "Jube.Cache/"]
+COPY ["Jube.Dictionary/Jube.Dictionary.csproj", "Jube.Dictionary/"]
+COPY ["Jube.HealthCheck/Jube.HealthCheck.csproj", "Jube.HealthCheck/"]
+COPY ["Jube.TaskCancellation/Jube.TaskCancellation.csproj", "Jube.TaskCancellation/"]
+COPY ["Jube.Tests/Jube.Tests.csproj", "Jube.Tests/"]
+COPY ["Jube.CLI/Jube.CLI.csproj", "Jube.CLI/"]
+
 RUN dotnet restore "Jube.App/Jube.App.csproj"
 COPY . .
 WORKDIR "/src/Jube.App"
@@ -31,7 +38,15 @@ FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "Jube.App.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
+WORKDIR /src
+RUN dotnet publish "Jube.HealthCheck/Jube.HealthCheck.csproj" -c $BUILD_CONFIGURATION -o /app/publish/HealthCheck /p:UseAppHost=false
+
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+COPY --from=publish /app/publish/HealthCheck/ /app/HealthCheck/
+
+HEALTHCHECK CMD dotnet /app/HealthCheck/Jube.HealthCheck.dll || exit 1
+
 ENTRYPOINT ["dotnet", "Jube.App.dll"]

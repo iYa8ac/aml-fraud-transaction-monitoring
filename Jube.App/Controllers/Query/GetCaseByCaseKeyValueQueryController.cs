@@ -14,6 +14,8 @@
 namespace Jube.App.Controllers.Query
 {
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Query;
@@ -63,7 +65,7 @@ namespace Jube.App.Controllers.Query
         }
 
         [HttpGet]
-        public ActionResult<CaseQueryDto> Get(string key, string value)
+        public async Task<ActionResult<CaseQueryDto>> GetAsync(string key, string value, CancellationToken token = default)
         {
             try
             {
@@ -75,7 +77,7 @@ namespace Jube.App.Controllers.Query
                     return Forbid();
                 }
 
-                return Ok(query.Execute(key, value));
+                return Ok(await query.ExecuteAsync(key, value, token));
             }
             catch (Exception e)
             {

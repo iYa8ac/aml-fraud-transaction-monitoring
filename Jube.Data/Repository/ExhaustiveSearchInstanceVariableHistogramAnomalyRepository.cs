@@ -14,7 +14,10 @@
 namespace Jube.Data.Repository
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using Interface;
     using LinqToDB;
@@ -22,23 +25,22 @@ namespace Jube.Data.Repository
 
     public class ExhaustiveSearchInstanceVariableHistogramAnomalyRepository(DbContext dbContext) : IGenericRepository
     {
-
-        public int Insert(object arg)
+        public Task<int> InsertAsync(object arg, CancellationToken token = default)
         {
-            return dbContext.InsertWithInt32Identity((ExhaustiveSearchInstanceVariableHistogramAnomaly)arg);
+            return dbContext.InsertWithInt32IdentityAsync((ExhaustiveSearchInstanceVariableHistogramAnomaly)arg, token: token);
         }
 
-        public IQueryable<ExhaustiveSearchInstanceVariableHistogramAnomaly>
-            GetByExhaustiveSearchInstanceVariableIdOrderById(int exhaustiveSearchInstanceVariableId)
+        public async Task<IEnumerable<ExhaustiveSearchInstanceVariableHistogramAnomaly>>
+            GetByExhaustiveSearchInstanceVariableIdOrderByIdAsync(int exhaustiveSearchInstanceVariableId, CancellationToken token = default)
         {
-            return dbContext.ExhaustiveSearchInstanceVariableHistogramAnomaly.Where(w =>
+            return await dbContext.ExhaustiveSearchInstanceVariableHistogramAnomaly.Where(w =>
                     w.ExhaustiveSearchInstanceVariableAnomalyId == exhaustiveSearchInstanceVariableId)
-                .OrderBy(o => o.Id);
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
 
-        public void DeleteByTenantRegistryIdOutsideOfInstance(int tenantRegistryIdOutsideOfInstance, int importId)
+        public Task DeleteByTenantRegistryIdOutsideOfInstanceAsync(int tenantRegistryIdOutsideOfInstance, int importId, CancellationToken token = default)
         {
-            dbContext.ExhaustiveSearchInstanceVariableHistogramAnomaly
+            return dbContext.ExhaustiveSearchInstanceVariableHistogramAnomaly
                 .Where(d =>
                     d.ExhaustiveSearchInstanceVariableAnomaly.ExhaustiveSearchInstanceVariable.ExhaustiveSearchInstance
                         .EntityAnalysisModel.TenantRegistryId == tenantRegistryIdOutsideOfInstance
@@ -46,7 +48,7 @@ namespace Jube.Data.Repository
                 .Set(s => s.ImportId, importId)
                 .Set(s => s.Deleted, Convert.ToByte(1))
                 .Set(s => s.DeletedDate, DateTime.Now)
-                .Update();
+                .UpdateAsync(token);
         }
     }
 }

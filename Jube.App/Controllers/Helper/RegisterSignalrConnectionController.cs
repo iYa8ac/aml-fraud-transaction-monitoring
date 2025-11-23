@@ -14,6 +14,7 @@
 namespace Jube.App.Controllers.Helper
 {
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Code;
     using Code.signalr;
@@ -64,7 +65,7 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> RegisterSignalrConnectionByConnectionIdAsync(string id)
+        public async Task<ActionResult> RegisterSignalrConnectionByConnectionIdAsync(string id, CancellationToken token = default)
         {
             if (!permissionValidation.Validate(new[]
                 {
@@ -74,7 +75,7 @@ namespace Jube.App.Controllers.Helper
                 return Forbid();
             }
 
-            await watcherHub.Groups.AddToGroupAsync(id, "Tenant_" + tenantRegistryId).ConfigureAwait(false);
+            await watcherHub.Groups.AddToGroupAsync(id, "Tenant_" + tenantRegistryId, token).ConfigureAwait(false);
 
             return Ok();
         }

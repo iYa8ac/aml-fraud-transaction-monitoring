@@ -19,6 +19,8 @@ namespace Jube.App.Controllers.Helper
     using System.Linq;
     using System.Reflection;
     using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Code;
     using Data.Context;
     using Data.Repository;
@@ -69,7 +71,7 @@ namespace Jube.App.Controllers.Helper
         }
 
         [HttpPost]
-        public ActionResult<ParseRuleResultDto> Post([FromBody] ParseRuleRequestDto parseRuleRequestDto)
+        public async Task<ActionResult<ParseRuleResultDto>> PostAsync([FromBody] ParseRuleRequestDto parseRuleRequestDto, CancellationToken token = default)
         {
             try
             {
@@ -85,28 +87,29 @@ namespace Jube.App.Controllers.Helper
 
                 var entityAnalysisModelRequestXPaths = parseRuleRequestDto.RuleParseType switch
                 {
-                    _ => EntityAnalysisModelRequestXPaths(parseRuleRequestDto.EntityAnalysisModelId)
+                    _ => await EntityAnalysisModelRequestXPathsAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false)
                 };
 
                 var entityAnalysisModelsLists
-                    = EntityAnalysisModelsLists(parseRuleRequestDto.EntityAnalysisModelId);
+                    = await EntityAnalysisModelListsAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
 
                 var entityAnalysisModelsDictionaries
-                    = EntityAnalysisModelsDictionaries(parseRuleRequestDto.EntityAnalysisModelId);
+                    = await EntityAnalysisModelDictionariesAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
 
                 List<string> entityAnalysisModelsTtlCounters = null;
                 List<string> entityAnalysisModelsAbstractionRule = null;
                 List<string> entityAnalysisModelsSanctions = null;
+
                 if (parseRuleRequestDto.RuleParseType > 3)
                 {
                     entityAnalysisModelsTtlCounters
-                        = EntityAnalysisModelsTtlCounters(parseRuleRequestDto.EntityAnalysisModelId);
+                        = await EntityAnalysisModelTtlCountersAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
 
                     entityAnalysisModelsAbstractionRule
-                        = EntityAnalysisModelsAbstractionRules(parseRuleRequestDto.EntityAnalysisModelId);
+                        = await EntityAnalysisModelAbstractionRulesAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
 
                     entityAnalysisModelsSanctions
-                        = EntityAnalysisModelsSanctions(parseRuleRequestDto.EntityAnalysisModelId);
+                        = await EntityAnalysisModelSanctionsAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
                 }
 
                 List<string> entityAnalysisModelAbstractionCalculations = null;
@@ -115,13 +118,13 @@ namespace Jube.App.Controllers.Helper
                 if (parseRuleRequestDto.RuleParseType > 4)
                 {
                     entityAnalysisModelAbstractionCalculations
-                        = EntityAnalysisModelAbstractionCalculations(parseRuleRequestDto.EntityAnalysisModelId);
+                        = await EntityAnalysisModelAbstractionCalculationsAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
 
                     entityAnalysisModelsHttpAdaptations
-                        = EntityAnalysisModelsHttpAdaptations(parseRuleRequestDto.EntityAnalysisModelId);
+                        = await EntityAnalysisModelsHttpAdaptationsAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
 
                     entityAnalysisModelsExhaustiveAdaptations
-                        = EntityAnalysisModelsExhaustiveAdaptations(parseRuleRequestDto.EntityAnalysisModelId);
+                        = await EntityAnalysisModelExhaustiveAdaptationsAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
                 }
 
                 var parser = new Parser(log,
@@ -238,103 +241,111 @@ namespace Jube.App.Controllers.Helper
             }
         }
 
-        private List<string> EntityAnalysisModelsHttpAdaptations(int entityAnalysisModelId)
+        private async Task<List<string>> EntityAnalysisModelsHttpAdaptationsAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             var entityAnalysisModelHttpAdaptationRepository =
                 new EntityAnalysisModelHttpAdaptationRepository(dbContext, userName);
 
-            return entityAnalysisModelHttpAdaptationRepository
-                .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)
-                .Select(s => s.Name).ToList();
+            var entityAnalysisModelsHttpAdaptations = await entityAnalysisModelHttpAdaptationRepository
+                .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            return entityAnalysisModelsHttpAdaptations.Select(s => s.Name).ToList();
         }
 
-        private List<string> EntityAnalysisModelsExhaustiveAdaptations(int entityAnalysisModelId)
+        private async Task<List<string>> EntityAnalysisModelExhaustiveAdaptationsAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             var entityAnalysisModelExhaustiveRepository =
                 new ExhaustiveSearchInstanceRepository(dbContext, userName);
 
-            return entityAnalysisModelExhaustiveRepository
-                .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)
-                .Select(s => s.Name).ToList();
+            var entityAnalysisModelsExhaustiveAdaptations = await entityAnalysisModelExhaustiveRepository
+                .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            return entityAnalysisModelsExhaustiveAdaptations.Select(s => s.Name).ToList();
         }
 
-        private List<string> EntityAnalysisModelsDictionaries(int entityAnalysisModelId)
+        private async Task<List<string>> EntityAnalysisModelDictionariesAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             var entityAnalysisModelDictionaryRepository =
                 new EntityAnalysisModelDictionaryRepository(dbContext, userName);
 
-            return entityAnalysisModelDictionaryRepository
-                .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)
-                .Select(s => s.Name).ToList();
+            var entityAnalysisModelDictionaries = await entityAnalysisModelDictionaryRepository
+                .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            return entityAnalysisModelDictionaries.Select(s => s.Name).ToList();
         }
 
-        private List<string> EntityAnalysisModelsLists(int entityAnalysisModelId)
+        private async Task<List<string>> EntityAnalysisModelListsAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             var entityAnalysisModelListRepository =
                 new EntityAnalysisModelListRepository(dbContext, userName);
 
-            return entityAnalysisModelListRepository
-                .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)
-                .Select(s => s.Name).ToList();
+            var entityAnalysisModelLists = await entityAnalysisModelListRepository
+                .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            return entityAnalysisModelLists.Select(s => s.Name).ToList();
         }
 
-        private List<string> EntityAnalysisModelsSanctions(int entityAnalysisModelId)
+        private async Task<List<string>> EntityAnalysisModelSanctionsAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             var entityAnalysisModelSanctionRepository =
                 new EntityAnalysisModelSanctionRepository(dbContext, userName);
 
-            return entityAnalysisModelSanctionRepository
-                .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)
-                .Select(s => s.Name).ToList();
+            var entityAnalysisModelSanctions = await entityAnalysisModelSanctionRepository
+                .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            return entityAnalysisModelSanctions.Select(s => s.Name).ToList();
         }
 
-        private List<string> EntityAnalysisModelsTtlCounters(int entityAnalysisModelId)
+        private async Task<List<string>> EntityAnalysisModelTtlCountersAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             var entityAnalysisModelTtlCounterRepository =
                 new EntityAnalysisModelTtlCounterRepository(dbContext, userName);
 
-            return entityAnalysisModelTtlCounterRepository
-                .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId)
-                .Select(s => s.Name).ToList();
+            var entityAnalysisModelTtlCounters = await entityAnalysisModelTtlCounterRepository
+                .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            return entityAnalysisModelTtlCounters.Select(s => s.Name).ToList();
         }
 
-        private List<string> EntityAnalysisModelAbstractionCalculations(int entityAnalysisModelId)
+        private async Task<List<string>> EntityAnalysisModelAbstractionCalculationsAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             var entityAnalysisModelAbstractionCalculationRepository =
                 new EntityAnalysisModelAbstractionCalculationRepository(dbContext, userName);
 
-            return entityAnalysisModelAbstractionCalculationRepository
-                .GetByEntityAnalysisModelIdOrderByIdDesc(entityAnalysisModelId)
-                .Select(s => s.Name).ToList();
+            var entityAnalysisModelAbstractionCalculations = await entityAnalysisModelAbstractionCalculationRepository
+                .GetByEntityAnalysisModelIdOrderByIdDescAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            return entityAnalysisModelAbstractionCalculations.Select(s => s.Name).ToList();
         }
 
-        private List<string> EntityAnalysisModelsAbstractionRules(int entityAnalysisModelId)
+        private async Task<List<string>> EntityAnalysisModelAbstractionRulesAsync(int entityAnalysisModelId, CancellationToken token = default)
         {
             var entityAnalysisModelAbstractionRuleRepository =
                 new EntityAnalysisModelAbstractionRuleRepository(dbContext, userName);
 
-            return entityAnalysisModelAbstractionRuleRepository
-                .GetByEntityAnalysisModelIdOrderByIdDesc(entityAnalysisModelId)
-                .Select(s => s.Name).ToList();
+            var entityAnalysisModelAbstractionRules = await entityAnalysisModelAbstractionRuleRepository
+                .GetByEntityAnalysisModelIdOrderByIdDescAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            return entityAnalysisModelAbstractionRules.Select(s => s.Name).ToList();
         }
 
-        private Dictionary<string, EntityAnalysisModelRequestXPath> EntityAnalysisModelRequestXPaths(
-            int entityAnalysisModelId)
+        private async Task<Dictionary<string, EntityAnalysisModelRequestXPath>> EntityAnalysisModelRequestXPathsAsync(
+            int entityAnalysisModelId, CancellationToken token = default)
         {
             var entityAnalysisModelRequestXPathRepository =
                 new EntityAnalysisModelRequestXPathRepository(dbContext, userName);
 
             var values = new Dictionary<string, EntityAnalysisModelRequestXPath>();
-            foreach (var entityAnalysisModelRequestXPath in entityAnalysisModelRequestXPathRepository
-                         .GetByEntityAnalysisModelIdOrderById(entityAnalysisModelId))
+            foreach (var entityAnalysisModelRequestXPaths in await entityAnalysisModelRequestXPathRepository
+                         .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false))
             {
-                if (!values.ContainsKey(entityAnalysisModelRequestXPath.Name))
+                if (!values.ContainsKey(entityAnalysisModelRequestXPaths.Name))
                 {
-                    values.Add(entityAnalysisModelRequestXPath.Name,
+                    values.Add(entityAnalysisModelRequestXPaths.Name,
                         new EntityAnalysisModelRequestXPath
                         {
-                            DataTypeId = entityAnalysisModelRequestXPath.DataTypeId ?? 1,
-                            DefaultValue = entityAnalysisModelRequestXPath.DefaultValue
+                            DataTypeId = entityAnalysisModelRequestXPaths.DataTypeId ?? 1,
+                            DefaultValue = entityAnalysisModelRequestXPaths.DefaultValue
                         }
                     );
                 }

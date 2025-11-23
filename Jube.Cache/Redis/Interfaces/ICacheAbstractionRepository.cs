@@ -24,12 +24,12 @@ namespace Jube.Cache.Redis.Interfaces
             string name,
             double value);
 
-        Task<double?> Get(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        Task<double?> GetAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             string name,
             string searchKey, string searchValue);
 
         Task<Dictionary<string, double>>
-            Get(
+            GetAsync(
                 int tenantRegistryId, Guid entityAnalysisModelGuid,
                 List<EntityAnalysisModelIdAbstractionRuleNameSearchKeySearchValue>
                     entityAnalysisModelIdAbstractionRuleNameSearchKeySearchValueRequests);

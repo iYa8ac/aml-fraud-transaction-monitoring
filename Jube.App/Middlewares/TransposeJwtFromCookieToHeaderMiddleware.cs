@@ -25,7 +25,7 @@ namespace Jube.App.Middlewares
             this.next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context)
+        public Task InvokeAsync(HttpContext context)
         {
             const string authenticationCookieName = "authentication";
             var cookie = context.Request.Cookies[authenticationCookieName];
@@ -34,7 +34,7 @@ namespace Jube.App.Middlewares
                 context.Request.Headers.Append("Authorization", "Bearer " + cookie);
             }
 
-            await next.Invoke(context).ConfigureAwait(false);
+            return next.Invoke(context);
         }
     }
 }

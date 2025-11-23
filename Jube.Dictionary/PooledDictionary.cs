@@ -13,11 +13,8 @@
 
 namespace Jube.Dictionary
 {
-    using System;
     using System.Buffers;
     using System.Collections;
-    using System.Collections.Generic;
-    using System.Linq;
 
     [Serializable]
     public class PooledDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposable
@@ -79,22 +76,18 @@ namespace Jube.Dictionary
         {
             get
             {
-                if (TryGetValue(key, out var value))
-                {
-                    return value;
-                }
-                throw new KeyNotFoundException($"Key '{key}' not found.");
+                return TryGetValue(key, out var value) ? value : default(TValue)!;
             }
             set
             {
                 var index = FindIndex(key);
                 if (index >= 0)
                 {
-                    values[index] = value; // update existing
+                    values[index] = value;
                 }
                 else
                 {
-                    Add(key, value); // add new
+                    Add(key, value);
                 }
             }
         }
@@ -133,6 +126,105 @@ namespace Jube.Dictionary
             throw new InvalidOperationException("Dictionary is full after resize attempt.");
         }
 
+        public bool ContainsKey(TKey key)
+        {
+            return FindIndex(key) >= 0;
+        }
+
+        public bool TryGetValue(TKey key, out TValue value)
+        {
+            var index = FindIndex(key);
+            if (index >= 0)
+            {
+                value = values[index];
+                return true;
+            }
+
+            value = default(TValue)!;
+            return false;
+        }
+
+        public bool Remove(TKey key)
+        {
+            var index = FindIndex(key);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            hashes[index] = 0;
+            keys[index] = default(TKey)!;
+            values[index] = default(TValue)!;
+            Count--;
+            return true;
+        }
+
+        public void Clear()
+        {
+            for (var i = 0; i < capacity; i++)
+            {
+                hashes[i] = 0;
+                keys[i] = default(TKey)!;
+                values[i] = default(TValue)!;
+            }
+            Count = 0;
+        }
+
+        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
+        {
+            Add(item.Key, item.Value);
+        }
+
+        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+        {
+            var index = FindIndex(item.Key);
+            return index >= 0 && Equals(values[index], item.Value);
+        }
+
+        bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
+        {
+            var index = FindIndex(item.Key);
+            if (index < 0 || !Equals(values[index], item.Value))
+            {
+                return false;
+            }
+            hashes[index] = 0;
+            keys[index] = default(TKey)!;
+            values[index] = default(TValue)!;
+            Count--;
+            return true;
+        }
+
+        void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        {
+            foreach (var kv in this)
+            {
+                array[arrayIndex++] = kv;
+            }
+        }
+
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            for (var i = 0; i < capacity; i++)
+            {
+                if (hashes[i] != 0)
+                {
+                    yield return new KeyValuePair<TKey, TValue>(keys[i], values[i]);
+                }
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         public bool TryAdd(TKey key, TValue value)
         {
             if (key == null)
@@ -160,98 +252,12 @@ namespace Jube.Dictionary
 
                 if (hashes[probeIndex] == hash && Equals(keys[probeIndex], key))
                 {
-                    return false; // key exists
+                    return false;
                 }
             }
 
             throw new InvalidOperationException("Dictionary is full after resize attempt.");
         }
-
-        public bool ContainsKey(TKey key) => FindIndex(key) >= 0;
-
-        public bool TryGetValue(TKey key, out TValue value)
-        {
-            var index = FindIndex(key);
-            if (index >= 0)
-            {
-                value = values[index];
-                return true;
-            }
-
-            value = default!;
-            return false;
-        }
-
-        public bool Remove(TKey key)
-        {
-            var index = FindIndex(key);
-            if (index < 0)
-            {
-                return false;
-            }
-
-            hashes[index] = 0;
-            keys[index] = default!;
-            values[index] = default!;
-            Count--;
-            return true;
-        }
-
-        public void Clear()
-        {
-            for (var i = 0; i < capacity; i++)
-            {
-                hashes[i] = 0;
-                keys[i] = default!;
-                values[i] = default!;
-            }
-            Count = 0;
-        }
-
-        // ICollection<KeyValuePair<TKey,TValue>> members
-        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
-
-        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
-        {
-            var index = FindIndex(item.Key);
-            return index >= 0 && Equals(values[index], item.Value);
-        }
-
-        bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
-        {
-            var index = FindIndex(item.Key);
-            if (index < 0 || !Equals(values[index], item.Value))
-            {
-                return false;
-            }
-            hashes[index] = 0;
-            keys[index] = default!;
-            values[index] = default!;
-            Count--;
-            return true;
-        }
-
-        void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
-        {
-            foreach (var kv in this)
-            {
-                array[arrayIndex++] = kv;
-            }
-        }
-
-        // IEnumerable<KeyValuePair<TKey,TValue>>
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-        {
-            for (var i = 0; i < capacity; i++)
-            {
-                if (hashes[i] != 0)
-                {
-                    yield return new KeyValuePair<TKey, TValue>(keys[i], values[i]);
-                }
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         private int FindIndex(TKey key)
         {
@@ -281,14 +287,14 @@ namespace Jube.Dictionary
 
         private void EnsureCapacity()
         {
-            if (Count < capacity * LoadFactor)
+            if (Count + 1 <= capacity * LoadFactor)
             {
                 return;
             }
 
             if (fixedInitialSize)
             {
-                Resize(capacity + 1);
+                Resize(capacity < 8 ? capacity * 2 : capacity + 1);
             }
             else
             {
@@ -308,19 +314,25 @@ namespace Jube.Dictionary
                 newKeys = keyPool.Rent(newCapacity);
                 newValues = valuePool.Rent(newCapacity);
 
+                Array.Clear(newHashes, 0, newCapacity);
+                Array.Clear(newKeys, 0, newCapacity);
+                Array.Clear(newValues, 0, newCapacity);
+
                 for (var i = 0; i < capacity; i++)
                 {
                     if (hashes[i] == 0)
                     {
                         continue;
                     }
-                    
+
                     var hash = hashes[i];
                     var index = hash % newCapacity;
+
                     while (newHashes[index] != 0)
                     {
                         index = (index + 1) % newCapacity;
                     }
+
                     newHashes[index] = hash;
                     newKeys[index] = keys[i];
                     newValues[index] = values[i];
@@ -344,14 +356,10 @@ namespace Jube.Dictionary
             }
         }
 
-        // IDisposable
-        public void Dispose()
+        ~PooledDictionary()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            Dispose(false);
         }
-
-        ~PooledDictionary() => Dispose(false);
 
         protected virtual void Dispose(bool disposing)
         {
@@ -359,7 +367,7 @@ namespace Jube.Dictionary
             {
                 return;
             }
-            
+
             intPool.Return(hashes, true);
             keyPool.Return(keys, true);
             valuePool.Return(values, true);

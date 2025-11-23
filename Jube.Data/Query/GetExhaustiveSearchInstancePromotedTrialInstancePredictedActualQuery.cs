@@ -15,7 +15,10 @@ namespace Jube.Data.Query
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
+    using LinqToDB;
 
     public class GetExhaustiveSearchInstancePromotedTrialInstancePredictedActualQuery
     {
@@ -30,10 +33,10 @@ namespace Jube.Data.Query
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public IEnumerable<Dto> Execute(
-            int exhaustiveSearchInstanceId)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(
+            int exhaustiveSearchInstanceId, CancellationToken token = default)
         {
-            var promotedExhaustiveSearchInstanceTrialInstanceId = dbContext
+            var promotedExhaustiveSearchInstanceTrialInstanceId = await dbContext
                 .ExhaustiveSearchInstancePromotedTrialInstance
                 .Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstance.ExhaustiveSearchInstance.Id == exhaustiveSearchInstanceId
@@ -42,9 +45,9 @@ namespace Jube.Data.Query
                         .EntityAnalysisModel.TenantRegistryId == tenantRegistryId)
                 .OrderByDescending(o => o.Id)
                 .Select(s => s.ExhaustiveSearchInstanceTrialInstanceId)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync(token);
 
-            return dbContext.ExhaustiveSearchInstancePromotedTrialInstancePredictedActual
+            return await dbContext.ExhaustiveSearchInstancePromotedTrialInstancePredictedActual
                 .Where(w =>
                     w.ExhaustiveSearchInstanceTrialInstanceId == promotedExhaustiveSearchInstanceTrialInstanceId)
                 .OrderBy(o => o.Id)
@@ -53,7 +56,7 @@ namespace Jube.Data.Query
                     Predicted = s.Predicted.Value,
                     Actual = s.Actual.Value,
                     Error = s.Actual.Value - s.Predicted.Value
-                });
+                }).ToListAsync(token);
         }
 
         public class Dto

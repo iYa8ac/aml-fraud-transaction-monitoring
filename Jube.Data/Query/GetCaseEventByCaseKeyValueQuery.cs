@@ -16,13 +16,14 @@ namespace Jube.Data.Query
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Context;
     using LinqToDB;
 
     public class GetCaseEventByCaseKeyValueQuery(DbContext dbContext, string user)
     {
-
-        public IEnumerable<Dto> Execute(string key, string value)
+        public async Task<IEnumerable<Dto>> ExecuteAsync(string key, string value, CancellationToken token = default)
         {
             var query = from c in dbContext.Case
                 from e in dbContext.CaseEvent.InnerJoin(w => w.CaseId == c.Id)
@@ -39,7 +40,7 @@ namespace Jube.Data.Query
                 select e;
 
             var getCaseEventByCaseKeyValueQueryDtos = new List<Dto>();
-            foreach (var caseEvent in query)
+            foreach (var caseEvent in await query.ToListAsync(token))
             {
                 var getCaseEventByCaseKeyValueQueryDto = new Dto
                 {
