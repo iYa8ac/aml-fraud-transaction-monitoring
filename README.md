@@ -1,11 +1,14 @@
 ![Image](logo.png)
 
-# Jube — Open-Source AML & Fraud Transaction Monitoring Platform
+Jube is an **open source AML software** and **open source fraud detection software** platform for real-time detection of
+suspicious transactions, AML case management, and fraud prevention.
 
-Jube is an open-source software platform for real-time detection of suspicious transactions, AML case management, and
-fraud prevention. Fully open-source (AGPLv3) with all features available and no vendor lock-in, Jube is transparent,
+[Jube is fully open-source (AGPLv3)](https://github.com/jube-home/aml-fraud-transaction-monitoring)
+with all features available and no vendor lock-in, Jube is transparent,
 auditable, and extensible—keeping your data under your control while enabling rapid adaptation to new products,
 workflows, regulations, or payment schemes.
+
+---
 
 Jube combines real-time transaction monitoring, adaptive machine learning, rule-based detection, and workflow-driven
 case management into a single, scalable system.
@@ -21,13 +24,20 @@ Designed for compliance teams, financial institutions, and fintechs, Jube provid
 Jube ensures accuracy, transparency, and auditability, making it ideal for organizations that must meet strict
 regulatory requirements while monitoring large transaction volumes.
 
-![Case Management Listing](CaseManagementListing.png)
+![Open source AML software case management dashboard](/CaseManagementListing.png)
 
-![Exhaustive Performance](ExhaustivePerformance.png)
+![Open source fraud detection software performance metrics](/ExhaustivePerformance.png)
 
 ---
 
 ## Key Features
+
+- Trusted **open source AML and fraud detection software** for compliance and fraud prevention
+- Real-time transaction monitoring
+- Hybrid detection engine: combining rule‑based logic for **open source AML and fraud detection**
+- Adaptive machine learning models for AML and fraud risk scoring
+- Workflow-driven AML and fraud case management
+- Fully **open source AML and fraud detection software** under AGPLv3
 
 ### Adaptive Machine Learning — Exhaustive Adaptation
 
@@ -43,13 +53,13 @@ for interpretable and actionable risk insights.
 - Behavioral feature abstraction derives signals such as transaction volume, velocity, and geolocation to improve ML
   model interpretability
 
-![Exhaustive Learning Curve](ExhaustiveLearningCurve.png)
+![Adaptive machine learning model performance for AML and fraud detection](/ExhaustiveLearningCurve.png)
 
-![Exhaustive Variable Statistics](ExhaustiveVariableStatistics.png)
+![Variable statistics used in open source AML and fraud detection software](/ExhaustiveVariableStatistics.png)
 
-![Exhaustive Winning Model Topology](ExhaustiveWinningModelTopology.png)
+![Top-performing model topology for open source AML software and fraud detection](/ExhaustiveWinningModelTopology.png)
 
-![Exhaustive Score Model Testing](ExhaustiveScoreModelTesting.png)
+![Score model testing results in open source AML and fraud detection software](/ExhaustiveScoreModelTesting.png)
 
 ### Real-Time Transaction Monitoring
 
@@ -79,11 +89,11 @@ versioning, giving compliance teams an end-to-end solution for investigating sus
 - Automatic case escalation via activation rules
 - Full audit trails for all actions
 
-![Case](Case.png)
+![Workflow-driven case management example in open source AML software](/Case.png)
 
-![Visualisation](Visualisation.png)
+![Visualization dashboard for open source fraud detection software](/Visualisation.png)
 
-![Activation Watcher](ActivationWatcher.png)
+![Automated case activation monitoring in open source AML and fraud detection software](/ActivationWatcher.png)
 
 ### Flexible Rule Engine
 
@@ -98,17 +108,18 @@ with ML outputs for comprehensive detection.
 - Fully integrates with ML outputs for combined detection
 - Online or background preparation of velocity and other aggregations depending on data volume
 
-![Rule Builder](RuleBuilder.png)
+![Rule builder interface for open source AML and fraud detection software](/RuleBuilder.png)
 
-![Rule Coder](RuleCoder.png)
+![Rule coding for open source AML and fraud detection software](/RuleCoder.png)
 
-![Manual Sanctions](ManualSanctions.png)
+![Manual sanctions screening in open source AML software](/ManualSanctions.png)
 
 ### Cloud-Native
 
-Jube offers a developer-friendly, cloud-native architecture (Docker- and Kubernetes-ready) for AML and fraud monitoring.
-Its fully containerized platform includes an embedded HTTP server with REST APIs, Swagger documentation, and secure JWT
-authentication, making deployment and integration seamless for fintechs and financial institutions.
+Jube’s architecture is **purpose-built for open source fraud detection and AML transaction monitoring**. It’s fully
+containerized (Docker, Kubernetes), supports multi-tenancy, and is highly scalable — making it a top-tier **AML and
+fraud
+detection software open source** solution.
 
 The platform preserves configuration, enabling institutions to back up, restore, and migrate rules, workflows, and ML
 settings. This ensures operational continuity and smooth system upgrades or deployments.
@@ -117,7 +128,7 @@ Jube supports multi-tenancy, allowing financial institutions or service provider
 sub-clients (brands or business units) within a single deployment. Each tenant can maintain independent rules,
 workflows, and ML configurations.
 
-![Swagger](Swagger.png)
+![Open source AML and fraud detection software API integration](/Swagger.png)
 
 ---
 
