@@ -336,3 +336,37 @@
 .cellLinkMiddle {
     vertical-align: middle
 }
+
+.server-error-box {
+    background: #fff4f4;
+    border: 1px solid #e0b4b4;
+    padding: 12px 16px;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+    margin-bottom: 12px;
+}
+
+.server-error-title {
+    font-weight: bold;
+    color: #b30000;
+    margin-bottom: 8px;
+}
+
+.server-error-line {
+    margin-left: 10px;
+    line-height: 1.4;
+}
+
+.field-error-highlight {
+    border: 2px solid #d9534f !important;
+    background-color: #fff0f0 !important;
+    box-shadow: 0 0 5px rgba(217, 83, 79, 0.6);
+    border-radius: 4px;
+}
+
+#TreeSearch {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+}

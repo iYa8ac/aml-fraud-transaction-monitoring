@@ -11,26 +11,44 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using System.Collections.Generic;
-using FluentValidation;
-using Jube.App.Dto;
-
 namespace Jube.App.Validators
 {
+    using System.Collections.Generic;
+    using Data.Repository;
+    using Dto;
+    using FluentValidation;
+
     public class EntityAnalysisModelsDtoValidator : AbstractValidator<EntityAnalysisModelDto>
     {
-        public EntityAnalysisModelsDtoValidator()
+        public EntityAnalysisModelsDtoValidator(EntityAnalysisModelRepository repository)
         {
+            RuleFor(p => p.Name)
+                .NotEmpty()
+                .MustAsync(async (dto, name, cancellation) =>
+                {
+                    var existing = await repository.GetByNameAsync(name, cancellation);
+
+                    if (existing == null)
+                    {
+                        return true;
+                    }
+
+                    return existing.Id == dto.Id;
+                })
+                .WithMessage("This name already exists.");
+
             RuleFor(p => p.Active).NotNull();
             RuleFor(p => p.Locked).NotNull();
-            RuleFor(p => p.Name).NotEmpty();
-
             RuleFor(p => p.EntryXPath).NotEmpty();
             RuleFor(p => p.ReferenceDateXPath).NotEmpty();
             RuleFor(p => p.EntryName).NotEmpty();
             RuleFor(p => p.ReferenceDateName).NotEmpty();
 
-            var typesPayloadLocation = new List<int> {1, 3};
+            var typesPayloadLocation = new List<int>
+            {
+                1,
+                3
+            };
 
             RuleFor(p => p.ReferenceDatePayloadLocationTypeId).Must(m => typesPayloadLocation.Contains(m));
             RuleFor(p => p.ReferenceDateName).NotEmpty();
@@ -39,7 +57,13 @@ namespace Jube.App.Validators
             RuleFor(p => p.CacheFetchLimit).GreaterThanOrEqualTo(0);
             RuleFor(p => p.MaxResponseElevation).GreaterThanOrEqualTo(0);
 
-            var typesInterval = new List<char> {'s', 'n', 'h', 'd'};
+            var typesInterval = new List<char>
+            {
+                's',
+                'n',
+                'h',
+                'd'
+            };
 
             RuleFor(p => p.CacheTtlInterval).Must(m => typesInterval.Contains(m));
             RuleFor(p => p.CacheTtlIntervalValue).GreaterThanOrEqualTo(0);

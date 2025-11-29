@@ -11,23 +11,48 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using System.Collections.Generic;
-using FluentValidation;
-using Jube.App.Dto;
-
 namespace Jube.App.Validators
 {
+    using System.Collections.Generic;
+    using Data.Repository;
+    using Dto;
+    using FluentValidation;
+
     public class EntityAnalysisModelRequestXPathDtoValidator : AbstractValidator<EntityAnalysisModelRequestXPathDto>
     {
-        public EntityAnalysisModelRequestXPathDtoValidator()
+        public EntityAnalysisModelRequestXPathDtoValidator(EntityAnalysisModelRequestXPathRepository repository)
         {
+            RuleFor(p => p.Name)
+                .NotEmpty()
+                .MustAsync(async (dto, name, cancellation) =>
+                {
+                    var existing = await repository.GetByNameEntityAnalysisModelIdAsync(name, dto.EntityAnalysisModelId, cancellation);
+
+                    if (existing == null)
+                    {
+                        return true;
+                    }
+
+                    return existing.Id == dto.Id;
+                })
+                .WithMessage("This name already exists.");
+
             RuleFor(p => p.EntityAnalysisModelId).GreaterThan(0);
             RuleFor(p => p.Active).NotNull();
             RuleFor(p => p.Locked).NotNull();
             RuleFor(p => p.EnableSuppression).NotNull();
-            RuleFor(p => p.Name).NotEmpty();
 
-            var dataTypes = new List<int> {1, 2, 3, 4, 5, 6, 7};
+            var dataTypes = new List<int>
+            {
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+            };
+
             RuleFor(p => p.DataTypeId).Must(m => dataTypes.Contains(m));
             RuleFor(p => p.XPath).NotEmpty();
             RuleFor(p => p.SearchKey).NotNull();
@@ -36,7 +61,14 @@ namespace Jube.App.Validators
             RuleFor(p => p.SearchKeyFetchLimit).NotNull();
             RuleFor(p => p.SearchKeyCache).NotNull();
 
-            var intervalTypes = new List<string> {"s", "n", "h", "d"};
+            var intervalTypes = new List<string>
+            {
+                "s",
+                "n",
+                "h",
+                "d"
+            };
+
             RuleFor(p => p.SearchKeyCacheInterval).Must(m => intervalTypes.Contains(m));
             RuleFor(p => p.SearchKeyCacheTtlInterval).Must(m => intervalTypes.Contains(m));
             RuleFor(p => p.SearchKeyCacheValue).GreaterThanOrEqualTo(0);

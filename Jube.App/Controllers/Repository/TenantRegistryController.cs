@@ -68,7 +68,7 @@ namespace Jube.App.Controllers.Repository
 
             mapper = new Mapper(config);
             repository = new TenantRegistryRepository(dbContext, userName);
-            validator = new TenantRegistryDtoValidator();
+            validator = new TenantRegistryDtoValidator(repository);
         }
 
         protected override void Dispose(bool disposing)

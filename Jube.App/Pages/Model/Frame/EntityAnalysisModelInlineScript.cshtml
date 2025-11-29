@@ -11,7 +11,7 @@
  * see <https://www.gnu.org/licenses/>.
  *@
 @page
-@model Jube.App.Pages.Model.Frame.EntityAnalysisModelInlineScript
+@model EntityAnalysisModelInlineScript
 
 @{
     Layout = null;
@@ -29,7 +29,7 @@
                     <label for="Name">Name</label>
                 </td>
                 <td>
-                    <input type="text" id="Name" class="k-textbox large" name="Name" required validationMessage="Please enter a valid Name.">
+                    <input type="text" id="Name" class="k-textbox large" name="Name"/>
                     <span class="k-invalid-msg" data-for="Name"></span>
                 </td>
             </tr>
@@ -83,8 +83,8 @@
         </table>
         <div class="footerStyle">
             <div id="ErrorMessage" class="errorMessage"></div>
-            <button type="button" id="Add" class="ButtonDefault">Add</button> 
-            <button type="button" id="Update" class="ButtonDefault">Update</button> 
+            <button type="button" id="Add" class="ButtonDefault">Add</button>
+            <button type="button" id="Update" class="ButtonDefault">Update</button>
             <button type="button" id="Delete" class="ButtonDefault">Delete</button>
         </div>
     </div>

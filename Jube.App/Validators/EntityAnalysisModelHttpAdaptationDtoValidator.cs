@@ -13,14 +13,13 @@
 
 namespace Jube.App.Validators
 {
-    using System.Collections.Generic;
     using Data.Repository;
     using Dto;
     using FluentValidation;
 
-    public class EntityAnalysisModelSanctionDtoValidator : AbstractValidator<EntityAnalysisModelSanctionDto>
+    public class EntityAnalysisModelHttpAdaptationDtoValidator : AbstractValidator<EntityAnalysisModelAdaptationDto>
     {
-        public EntityAnalysisModelSanctionDtoValidator(EntityAnalysisModelSanctionRepository repository)
+        public EntityAnalysisModelHttpAdaptationDtoValidator(EntityAnalysisModelHttpAdaptationRepository repository)
         {
             RuleFor(p => p.Name)
                 .NotEmpty()
@@ -40,19 +39,7 @@ namespace Jube.App.Validators
             RuleFor(p => p.EntityAnalysisModelId).GreaterThan(0);
             RuleFor(p => p.Active).NotNull();
             RuleFor(p => p.Locked).NotNull();
-            RuleFor(p => p.Distance).LessThanOrEqualTo(5);
-            RuleFor(p => p.MultipartStringDataName).NotEmpty();
-            RuleFor(p => p.CacheValue).GreaterThanOrEqualTo(0);
-
-            var intervals = new List<char>
-            {
-                's',
-                'n',
-                'h',
-                'd'
-            };
-            RuleFor(p => p.CacheInterval).Must(x => intervals.Contains(x));
-
+            RuleFor(p => p.HttpEndpoint).NotEmpty();
             RuleFor(p => p.ReportTable).NotNull();
             RuleFor(p => p.ResponsePayload).NotNull();
         }

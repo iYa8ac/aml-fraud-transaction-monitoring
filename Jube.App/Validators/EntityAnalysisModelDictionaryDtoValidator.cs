@@ -11,19 +11,33 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using FluentValidation;
-using Jube.App.Dto;
-
 namespace Jube.App.Validators
 {
+    using Data.Repository;
+    using Dto;
+    using FluentValidation;
+
     public class EntityAnalysisModelDictionaryDtoValidator : AbstractValidator<EntityAnalysisModelsDictionaryDto>
     {
-        public EntityAnalysisModelDictionaryDtoValidator()
+        public EntityAnalysisModelDictionaryDtoValidator(EntityAnalysisModelDictionaryRepository repository)
         {
+            RuleFor(p => p.Name)
+                .NotEmpty()
+                .MustAsync(async (dto, name, cancellation) =>
+                {
+                    var existing = await repository.GetByNameEntityAnalysisModelGuidAsync(name, dto.EntityAnalysisModelGuid, cancellation);
+
+                    if (existing == null)
+                    {
+                        return true;
+                    }
+
+                    return existing.Id == dto.Id;
+                })
+                .WithMessage("This name already exists.");
+
             RuleFor(p => p.EntityAnalysisModelGuid).NotEmpty();
-            RuleFor(p => p.Name).NotEmpty();
             RuleFor(p => p.Locked).NotNull();
-            RuleFor(p => p.Name).NotEmpty();
             RuleFor(p => p.DataName).NotEmpty();
             RuleFor(p => p.ResponsePayload).NotNull();
         }

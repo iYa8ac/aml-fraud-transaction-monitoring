@@ -11,7 +11,7 @@
  * see <https://www.gnu.org/licenses/>.
  *@
 @page
-@model Jube.App.Pages.Administration.Frame.VisualisationRegistryDatasource
+@model VisualisationRegistryDatasource
 
 @{
     Layout = null;
@@ -29,7 +29,7 @@
                     <label for="Name">Name</label>
                 </td>
                 <td>
-                    <input type="text" id="Name" class="k-textbox large" name="Name" required validationMessage="Please enter a valid Name.">
+                    <input type="text" id="Name" class="k-textbox large" name="Name"/>
                     <span class="k-invalid-msg" data-for="Name"></span>
                 </td>
             </tr>
@@ -52,19 +52,19 @@
             <tr>
                 <td><label for="Priority">Priority</label></td>
                 <td>
-                    <input type="text" id="Priority" value="0" name="Priority" required validationMessage="Please enter a name"/>
+                    <input type="text" id="Priority" value="0" name="Priority"/>
                 </td>
             </tr>
             <tr>
                 <td><label for="ColumnSpan">Column Span</label></td>
                 <td>
-                    <input type="text" id="ColumnSpan" value="0" name="ColumnSpan" required/>
+                    <input type="text" id="ColumnSpan" value="0" name="ColumnSpan"/>
                 </td>
             </tr>
             <tr>
                 <td><label for="RowSpan">Row Span</label></td>
                 <td>
-                    <input type="text" id="RowSpan" value="0" name="RowSpan" required/>
+                    <input type="text" id="RowSpan" value="0" name="RowSpan"/>
                 </td>
             </tr>
             <tr>
@@ -89,15 +89,19 @@
                             <td>
                                 <ul class="fieldlist">
                                     <li>
-                                        <input type="radio" checked="checked" class="k-radio" id="VisualisationTypeChart" name="VisualisationType" value="1"/>
-                                        <label class="k-radio-label" for="VisualisationTypeChart">Chart Javascript</label>
+                                        <input type="radio" checked="checked" class="k-radio"
+                                               id="VisualisationTypeChart" name="VisualisationType" value="1"/>
+                                        <label class="k-radio-label" for="VisualisationTypeChart">Chart
+                                            Javascript</label>
                                     </li>
                                     <li>
-                                        <input type="radio" class="k-radio" id="VisualisationTypeMap" name="VisualisationType" value="2"/>
+                                        <input type="radio" class="k-radio" id="VisualisationTypeMap"
+                                               name="VisualisationType" value="2"/>
                                         <label class="k-radio-label" for="VisualisationTypeMap">Map Javascript</label>
                                     </li>
                                     <li>
-                                        <input type="radio" class="k-radio" id="VisualisationTypeHTML" name="VisualisationType" value="3"/>
+                                        <input type="radio" class="k-radio" id="VisualisationTypeHTML"
+                                               name="VisualisationType" value="3"/>
                                         <label class="k-radio-label" for="VisualisationTypeHTML">HTML</label>
                                     </li>
                                 </ul>
@@ -139,8 +143,8 @@
         </table>
         <div class="footerStyle">
             <div id="ErrorMessage" class="errorMessage"></div>
-            <button type="button" id="Add" class="ButtonDefault">Add</button> 
-            <button type="button" id="Update" class="ButtonDefault">Update</button> 
+            <button type="button" id="Add" class="ButtonDefault">Add</button>
+            <button type="button" id="Update" class="ButtonDefault">Update</button>
             <button type="button" id="Delete" class="ButtonDefault">Delete</button>
         </div>
     </div>

@@ -11,7 +11,7 @@
  * see <https://www.gnu.org/licenses/>.
  *@
 @page
-@model Jube.App.Pages.Model.Frame.CasesWorkflowsMacro
+@model CasesWorkflowsMacro
 
 @{
     Layout = null;
@@ -29,7 +29,7 @@
                     <label for="Name">Name</label>
                 </td>
                 <td>
-                    <input type="text" id="Name" class="k-textbox large" name="Name" required validationMessage="Please enter a valid Name.">
+                    <input type="text" id="Name" class="k-textbox large"/>
                     <span class="k-invalid-msg" data-for="Name"></span>
                 </td>
             </tr>
@@ -79,11 +79,13 @@
                             <td>
                                 <ul id="HttpEndpointTypeId" class="fieldlist">
                                     <li>
-                                        <input type="radio" class="k-radio" checked name="HttpEndpointTypeId" id="POST" value="1"/>
+                                        <input type="radio" class="k-radio" checked name="HttpEndpointTypeId" id="POST"
+                                               value="1"/>
                                         <label class="k-radio-label" for="POST">POST</label>
                                     </li>
                                     <li>
-                                        <input type="radio" class="k-radio" name="HttpEndpointTypeId" id="GET" value="2">
+                                        <input type="radio" class="k-radio" name="HttpEndpointTypeId" id="GET"
+                                               value="2">
                                         <label class="k-radio-label" for="GET">GET</label>
                                     </li>
                                 </ul>
@@ -114,11 +116,13 @@
                             <td>
                                 <ul id="NotificationTypeId" class="fieldlist">
                                     <li>
-                                        <input type="radio" class="k-radio" id="NotificationEmail" checked value="1" name="NotificationTypeId"/>
+                                        <input type="radio" class="k-radio" id="NotificationEmail" checked value="1"
+                                               name="NotificationTypeId"/>
                                         <label class="k-radio-label" for="NotificationEmail">Email</label>
                                     </li>
                                     <li>
-                                        <input type="radio" class="k-radio" id="NotificationSMS" value="2" name="NotificationTypeId"/>
+                                        <input type="radio" class="k-radio" id="NotificationSMS" value="2"
+                                               name="NotificationTypeId"/>
                                         <label class="k-radio-label" for="NotificationSMS">SMS</label>
                                     </li>
                                 </ul>
@@ -178,8 +182,8 @@
         </table>
         <div class="footerStyle">
             <div id="ErrorMessage" class="errorMessage"></div>
-            <button type="button" id="Add" class="ButtonDefault">Add</button> 
-            <button type="button" id="Update" class="ButtonDefault">Update</button> 
+            <button type="button" id="Add" class="ButtonDefault">Add</button>
+            <button type="button" id="Update" class="ButtonDefault">Update</button>
             <button type="button" id="Delete" class="ButtonDefault">Delete</button>
         </div>
     </div>

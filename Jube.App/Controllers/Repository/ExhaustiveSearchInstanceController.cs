@@ -68,7 +68,7 @@ namespace Jube.App.Controllers.Repository
 
             mapper = new Mapper(config);
             repository = new ExhaustiveSearchInstanceRepository(dbContext, userName);
-            validator = new ExhaustiveSearchInstanceDtoValidator();
+            validator = new ExhaustiveSearchInstanceDtoValidator(repository);
         }
 
         protected override void Dispose(bool disposing)

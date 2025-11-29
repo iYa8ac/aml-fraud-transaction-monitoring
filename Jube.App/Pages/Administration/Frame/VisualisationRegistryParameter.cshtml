@@ -11,7 +11,7 @@
  * see <https://www.gnu.org/licenses/>.
  *@
 @page
-@model Jube.App.Pages.Administration.Frame.VisualisationRegistryParameter
+@model VisualisationRegistryParameter
 
 @{
     Layout = null;
@@ -29,7 +29,7 @@
                     <label for="Name">Name</label>
                 </td>
                 <td>
-                    <input type="text" id="Name" class="k-textbox large" name="Name" required validationMessage="Please enter a valid Name.">
+                    <input type="text" id="Name" class="k-textbox large" name="Name"/>
                     <span class="k-invalid-msg" data-for="Name"></span>
                 </td>
             </tr>
@@ -68,11 +68,11 @@
                     <label>Default</label>
                 </td>
                 <td>
-                <input type="text" id="DefaultValueString" class="k-textbox" name="DefaultValue"/>
-                <input type="text" id="DefaultValueNumeric" name="DefaultValue" value="0"/>
-                <div id="DivDefaultValueCheckbox">
-                    <input id="DefaultValueCheckbox" name="DefaultValue" type="checkbox"/> 
-                </div>
+                    <input type="text" id="DefaultValueString" class="k-textbox" name="DefaultValue"/>
+                    <input type="text" id="DefaultValueNumeric" name="DefaultValue" value="0"/>
+                    <div id="DivDefaultValueCheckbox">
+                        <input id="DefaultValueCheckbox" name="DefaultValue" type="checkbox"/>
+                    </div>
             </tr>
             <tr>
                 <td>
@@ -109,8 +109,8 @@
         </table>
         <div class="footerStyle">
             <div id="ErrorMessage" class="errorMessage"></div>
-            <button type="button" id="Add" class="ButtonDefault">Add</button> 
-            <button type="button" id="Update" class="ButtonDefault">Update</button> 
+            <button type="button" id="Add" class="ButtonDefault">Add</button>
+            <button type="button" id="Update" class="ButtonDefault">Update</button>
             <button type="button" id="Delete" class="ButtonDefault">Delete</button>
         </div>
     </div>

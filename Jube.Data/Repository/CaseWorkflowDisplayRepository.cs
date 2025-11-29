@@ -50,6 +50,16 @@ namespace Jube.Data.Repository
                 .ToListAsync(token);
         }
 
+        public Task<CaseWorkflowDisplay> GetByNameCaseWorkflowIdAsync(string name, int caseWorkflowId, CancellationToken token = default)
+        {
+            return dbContext.CaseWorkflowDisplay
+                .FirstOrDefaultAsync(f =>
+                    f.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                    && f.CaseWorkflowId == caseWorkflowId
+                    && (f.Deleted == 0 || f.Deleted == null)
+                    && f.Name.ToLower() == name.ToLower(), token);
+        }
+
         public async Task<IEnumerable<CaseWorkflowDisplay>> GetByCasesWorkflowIdOrderByIdAsync(int casesWorkflowId, CancellationToken token = default)
         {
             return await dbContext.CaseWorkflowDisplay

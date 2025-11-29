@@ -68,7 +68,7 @@ namespace Jube.App.Controllers.Repository
 
             mapper = new Mapper(config);
             repository = new CaseWorkflowDisplayRepository(dbContext, userName);
-            validator = new CaseWorkflowDisplayDtoValidator();
+            validator = new CaseWorkflowDisplayDtoValidator(repository);
         }
 
         protected override void Dispose(bool disposing)

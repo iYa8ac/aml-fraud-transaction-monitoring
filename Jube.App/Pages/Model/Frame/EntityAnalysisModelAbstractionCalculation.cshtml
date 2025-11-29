@@ -11,7 +11,7 @@
  * see <https://www.gnu.org/licenses/>.
  *@
 @page
-@model Jube.App.Pages.Model.Frame.EntityAnalysisModelAbstractionCalculation
+@model EntityAnalysisModelAbstractionCalculation
 
 @{
     Layout = null;
@@ -30,7 +30,7 @@
                     <label for="Name">Name</label>
                 </td>
                 <td>
-                    <input type="text" id="Name" class="k-textbox large" name="Name" required validationMessage="Please enter a valid Name.">
+                    <input type="text" id="Name" class="k-textbox large"/>
                     <span class="k-invalid-msg" data-for="Name"></span>
                 </td>
             </tr>
@@ -57,23 +57,28 @@
                 <td>
                     <ul id="AbstractionCalculationTypeId" class="fieldlist">
                         <li>
-                            <input type="radio" id="AbstractionCalculationTypeIdAdd" class="k-radio" name="AbstractionCalculationTypeId" value="1"/>
+                            <input type="radio" id="AbstractionCalculationTypeIdAdd" class="k-radio"
+                                   name="AbstractionCalculationTypeId" value="1"/>
                             <label class="k-radio-label" for="AbstractionCalculationTypeIdAdd">Add</label>
                         </li>
                         <li>
-                            <input type="radio" class="k-radio" id="AbstractionCalculationTypeIdSubtract" name="AbstractionCalculationTypeId" value="2"/>
+                            <input type="radio" class="k-radio" id="AbstractionCalculationTypeIdSubtract"
+                                   name="AbstractionCalculationTypeId" value="2"/>
                             <label class="k-radio-label" for="AbstractionCalculationTypeIdSubtract">Subtract</label>
                         </li>
                         <li>
-                            <input type="radio" class="k-radio" id="AbstractionCalculationTypeIdDivide" name="AbstractionCalculationTypeId" checked value="3"/>
+                            <input type="radio" class="k-radio" id="AbstractionCalculationTypeIdDivide"
+                                   name="AbstractionCalculationTypeId" checked value="3"/>
                             <label class="k-radio-label" for="AbstractionCalculationTypeIdDivide">Divide</label>
                         </li>
                         <li>
-                            <input type="radio" class="k-radio" id="AbstractionCalculationTypeIdMultiply" name="AbstractionCalculationTypeId" value="4"/>
+                            <input type="radio" class="k-radio" id="AbstractionCalculationTypeIdMultiply"
+                                   name="AbstractionCalculationTypeId" value="4"/>
                             <label class="k-radio-label" for="AbstractionCalculationTypeIdMultiply">Multiply</label>
                         </li>
                         <li>
-                            <input type="radio" class="k-radio" id="AbstractionCalculationTypeIdCoder" name="AbstractionCalculationTypeId" value="5"/>
+                            <input type="radio" class="k-radio" id="AbstractionCalculationTypeIdCoder"
+                                   name="AbstractionCalculationTypeId" value="5"/>
                             <label class="k-radio-label" for="AbstractionCalculationTypeIdCoder">Coder</label>
                         </li>
                     </ul>
@@ -150,8 +155,8 @@
         </table>
         <div class="footerStyle">
             <div id="ErrorMessage" class="errorMessage"></div>
-            <button type="button" id="Add" class="ButtonDefault">Add</button> 
-            <button type="button" id="Update" class="ButtonDefault">Update</button> 
+            <button type="button" id="Add" class="ButtonDefault">Add</button>
+            <button type="button" id="Update" class="ButtonDefault">Update</button>
             <button type="button" id="Delete" class="ButtonDefault">Delete</button>
         </div>
     </div>

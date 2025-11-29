@@ -69,7 +69,7 @@ namespace Jube.App.Controllers.Repository
 
             mapper = new Mapper(config);
             repository = new VisualisationRegistryDatasourceRepository(dbContext, userName);
-            validator = new VisualisationRegistryDatasourceValidator();
+            validator = new VisualisationRegistryDatasourceValidator(repository);
         }
 
         protected override void Dispose(bool disposing)

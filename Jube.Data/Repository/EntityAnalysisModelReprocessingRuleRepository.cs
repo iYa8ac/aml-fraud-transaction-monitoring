@@ -36,6 +36,16 @@ namespace Jube.Data.Repository
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
+        public Task<EntityAnalysisModelReprocessingRule> GetByNameEntityAnalysisModelIdAsync(string name, int entityAnalysisModelId, CancellationToken token = default)
+        {
+            return dbContext.EntityAnalysisModelReprocessingRule
+                .FirstOrDefaultAsync(f =>
+                    f.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                    && f.EntityAnalysisModelId == entityAnalysisModelId
+                    && (f.Deleted == 0 || f.Deleted == null)
+                    && f.Name.ToLower() == name.ToLower(), token);
+        }
+
         public async Task<IEnumerable<EntityAnalysisModelReprocessingRule>> GetAsync(CancellationToken token = default)
         {
             return await dbContext.EntityAnalysisModelReprocessingRule

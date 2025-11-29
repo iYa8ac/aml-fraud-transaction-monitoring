@@ -11,14 +11,16 @@
  * see <https://www.gnu.org/licenses/>.
  *@
 @page
-@model Jube.App.Pages.Administration.VisualisationRegistry
+@model VisualisationRegistry
 @{
     Layout = "Shared/_Layout";
 }
+
 @section Scripts
 {
     <script src="/js/Administration/VisualisationRegistry.js"></script>
 }
+
 <div class="fCStyle">
     <div id="Homepage">
         <div id="Visualisations" class="bottomPaddedGeneral">
@@ -33,7 +35,7 @@
                         <label for="Name">Name</label>
                     </td>
                     <td>
-                        <input type="text" id="Name" class="k-textbox large" name="Name" required validationMessage="Please enter a valid name for the Model.">
+                        <input type="text" id="Name" class="k-textbox large" name="Name"/>
                     </td>
                 </tr>
                 <tr>
@@ -108,7 +110,7 @@
                         <div id="CreatedDate"></div>
                     </td>
                 </tr>
-            </table>            
+            </table>
         </form>
         <div class="footerStyle">
             <div id="ErrorMessage" class="errorMessage"></div>

@@ -670,4 +670,58 @@ function AddNode(parent, child, name) {
     }
 }
 
+function SearchTreeNodes(query) {
+    const tree = $("#Tree").data("kendoTreeView");
+    if (!tree) return;
+
+    const ds = tree.dataSource;
+
+    query = (query || "").toString().trim().toLowerCase();
+
+    if (!query.length) {
+        ds.filter([]);
+        tree.dataSource.read();
+    } else {
+        ds.filter({
+            logic: "or",
+            filters: [
+                {
+                    field: "name",
+                    operator: function (value) {
+                        return (value || "").toString().toLowerCase().indexOf(query) >= 0;
+                    }
+                }
+            ]
+        });
+
+        sortTreeNodes(ds.view(), "name");
+        tree.expand(".k-item");
+    }
+}
+
+function sortTreeNodes(data, field) {
+    data.sort((a, b) => {
+        const nameA = (a[field] || "").toLowerCase();
+        const nameB = (b[field] || "").toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+    });
+
+    data.forEach(item => {
+        if (item.hasChildren && item.children) {
+            sortTreeNodes(item.children.data(), field);
+        }
+    });
+}
+
+function attachOriginalIndex(nodes) {
+    nodes.forEach((node, index) => {
+        node.originalIndex = index;
+        if (node.hasChildren && node.children) {
+            attachOriginalIndex(node.children.data());
+        }
+    });
+}
+
 //# sourceURL=Tree.js

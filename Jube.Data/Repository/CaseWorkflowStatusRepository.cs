@@ -104,11 +104,13 @@ namespace Jube.Data.Repository
                 && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
-        public Task<CaseWorkflowStatus> GetByNameAsync(string name, CancellationToken token = default)
+        public Task<CaseWorkflowStatus> GetByNameCaseWorkflowIdAsync(string name, int caseWorkflowId, CancellationToken token = default)
         {
             return dbContext.CaseWorkflowStatus.FirstOrDefaultAsync(w =>
                 w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
-                && w.Name == name && (w.Deleted == 0 || w.Deleted == null), token);
+                & w.CaseWorkflowId == caseWorkflowId
+                && w.Name.ToLower() == name.ToLower()
+                && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
         public async Task<CaseWorkflowStatus> InsertAsync(CaseWorkflowStatus model, CancellationToken token = default)
