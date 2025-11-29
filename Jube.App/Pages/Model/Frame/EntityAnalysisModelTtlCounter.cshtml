@@ -11,7 +11,7 @@
  * see <https://www.gnu.org/licenses/>.
  *@
 @page
-@model Jube.App.Pages.Model.Frame.EntityAnalysisModelTtlCounter
+@model EntityAnalysisModelTtlCounter
 
 @{
     Layout = null;
@@ -29,7 +29,7 @@
                     <label for="Name">Name</label>
                 </td>
                 <td>
-                    <input type="text" id="Name" class="k-textbox large" name="Name" required validationMessage="Please enter a valid Name.">
+                    <input type="text" id="Name" class="k-textbox large" name="Name"/>
                     <span class="k-invalid-msg" data-for="Name"></span>
                 </td>
             </tr>
@@ -79,27 +79,33 @@
                             <td>
                                 <ul id="TtlCounterInterval" class="fieldlist">
                                     <li>
-                                        <input type="radio" id="TtlCounterIntervalSecond" name="TtlCounterInterval" class="k-radio" value="s"/>
+                                        <input type="radio" id="TtlCounterIntervalSecond" name="TtlCounterInterval"
+                                               class="k-radio" value="s"/>
                                         <label class="k-radio-label" for="TtlCounterIntervalSecond">Seconds</label>
                                     </li>
                                     <li>
-                                        <input type="radio" class="k-radio" id="TtlCounterIntervalMin" name="TtlCounterInterval" value="n"/>
+                                        <input type="radio" class="k-radio" id="TtlCounterIntervalMin"
+                                               name="TtlCounterInterval" value="n"/>
                                         <label class="k-radio-label" for="TtlCounterIntervalMin">Minutes</label>
                                     </li>
                                     <li>
-                                        <input type="radio" class="k-radio" id="TtlCounterIntervalHour" name="TtlCounterInterval" checked="checked" value="h"/>
+                                        <input type="radio" class="k-radio" id="TtlCounterIntervalHour"
+                                               name="TtlCounterInterval" checked="checked" value="h"/>
                                         <label class="k-radio-label" for="TtlCounterIntervalHour">Hours</label>
                                     </li>
                                     <li>
-                                        <input type="radio" class="k-radio" id="TtlCounterIntervalDay" name="TtlCounterInterval" value="d"/>
+                                        <input type="radio" class="k-radio" id="TtlCounterIntervalDay"
+                                               name="TtlCounterInterval" value="d"/>
                                         <label class="k-radio-label" for="TtlCounterIntervalDay">Days</label>
                                     </li>
                                     <li>
-                                        <input type="radio" class="k-radio" id="TtlCounterIntervalMonth" name="TtlCounterInterval" value="m"/>
+                                        <input type="radio" class="k-radio" id="TtlCounterIntervalMonth"
+                                               name="TtlCounterInterval" value="m"/>
                                         <label class="k-radio-label" for="TtlCounterIntervalMonth">Months</label>
                                     </li>
                                     <li>
-                                        <input type="radio" class="k-radio" id="TtlCounterIntervalYear" name="TtlCounterInterval" value="y"/>
+                                        <input type="radio" class="k-radio" id="TtlCounterIntervalYear"
+                                               name="TtlCounterInterval" value="y"/>
                                         <label class="k-radio-label" for="TtlCounterIntervalYear">Years</label>
                                     </li>
                                 </ul>
@@ -159,8 +165,8 @@
         </table>
         <div class="footerStyle">
             <div id="ErrorMessage" class="errorMessage"></div>
-            <button type="button" id="Add" class="ButtonDefault">Add</button> 
-            <button type="button" id="Update" class="ButtonDefault">Update</button> 
+            <button type="button" id="Add" class="ButtonDefault">Add</button>
+            <button type="button" id="Update" class="ButtonDefault">Update</button>
             <button type="button" id="Delete" class="ButtonDefault">Delete</button>
         </div>
     </div>

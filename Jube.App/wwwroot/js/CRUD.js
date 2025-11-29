@@ -73,16 +73,87 @@ function AddTemplateElements(data, keyName, parentKeyName) {
 }
 
 function DisplayServerValidationErrors(responseObject) {
-    let errorMessage = $("#ErrorMessage");
-    errorMessage.html("Server validation errors occured:").append('<br/>')
-    let list = errorMessage.append("<ul>");
+    const errorMessage = $("#ErrorMessage");
+    errorMessage.empty();
+
+    const container = $(`
+        <div class="server-error-box">
+            <div class="server-error-title">Validation Errors:</div>
+        </div>
+    `);
+
     for (let key in responseObject.errors) {
-        list.append('<li>' + responseObject.errors[key].propertyName + ": " + responseObject.errors[key].errorMessage + '.</li>')
+        const e = responseObject.errors[key];
+
+        container.append(`
+            <div class="server-error-line">${e.errorMessage}</div>
+        `);
+
+        highlightFieldError(e.propertyName, e.errorMessage);
     }
+
+    errorMessage.append(container);
+}
+
+function clearFieldErrorStyles() {
+    const errorMessage = $("#ErrorMessage");
+    errorMessage.empty();
+
+    $(".field-error-highlight").each(function () {
+        $(this).removeClass("field-error-highlight");
+        $(this).removeAttr("title");
+
+        // Destroy tooltip if initialized (Bootstrap)
+        if ($(this).data('bs.tooltip')) {
+            $(this).tooltip('dispose');
+        }
+    });
+}
+
+function highlightFieldError(fieldId, errorMessage) {
+    let field = $(`#${fieldId}`);
+
+    if ($(`input[name='${fieldId}']`).length > 1 && $(`input[name='${fieldId}']`).attr('type') === 'radio') {
+        field = $(`input[name='${fieldId}']`);
+
+        field.each(function () {
+            $(this).addClass("field-error-highlight");
+            $(this).attr("title", errorMessage);
+            $(this).tooltip && $(this).tooltip();
+        });
+        return;
+    }
+
+    if (!field.length) return;
+
+    const widget = field.data("kendoNumericTextBox")
+        || field.data("kendoSwitch")
+        || field.data("kendoTextBox")
+        || field.data("kendoMaskedTextBox")
+        || field.data("kendoDropDownList")
+        || field.data("kendoComboBox")
+        || field.data("kendoMultiSelect")
+        || field.data("kendoDatePicker")
+        || field.data("kendoDateTimePicker");
+
+    if (widget) {
+        const wrapper = widget.wrapper || widget.element.closest(".k-widget");
+        if (wrapper && wrapper.length) {
+            wrapper.addClass("field-error-highlight");
+            wrapper.attr("title", errorMessage);
+            wrapper.tooltip && wrapper.tooltip();
+            return;
+        }
+    }
+
+    field.addClass("field-error-highlight");
+    field.attr("title", errorMessage);
+    field.tooltip && field.tooltip();
 }
 
 function Create(endpoint, data, keyName, parentKeyName, callback) {
     $("#ErrorMessage").html('');
+    clearFieldErrorStyles();
     $.ajax({
         url: endpoint,
         type: "POST",
@@ -93,9 +164,6 @@ function Create(endpoint, data, keyName, parentKeyName, callback) {
             if (jqXHR.status === 400) {
                 let responseObject = jQuery.parseJSON(jqXHR.responseText);
                 DisplayServerValidationErrors(responseObject);
-            }
-            if (jqXHR.status === 204) {
-                $("#ErrorMessage").html(keyNotFound);
             } else {
                 $("#ErrorMessage").html(processingFailed);
             }
@@ -147,6 +215,7 @@ function Create(endpoint, data, keyName, parentKeyName, callback) {
 
 function Update(endpoint, data, keyName, parentKeyName) {
     $("#ErrorMessage").html('');
+    clearFieldErrorStyles();
     $.ajax({
         url: endpoint,
         type: "PUT",
@@ -187,6 +256,7 @@ function Update(endpoint, data, keyName, parentKeyName) {
 
 function Delete(endpoint, key) {
     $("#ErrorMessage").html('');
+    clearFieldErrorStyles();
     $.ajax({
         url: endpoint + "/" + key,
         type: "DELETE",

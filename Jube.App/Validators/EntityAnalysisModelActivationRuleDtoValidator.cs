@@ -11,22 +11,44 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using System.Collections.Generic;
-using FluentValidation;
-using Jube.App.Dto;
-
 namespace Jube.App.Validators
 {
+    using System.Collections.Generic;
+    using Data.Repository;
+    using Dto;
+    using FluentValidation;
+
     public class EntityAnalysisModelActivationRuleDtoValidator : AbstractValidator<EntityAnalysisModelActivationRuleDto>
     {
-        public EntityAnalysisModelActivationRuleDtoValidator()
+        public EntityAnalysisModelActivationRuleDtoValidator(EntityAnalysisModelActivationRuleRepository repository)
         {
+            RuleFor(p => p.Name)
+                .NotEmpty()
+                .MustAsync(async (dto, name, cancellation) =>
+                {
+                    var existing = await repository.GetByNameEntityAnalysisModelIdAsync(name, dto.EntityAnalysisModelId, cancellation);
+
+                    if (existing == null)
+                    {
+                        return true;
+                    }
+
+                    return existing.Id == dto.Id;
+                })
+                .WithMessage("This name already exists.");
+
             RuleFor(p => p.EntityAnalysisModelId).GreaterThan(0);
-            RuleFor(p => p.Name).NotEmpty();
             RuleFor(p => p.Active).NotNull();
             RuleFor(p => p.Locked).NotNull();
 
-            var reviewStatusTypes = new List<int> { 0, 1, 2, 3, 4 };
+            var reviewStatusTypes = new List<int>
+            {
+                0,
+                1,
+                2,
+                3,
+                4
+            };
             RuleFor(p => p.ReviewStatusId)
                 .Must(m => reviewStatusTypes.Contains(m));
 
@@ -36,7 +58,11 @@ namespace Jube.App.Validators
             RuleFor(p => p.Json).NotEmpty();
             RuleFor(p => p.CoderRuleScript).NotNull();
 
-            var ruleTypes = new List<int> { 1, 2 };
+            var ruleTypes = new List<int>
+            {
+                1,
+                2
+            };
             RuleFor(p => p.RuleScriptTypeId).Must(m => ruleTypes.Contains(m));
 
             RuleFor(p => p.EnableCaseWorkflow).NotNull();
@@ -56,7 +82,13 @@ namespace Jube.App.Validators
             RuleFor(p => p.BypassSuspendSample).GreaterThanOrEqualTo(0)
                 .When(w => w.EnableCaseWorkflow && w.EnableBypass);
 
-            var bypassSuspendIntervalTypes = new List<char> { 'n', 'h', 'd', 'm' };
+            var bypassSuspendIntervalTypes = new List<char>
+            {
+                'n',
+                'h',
+                'd',
+                'm'
+            };
             RuleFor(p => p.BypassSuspendInterval)
                 .Must(m => bypassSuspendIntervalTypes.Contains(m))
                 .When(w => w.EnableCaseWorkflow && w.EnableBypass);
@@ -80,7 +112,11 @@ namespace Jube.App.Validators
 
             RuleFor(p => p.EnableNotification).NotNull();
 
-            var notificationTypes = new List<int> { 1, 2 };
+            var notificationTypes = new List<int>
+            {
+                1,
+                2
+            };
             RuleFor(p => p.NotificationTypeId)
                 .Must(m => notificationTypes.Contains(m))
                 .When(w => w.EnableNotification);

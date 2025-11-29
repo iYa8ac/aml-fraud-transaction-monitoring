@@ -43,6 +43,16 @@ namespace Jube.Data.Repository
             this.tenantRegistryId = tenantRegistryId;
         }
 
+        public Task<CaseWorkflowMacro> GetByNameCaseWorkflowIdAsync(string name, int caseWorkflowId, CancellationToken token = default)
+        {
+            return dbContext.CaseWorkflowMacro
+                .FirstOrDefaultAsync(f =>
+                    f.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                    && f.CaseWorkflowId == caseWorkflowId
+                    && (f.Deleted == 0 || f.Deleted == null)
+                    && f.Name.ToLower() == name.ToLower(), token);
+        }
+
         public async Task<IEnumerable<CaseWorkflowMacro>> GetAsync(CancellationToken token = default)
         {
             return await dbContext.CaseWorkflowMacro

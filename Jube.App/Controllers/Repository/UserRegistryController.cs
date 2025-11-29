@@ -71,7 +71,7 @@ namespace Jube.App.Controllers.Repository
 
             mapper = new Mapper(config);
             repository = new UserRegistryRepository(dbContext, userName);
-            validator = new UserRegistryDtoValidator();
+            validator = new UserRegistryDtoValidator(repository);
             this.dynamicEnvironment = dynamicEnvironment;
         }
 

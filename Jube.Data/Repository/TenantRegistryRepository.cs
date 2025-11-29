@@ -25,6 +25,14 @@ namespace Jube.Data.Repository
 
     public class TenantRegistryRepository(DbContext dbContext, string userName)
     {
+        public Task<TenantRegistry> GetByNameAsync(string name, CancellationToken token = default)
+        {
+            return dbContext.TenantRegistry
+                .FirstOrDefaultAsync(f =>
+                    (f.Deleted == 0 || f.Deleted == null)
+                    && f.Name.ToLower() == name.ToLower(), token);
+        }
+
         public async Task<IEnumerable<TenantRegistry>> GetAsync(CancellationToken token = default)
         {
             return await dbContext.TenantRegistry.Where(w => w.Deleted == 0 || w.Deleted == null).ToListAsync(token);

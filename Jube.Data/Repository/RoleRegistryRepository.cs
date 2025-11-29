@@ -43,6 +43,15 @@ namespace Jube.Data.Repository
             tenantRegistryId = tenantRegistry.Id;
         }
 
+        public Task<RoleRegistry> GetByNameAsync(string name, CancellationToken token = default)
+        {
+            return dbContext.RoleRegistry
+                .FirstOrDefaultAsync(f =>
+                    f.TenantRegistryId == tenantRegistryId
+                    && (f.Deleted == 0 || f.Deleted == null)
+                    && f.Name.ToLower() == name.ToLower(), token);
+        }
+
         public async Task<IEnumerable<RoleRegistry>> GetAsync(CancellationToken token = default)
         {
             return await dbContext.RoleRegistry.Where(w => w.TenantRegistryId == tenantRegistryId

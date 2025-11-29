@@ -11,19 +11,31 @@
  * see <https://www.gnu.org/licenses/>.
  *@
 @page
-@model Jube.App.Pages.Tree
+@model Tree
 @{
     Layout = "Shared/_Layout";
 }
+
 @section Scripts
 {
     <script src="/js/Tree.js"></script>
 }
+
 <div id="Splitter">
     <div>
         <div>
+            <input id="TreeSearch" class="k-textbox" placeholder="Search..."/>
             <div id="Tree"></div>
         </div>
     </div>
     <div id="ContentPane"></div>
 </div>
+
+<script>
+    $(document).ready(function () {
+        $("#TreeSearch").on("input", function () {
+            let query = this.value.toLowerCase();
+            SearchTreeNodes(query);
+        });
+    });
+</script>

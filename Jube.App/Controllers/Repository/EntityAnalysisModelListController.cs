@@ -68,7 +68,7 @@ namespace Jube.App.Controllers.Repository
 
             mapper = new Mapper(config);
             repository = new EntityAnalysisModelListRepository(dbContext, userName);
-            validator = new EntityAnalysisModelListDtoValidator();
+            validator = new EntityAnalysisModelListDtoValidator(repository);
         }
 
         protected override void Dispose(bool disposing)

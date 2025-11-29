@@ -68,7 +68,7 @@ namespace Jube.App.Controllers.Repository
 
             mapper = new Mapper(config);
             repository = new VisualisationRegistryParameterRepository(dbContext, userName);
-            validator = new VisualisationRegistryParameterValidator();
+            validator = new VisualisationRegistryParameterValidator(repository);
         }
 
         protected override void Dispose(bool disposing)

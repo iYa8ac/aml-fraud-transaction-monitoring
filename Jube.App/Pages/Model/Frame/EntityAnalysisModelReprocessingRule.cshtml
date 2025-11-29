@@ -11,7 +11,7 @@
  * see <https://www.gnu.org/licenses/>.
  *@
 @page
-@model Jube.App.Pages.Model.Frame.EntityAnalysisModelReprocessingRule
+@model EntityAnalysisModelReprocessingRule
 
 @{
     Layout = null;
@@ -30,7 +30,7 @@
                     <label for="Name">Name</label>
                 </td>
                 <td>
-                    <input type="text" id="Name" class="k-textbox large" name="Name" required validationMessage="Please enter a valid Name.">
+                    <input type="text" id="Name" class="k-textbox large" name="Name"/>
                     <span class="k-invalid-msg" data-for="Name"></span>
                 </td>
             </tr>
@@ -50,18 +50,18 @@
                     <input id="Locked" type="checkbox"/>
                 </td>
             </tr>
-             <tr>
-                 <td>
-                     <label for="Locked" class="k-checkbox-label">Rule</label>
-                 </td>
-                 <td>
-                     <div id="rule"></div>
-                 </td>
-             </tr>           
+            <tr>
+                <td>
+                    <label for="Locked" class="k-checkbox-label">Rule</label>
+                </td>
+                <td>
+                    <div id="rule"></div>
+                </td>
+            </tr>
             <tr>
                 <td><label for="ReprocessingSample">Reprocessing Sample</label></td>
                 <td>
-                    <input id="ReprocessingSample" />
+                    <input id="ReprocessingSample"/>
                 </td>
             </tr>
             <tr>
@@ -77,7 +77,8 @@
                             <label class="k-radio-label" for="Minutes">Hours</label>
                         </li>
                         <li>
-                            <input type="radio" class="k-radio" id="Days" checked name="ReprocessingInterval" value="d"/>
+                            <input type="radio" class="k-radio" id="Days" checked name="ReprocessingInterval"
+                                   value="d"/>
                             <label class="k-radio-label" for="Days">Days</label>
                         </li>
                         <li>
@@ -92,7 +93,7 @@
                     <label for="ReprocessingValue">Reprocessing Interval Value</label>
                 </td>
                 <td>
-                    <input id="ReprocessingValue" value="0" />
+                    <input id="ReprocessingValue" value="0"/>
                 </td>
             </tr>
             <tr>
@@ -122,8 +123,8 @@
         </table>
         <div class="footerStyle">
             <div id="ErrorMessage" class="errorMessage"></div>
-            <button type="button" id="Add" class="ButtonDefault">Add</button> 
-            <button type="button" id="Update" class="ButtonDefault">Update</button> 
+            <button type="button" id="Add" class="ButtonDefault">Add</button>
+            <button type="button" id="Update" class="ButtonDefault">Update</button>
             <button type="button" id="Delete" class="ButtonDefault">Delete</button>
             <button type="button" id="Reprocess" class="ReprocessButton">Reprocess</button>
         </div>

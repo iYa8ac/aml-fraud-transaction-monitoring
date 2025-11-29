@@ -11,17 +11,32 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using FluentValidation;
-using Jube.App.Dto;
-
 namespace Jube.App.Validators
 {
+    using Data.Repository;
+    using Dto;
+    using FluentValidation;
+
     public class CaseWorkflowFilterDtoValidator : AbstractValidator<CaseWorkflowFilterDto>
     {
-        public CaseWorkflowFilterDtoValidator()
+        public CaseWorkflowFilterDtoValidator(CaseWorkflowFilterRepository repository)
         {
+            RuleFor(p => p.Name)
+                .NotEmpty()
+                .MustAsync(async (dto, name, cancellation) =>
+                {
+                    var existing = await repository.GetByNameCaseWorkflowIdAsync(name, dto.CaseWorkflowId, cancellation);
+
+                    if (existing == null)
+                    {
+                        return true;
+                    }
+
+                    return existing.Id == dto.Id;
+                })
+                .WithMessage("This name already exists.");
+
             RuleFor(p => p.CaseWorkflowId).GreaterThan(0);
-            RuleFor(p => p.Name).NotEmpty();
             RuleFor(p => p.Active).NotNull();
             RuleFor(p => p.Locked).NotNull();
 

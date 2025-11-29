@@ -48,6 +48,16 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
+        public Task<VisualisationRegistryParameter> GetByNameVisualisationRegistryIdAsync(string name, int visualisationRegistryId, CancellationToken token = default)
+        {
+            return dbContext.VisualisationRegistryParameter
+                .FirstOrDefaultAsync(f =>
+                    f.VisualisationRegistry.TenantRegistryId == tenantRegistryId
+                    && f.VisualisationRegistryId == visualisationRegistryId
+                    && (f.Deleted == 0 || f.Deleted == null)
+                    && f.Name.ToLower() == name.ToLower(), token);
+        }
+
         public async Task<IEnumerable<VisualisationRegistryParameter>> GetAsync(CancellationToken token = default)
         {
             return await dbContext.VisualisationRegistryParameter

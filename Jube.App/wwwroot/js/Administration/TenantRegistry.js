@@ -56,6 +56,7 @@ $(document).ready(function () {
         $("#Back").kendoButton({
             click: function () {
                 showHomePage();
+                clearFieldErrorStyles();
             }
         });
 

@@ -15,10 +15,12 @@
 @{
     Layout = "Shared/_Layout";
 }
+
 @section Scripts
 {
     <script src="/js/Administration/TenantRegistry.js"></script>
 }
+
 <div class="fCStyle">
     <div id="Homepage">
         <div id="Tenants" class="bottomPaddedGeneral">
@@ -33,7 +35,7 @@
                         <label for="Name">Name</label>
                     </td>
                     <td>
-                        <input type="text" id="Name" class="k-textbox large" name="Name" required validationMessage="Please enter a valid name for the Model.">
+                        <input type="text" id="Name" class="k-textbox large" name="Name"/>
                     </td>
                 </tr>
                 <tr>

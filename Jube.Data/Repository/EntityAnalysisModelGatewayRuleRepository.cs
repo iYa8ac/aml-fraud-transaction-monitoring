@@ -48,6 +48,16 @@ namespace Jube.Data.Repository
             this.dbContext = dbContext;
         }
 
+        public Task<EntityAnalysisModelGatewayRule> GetByNameEntityAnalysisModelIdAsync(string name, int entityAnalysisModelId, CancellationToken token = default)
+        {
+            return dbContext.EntityAnalysisModelGatewayRule
+                .FirstOrDefaultAsync(f =>
+                    f.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                    && f.EntityAnalysisModelId == entityAnalysisModelId
+                    && (f.Deleted == 0 || f.Deleted == null)
+                    && f.Name.ToLower() == name.ToLower(), token);
+        }
+
         public async Task<IEnumerable<EntityAnalysisModelGatewayRule>> GetAsync(CancellationToken token = default)
         {
             return await dbContext.EntityAnalysisModelGatewayRule
