@@ -1288,10 +1288,9 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(1)] public string Code { get; set; }
         [Column] [Nullable] [Key(2)] public string Dependency { get; set; }
-        [Column] [Nullable] [Key(3)] public string ClassName { get; set; }
-        [Column] [Nullable] [Key(4)] public string MethodName { get; set; }
-        [Column] [Nullable] [Key(5)] public string Name { get; set; }
-        [Column] [Nullable] [Key(6)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(3)] public string Name { get; set; }
+        [Column] [Nullable] [Key(4)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(5)] public byte? LanguageId { get; set; }
     }
 
     [Table]

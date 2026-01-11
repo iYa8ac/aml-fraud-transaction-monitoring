@@ -127,7 +127,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke
                 }
 
                 IncrementModelInvokeCounter(context);
-                
+
                 await context.CheckIntegrityAndUpsertAsync(context.EntityAnalysisModel.Services.CacheService).ConfigureAwait(false);
 
                 if (context.Log.IsInfoEnabled)
@@ -140,7 +140,9 @@ namespace Jube.Engine.EntityAnalysisModelInvoke
                         $"Has updated reference date for model {context.EntityAnalysisModel.Instance.Id} to {context.EntityAnalysisModelInstanceEntryPayload.ReferenceDate}");
                 }
 
-                context.ExecuteInlineFunctions().ExecuteInlineScripts().ExecuteGatewayRules();
+                context.ExecuteInlineFunctions();
+                await context.ExecuteInlineScriptsAsync();
+                context.ExecuteGatewayRules();
 
                 if (context.EntityAnalysisModelInstanceEntryPayload.MatchedGatewayRule)
                 {
@@ -181,7 +183,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke
                     $"Entity Invoke: {context.EntityAnalysisModel.Instance.Id} has created a general error as {ex}.");
             }
         }
-        
+
         private static void IncrementModelInvokeCounter(Context.Context context)
         {
             context.EntityAnalysisModel.Counters.ModelInvokeCounter += 1;

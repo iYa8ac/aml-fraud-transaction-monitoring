@@ -51,11 +51,11 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
                         if (log.IsInfoEnabled)
                         {
                             log.Info(
-                                $"Abstraction Rule Caching: For model {entityAnalysisModel.Instance.Id} and grouping key {distinctSearchKey.SearchKey} will calculate the date threshold for this grouping key to be run.  It was last run on {entityAnalysisModel.Dependencies.LastAbstractionRuleCache.ContainsKey(distinctSearchKey.SearchKey)} and the SearchKey Cache Interval Type is {distinctSearchKey.SearchKeyCacheIntervalType} and the Search Key Cache Interval Value{distinctSearchKey.SearchKeyCacheIntervalValue}.");
+                                $"Abstraction Rule Caching: For model {entityAnalysisModel.Instance.Id} and grouping key {distinctSearchKey.SearchKey} will calculate the date threshold for this grouping key to be run.  It was last run on {entityAnalysisModel.Dependencies.LastAbstractionRuleCache.ContainsKey(distinctSearchKey.SearchKey)} and the SearchKey Cache Interval Type is {distinctSearchKey.SearchKeyCacheInterval} and the Search Key Cache Interval Value{distinctSearchKey.SearchKeyCacheValue}.");
                         }
 
-                        var dateThreshold = DateAndTime.DateAdd(distinctSearchKey.SearchKeyCacheIntervalType,
-                            distinctSearchKey.SearchKeyCacheIntervalValue, value);
+                        var dateThreshold = DateAndTime.DateAdd(distinctSearchKey.SearchKeyCacheInterval,
+                            distinctSearchKey.SearchKeyCacheValue, value);
 
                         if (log.IsInfoEnabled)
                         {

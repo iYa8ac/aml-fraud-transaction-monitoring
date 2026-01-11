@@ -188,11 +188,24 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
 
         private static double GetLongitude(Context context)
         {
-
-            var longitudeFieldName = context.EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.FirstOrDefault(f => f.DataTypeId == 7)?.Name;
             var longitudeValue = 0d;
-            if (longitudeFieldName == null)
+            var longitudeFieldName = context.EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.FirstOrDefault(f => f.DataTypeId == 6)?.Name;
+
+            if (String.IsNullOrEmpty(longitudeFieldName))
             {
+                foreach (var entityAnalysisModelInlineScriptPropertyAttribute in
+                         context.EntityAnalysisModel.Collections.EntityAnalysisModelInlineScripts
+                             .SelectMany(entityAnalysisModelInlineScript => entityAnalysisModelInlineScript.EntityAnalysisModelInlineScriptPropertyAttributes
+                                 .Where(entityAnalysisModelInlineScriptPropertyAttribute => entityAnalysisModelInlineScriptPropertyAttribute.Value.Latitude)))
+                {
+                    longitudeFieldName = entityAnalysisModelInlineScriptPropertyAttribute.Key;
+
+                    if (String.IsNullOrEmpty(longitudeFieldName))
+                    {
+                        return longitudeValue;
+                    }
+                }
+
                 return longitudeValue;
             }
 
@@ -206,11 +219,24 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
 
         private static double GetLatitude(Context context)
         {
-
-            var latitudeFieldName = context.EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.FirstOrDefault(f => f.DataTypeId == 6)?.Name;
             var latitudeValue = 0d;
-            if (latitudeFieldName == null)
+            var latitudeFieldName = context.EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.FirstOrDefault(f => f.DataTypeId == 7)?.Name;
+
+            if (String.IsNullOrEmpty(latitudeFieldName))
             {
+                foreach (var entityAnalysisModelInlineScriptPropertyAttribute in
+                         context.EntityAnalysisModel.Collections.EntityAnalysisModelInlineScripts
+                             .SelectMany(entityAnalysisModelInlineScript => entityAnalysisModelInlineScript.EntityAnalysisModelInlineScriptPropertyAttributes
+                                 .Where(entityAnalysisModelInlineScriptPropertyAttribute => entityAnalysisModelInlineScriptPropertyAttribute.Value.Latitude)))
+                {
+                    latitudeFieldName = entityAnalysisModelInlineScriptPropertyAttribute.Key;
+
+                    if (String.IsNullOrEmpty(latitudeFieldName))
+                    {
+                        return latitudeValue;
+                    }
+                }
+
                 return latitudeValue;
             }
 

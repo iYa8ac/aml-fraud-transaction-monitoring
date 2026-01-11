@@ -24,6 +24,7 @@ namespace Jube.App.Controllers.Helper
     using Code;
     using Data.Context;
     using Data.Repository;
+    using Data.SyntaxTree;
     using Dto;
     using Dto.Requests;
     using DynamicEnvironment;
@@ -90,6 +91,8 @@ namespace Jube.App.Controllers.Helper
                     _ => await EntityAnalysisModelRequestXPathsAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false)
                 };
 
+                var entityAnalysisModelInlineScriptProperties = await EntityAnalysisModelInlineScriptPropertiesAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
+
                 var entityAnalysisModelsLists
                     = await EntityAnalysisModelListsAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
 
@@ -132,6 +135,7 @@ namespace Jube.App.Controllers.Helper
                 )
                 {
                     EntityAnalysisModelRequestXPaths = entityAnalysisModelRequestXPaths,
+                    EntityAnalysisModelInlineScriptProperties = entityAnalysisModelInlineScriptProperties,
                     EntityAnalysisModelAbstractionCalculations = entityAnalysisModelAbstractionCalculations,
                     EntityAnalysisModelsAbstractionRule = entityAnalysisModelsAbstractionRule,
                     EntityAnalysisModelsTtlCounters = entityAnalysisModelsTtlCounters,
@@ -186,7 +190,7 @@ namespace Jube.App.Controllers.Helper
                         };
 
                         var compile = new Compile();
-                        compile.CompileCode(parsedRule.ParsedRuleText, log, refs);
+                        compile.CompileCode(parsedRule.ParsedRuleText, log, refs, Compile.Language.Vb);
 
                         if (!compile.Success)
                         {
@@ -239,6 +243,24 @@ namespace Jube.App.Controllers.Helper
                     Message = "Error"
                 };
             }
+        }
+
+        private async Task<Dictionary<string, int>> EntityAnalysisModelInlineScriptPropertiesAsync(int entityAnalysisModelId, CancellationToken token = default)
+        {
+            var value = new Dictionary<string, int>();
+            var entityAnalysisModelInlineScriptRepository = new EntityAnalysisModelInlineScriptRepository(dbContext, userName);
+            var entityAnalysisModelInlineScripts = await entityAnalysisModelInlineScriptRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+            var entityAnalysisInlineScriptRepository = new EntityAnalysisInlineScriptRepository(dbContext);
+
+            foreach (var entityAnalysisModelInlineScript in entityAnalysisModelInlineScripts)
+            {
+                var entityAnalysisInlineScript = await entityAnalysisInlineScriptRepository.GetByIdAsync(entityAnalysisModelInlineScript.Id, token);
+                foreach (var publicProperty in SyntaxTreeHelpers.GetPublicProperties(entityAnalysisInlineScript.Code, entityAnalysisInlineScript.LanguageId == 2))
+                {
+                    value.Add(publicProperty.Key, publicProperty.Value);
+                }
+            }
+            return value;
         }
 
         private async Task<List<string>> EntityAnalysisModelsHttpAdaptationsAsync(int entityAnalysisModelId, CancellationToken token = default)

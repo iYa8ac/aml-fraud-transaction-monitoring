@@ -9,42 +9,62 @@ grand_parent: Configuration
 🚀Speed up implementation with hands-on, face-to-face [training](https://www.jube.io/jube-training) from the developer.
 
 # Inline Scripts
-The models inside Jube are extensible via the use of Inline Scripts.  
 
-Inline Scripts once registered in the database are available for all models, however they must be registered in a model for the payload to be populated in the same manner as Request XPath (i.e. it is available in the rules in the Payload collection).  
+Models inside Jube are extensible via the use of Inline Scripts. Inline Scripts use the processing context after
+preparation of model invocation headers, Request XPath and Inline Functions. Inline Scripts exist as a means to
+integrate external systems and
+enrich payload values.
 
-The system wide Inline Script (which can be added only through direct entry to the database table EntityAnalysisInlineScript as follows) is as per the following specification,  and is here intended to dispatch a one time password to a mobile device.  There is a default Inline Script which produces a random three digit string of six characters in length, whereby the following configuration exist in the EntityAnalysisInlineScript table:
+Inline Scripts once registered in the database are available for all models, however they must be registered in a model
+for the payload to be populated in the same manner as Request XPath (i.e. it is available for the rules in the Payload
+collection).
+
+The system wide Inline Script (which can be added only through direct entry to the database table
+EntityAnalysisInlineScript as follows) is as per the following specification, and is intended to showcase the following
+functionality:
+
+* The required signatures for the invocation method, implementring IInlineScript required interface.
+* The exposure of public properties to make data available to context payload and processing.
+* The availability of attributes to allow for similar functionality to that available in Request XPath on public
+  properties.
+* The implementation of the ExecuteAsync() method from IInlineScript interface.
 
 ``` sql
 select * from EntityAnalysisInlineScript
 ```
 
+The EntityAnalysisInlineScript table in the database contais the following fields:
+
+| Field      | Example               | Description                                                                                                                                 
+|------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| Code       | As below.             | The Inline Script source code,  likely validated externally using the Jube.Sandbox project.                                                 |    
+| Dependency | IPTO.World.dll        | Any third party DLL's required are declared here, separated with ;. The DLL must be copied to the same directory as the Jube.Engine binary. |
+| Name       | Example Inline Script | The name of the InlineScript, and available in model configuration.                                                                         |
+| LanguageId | 2                     | 1 for Visual Basic,  2 for C#.                                                                                                              |
+
 ![Image](InlineScriptInDatabase.png)
 
-The database contains code as follows:
+The database contains the following Visual Basic code to provide a "straight through", No IO, demonstration in the
+default
+environment, while also showing a minimal VB.net example (which is to say LanguageId = 1):
 
 ```vb
-
-Imports log4net
 Imports System
-Imports System.Collections.Generic
-Imports Microsoft.VisualBasic
+Imports System.Net.Http
+Imports System.Threading
+Imports System.Threading.Tasks
+Imports Newtonsoft.Json.Linq
+Imports Jube.Engine.Attributes
+Imports Jube.Engine.EntityAnalysisModelInvoke.Context
+Imports Jube.Engine.Interfaces
 
 Public Class IssueOTP
-Inherits System.Attribute
-
-	<ReportTable>
+Implements IInlineScript
 	Public Property OTP As String
 
-	Private _log as ILog
-
-	Public Sub New(Log As ILog)
-		_log = Log
-	End Sub
-
-	Public Sub Execute(Data As Dictionary(Of String,Object), Log As ILog)
-		Data.Add("OTP", RandomDigits(6))
-	End Sub
+	Public Async Function ExecuteAsync(context As Context) As Task Implements IInlineScript.ExecuteAsync
+        OTP = RandomDigits(6)
+    End Function
 	
 	Private Function RandomDigits(ByVal length As Integer) As String
 	    Dim random = New Random()
@@ -58,58 +78,168 @@ Inherits System.Attribute
 	End Function	
 End Class
 ```
-An InlineScript is a complete .Net class written in VB.net (although C# will be supported in the future), and starts out with all of the Imports statements,  being the references,  at the top of the class:
 
-```vb
-Imports log4net
-Imports System
-Imports System.Collections.Generic
-Imports Microsoft.VisualBasic
+The Jube.Sandbox project meanwhile contains the following code C# (which is to say LanguageId = 2):
+
+```csharp
+//The following are the minimum .Net libraries to make this work, however,  if using the Jube.Sandbox,  this will be shown,  as the project file is set to not default any assemblies and will be a like for like compile.
+using System;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+
+//All assemblies are passed on the basis of what the Jube.App context is using, so nearly all libraries are supported.
+using Newtonsoft.Json.Linq;
+
+//The following are Jube libraries that contain the context and Inline Script attributes.
+using Jube.Engine.Attributes;
+using Jube.Engine.EntityAnalysisModelInvoke.Context;
+using Jube.Engine.Interfaces;
+
+public class Example : IInlineScript //Class entry point is the first implementation of IInlineScript found in reflection
+{
+    //Attributes overlap with the same options available in Request XPath
+    [ReportTable]    //ReportTable is evaluated on recall.
+    [ResponsePayload]//ResponsePayload is evaluated in model synchronization and used in model response preparation.
+    [Latitude]       //Latitude is evaluated in model synchronization and is used during model activation watcher dispatch.
+    [Longitude]      //Longitude is evaluated in model synchronization and is used during model activation watcher dispatch.
+    [SearchKey(SearchKeyTtlInterval = "h",
+        SearchKeyTtlIntervalValue = 1,
+        SearchKeyFetchLimit = 100,
+        SearchKeyCache = false,
+        SearchKeyCacheInterval = "d",
+        SearchKeyCacheValue = 1,
+        SearchKeyCacheSample = true,
+        SearchKeyCacheFetchLimit = 100,
+        SearchKeyCacheTtlInterval = "h",
+        SearchKeyCacheTtlValue = 1)]      //SearchKey ensures that this is exposed in for aggregation in both the background engine.
+    public string? UserAgent { get; set; }//Public properties are available for processing, being analogous,  when taken together with attributes, to a Request XPath entry
+
+    public async Task ExecuteAsync(Context context)//Method entry point.  The Context object gives access to all resources that would otherwise be available during invocation.
+    {
+        //Example HTTP Call with the fetching of data from the context.
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
+        client.DefaultRequestHeaders.Add("IP", context.EntityAnalysisModelInstanceEntryPayload.Payload["IP"]);//Here we are looking at the context, and while we are only extracting data here,  full access to all application resources are available in this context,  such as logging.
+        var response = await client.GetStringAsync("https://postman-echo.com/get");                           //Get the data from remote using the standard HTTP client.
+
+        //Example Parse and transpose to payload.
+        var jObject = JObject.Parse(response);//The response stream is processed using Newtonsoft
+        var userAgent = (string)jObject["headers"]?["user-agent"] ?? "Unknown";
+        UserAgent = userAgent;//Set the property.  The data is now read from the property using reflection.
+    }
+}
 ```
 
-After the Imports statements,  the class can be declared and named:
+The Jube.Sandbox code, which is a project under the Jube solution, will provide the basis for further explanation as
+follows. C# is the recomended Inline Script language.
 
-```vb
-Public Class Example
- Inherits System.Attribute ''Don't forget this
- ''Properties and Attributes Go Here
- ''Methods Go Here
-End Class
+The Jube.Sandbox is a project in the Jube solution and is configured to diasslow implicit usings, and hence represents a
+tight representation of the codes runtime environment. The Jube.Sandbox has a program and main application entry point
+which allows for the creation of mock context:
+
+```
+using Jube.Dictionary;
+using Jube.Engine.EntityAnalysisModelInvoke.Context;
+using Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
+
+var context = new Context {
+    EntityAnalysisModelInstanceEntryPayload = new EntityAnalysisModelInstanceEntryPayload
+    {
+        Payload = new DictionaryNoBoxing
+        {
+            {
+                "IP", "123.123.123.123"
+            }
+        }
+    }
+};
+
+var exampleInlineScript = new Example();
+await exampleInlineScript.ExecuteAsync(context);
 ```
 
-The class at a minimum must contain two methods conforming to the following signatures:
+Therafter invoking the script set out above.
 
-```vb
-Public Sub New(Log As ILog)
-  ''You can do anything here that can be accomplished in .Net.
-End Sub
+An InlineScript is a complete .NET class written in VB.net or C#, and starts out
+with all of the required using statements at the top of the class:
 
-Public Sub Execute(Data As BsonDocument, Log As ILog)
-  ''You can do anything here that can be accomplished in .Net.
-End Sub
-```
-The class behaves exactly as any .Net class would,  the New() sub routine is the invoked only the once and upon the instantiation of the class.  The New method can be used to instantiate objects that will be available for the lifetime of the object.  Henceforth,  if there are any tasks which are expensive, they should be done just the once at the point the class is loaded.  The New() sub routine takes a reference to the Log4Net logging such that logs can be created from the InlineScript for visibility.
-
-The Execute() sub routine is called on each and every transaction or event, taking the an Object Dictionary and the Log4Net logging as its parameters.  The Data Dictionary is a reference, hence any appends to the document will be available in subsequent processing, the same process calling the class upstream.
-
-To return values from the Execute() sub routine,  append key value pairs to the Data Dictionary:
-
-```vb
-	Public Sub Execute(Data As Dictionary(Of String,Object), Log As ILog)
-		Data.Add("Key","Value") 
-	End Sub
+```csharp
+using System;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using Jube.Engine.Attributes;
+using Jube.Engine.EntityAnalysisModelInvoke.Context;
+using Jube.Engine.Interfaces;
 ```
 
-If the data is being added to the Data Dictionary,  or payload, it should be exposed to the User Interface also such that rules can be created to target the value.  Meta data for payload is exposed as a public property in the class with certain attribute decoration to emulate configuration available in Request XPath:
+After the using statements, the class can be declared, implementing the IInlineScript interface, and named as desired (
+it can be anything that is not a reserved C# token):
 
-```vb
-<ReportTable>
-<ResponsePayload>
-<SearchKey(CacheKey:=False, CacheKeyIntervalType:="s", CacheKeyIntervalValue:=10, FetchLimit:=100, CacheKeyIntervalTTLType:="d", CacheKeyIntervalTTLValue:=1)>   
-Public Property Key As String
+```csharp
+public class Example : IInlineScript
+{
+}
 ```
 
-As a property is typed (e.g. Public Property Hello as String) the data type will be taken from the property type, supporting the following types only:
+During syncronisation the IInlineScript interface implementation is inspected and the class taken to be the application
+entry point.
+
+The class at a minimum must contain one method conforming to the following signature, and otherwise enforced as per
+the IInlineScript interface:
+
+```vb
+public async Task ExecuteAsync(Context context)
+{
+}
+```
+
+The ExecuteAsync() method is called on each and every invocation, taking the invocation context as a parameter.
+
+The invocation context is a reference, hence updates to the context will be available in subsequent invocation pipeline
+processing, the same process calling the class upstream. To return values from the ExecuteAsync() method, simply set the
+value of a public property, as can be seen in the setting of UserAgent string as below:
+
+```csharp
+    public async Task ExecuteAsync(Context context)
+    {
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
+        client.DefaultRequestHeaders.Add("IP", context.EntityAnalysisModelInstanceEntryPayload.Payload["IP"]);
+        
+        var response = await client.GetStringAsync("https://postman-echo.com/get");
+        
+        var jObject = JObject.Parse(response);
+        var userAgent = (string)jObject["headers"]?["user-agent"] ?? "Unknown";
+        UserAgent = userAgent;
+```
+
+Payload is exposed as a public property in the class with
+certain attribute decoration to emulate configuration available in Request XPath (keeping in mind that Inline Scripts
+serve much the same function, the aggregation of payload data before processing):
+
+```csharp  
+    [ReportTable]
+    [ResponsePayload]
+    [Latitude]
+    [Longitude]
+    [SearchKey(SearchKeyTtlInterval = "h",
+        SearchKeyTtlIntervalValue = 1,
+        SearchKeyFetchLimit = 100,
+        SearchKeyCache = false,
+        SearchKeyCacheInterval = "d",
+        SearchKeyCacheValue = 1,
+        SearchKeyCacheSample = true,
+        SearchKeyCacheFetchLimit = 100,
+        SearchKeyCacheTtlInterval = "h",
+        SearchKeyCacheTtlValue = 1)]
+    public string? UserAgent { get; set; }
+```
+
+As a property declared with a type (e.g. Public Property Hello as String) the data type will be taken from the property
+type, supporting the following types only:
 
 * String.
 * Integer.
@@ -117,41 +247,57 @@ As a property is typed (e.g. Public Property Hello as String) the data type will
 * Date.
 * Boolean.
 
-Note that attribute decoration is available to achieve similar functionality as Request XPath manual definitions:
+Note that attribute decoration is available to achieve similar functionality as Request XPath documentation definitions,
+given that attributes are intended to emulate that functionality:
 
 * ResponsePayload.
 * ReportTable.
+* Latitude
+* Longitude
 * SearchKey.
 
-The existence of the ResponsePayload or ReportTable attribute is straight boolean,  the existence of which will be taken to be true (inserting records into the ArchiveKey table), the absence is false.  The SearchKey has more parameters available in the attribute:
+The existence of the ResponsePayload or ReportTable attribute is boolean inference, the existence of which will
+be taken to be true (inserting records into the ArchiveKey table), the absence is false. The SearchKey has more parameters
+available in the attribute:
 
-| Value                  | Description                                                                        | Example |
-|------------------------|------------------------------------------------------------------------------------|---------|
-| CacheKey               | A flag indicating that the Cache Key is to be sent to the Search Key Cache Server. | True    |
-| CacheKeyIntervalType   | The interval of reprocessing for the Search Key Cache Server.                      | d       |
-| CacheKeyIntervalValue  | The interval value for the Search Key Cache Server.                                | 1       |
+| Value                     | Example |
+|---------------------------|---------|
+| SearchKeyTtlInterval      | h       |
+| SearchKeyTtlIntervalValue | 1       |
+| SearchKeyFetchLimit       | 100     |
+| SearchKeyCache            | false   |
+| SearchKeyCacheInterval    | d       |
+| SearchKeyCacheValue       | 1       |
+| SearchKeyCacheSample      | true    |
+| SearchKeyCacheFetchLimit  | 100     |
+| SearchKeyCacheTtlInterval | h       |
+| SearchKeyCacheTtlValue    | 1       |
 
-When an Inline Script is invoked, the payload data is passed,  with the Inline Script being expected to be adding data to that payload, the updating of properties has no practical effect in model invocation.
+For each public property post invocation of the Inline Script, the public property value will be added to the context (in the same manner as Request XPath would be), 
+and it does not need to be added manually (although it can be if for any reason the value needs to be silent).
 
-In the event that the Inline Script fails to compile,  a log entry will be written out with the compile errors at the INFO level.  It is advisable to compile the class as part of a separate project before promoting in the database.
+In the event that the Inline Script fails to compile, a log entry will be written out with the compile errors at the
+ERROR level. It is advisable to compile the class as part of a separate project before promoting in the database, and
+the Jube.Sandbox project is made available for this purpose.
 
-To promote an InlineScript to Jube, it is a question of inserting the class to a table in the database entitled InlineScript:
+To promote an InlineScript to Jube, it is a question of inserting the class to a table in the database titled
+InlineScript:
 
 ```sql
 insert into InlineScript
-  (InlineScript,
-    Dependencies,
-    ClassName,
-    MethodName)
-Values(
-    @TheInlineScriptAsAbove, --This would be the full text of the Inline Script.
-    @TheClassName, --There may be many class specifications,  hence specify the class where the methods and properties are available.  In this case IssueOTP.
-    @AnyDLLsRequired, --Any third party DLL's required are declared here,  separated with ;. The DLL must be copied to the same directory as the Jube Engine executable. None here.
-    @MethodName --The namne of the public invocation method,  in this case Execute
-);
+(Code,
+ Name,
+ Dependency,
+ Name,
+ LanguageId)
+Values (@TheInlineScriptAsAbove,
+        @TheNameAvailableToEndUsers,
+        @AnyDLLsRequired,
+        @VisualBasicOrC#);
 ```
 
-The Inline Script page exists to facilitate the registration of Inline Scripts for a model. The page is available by navigating through the menu as Models >> References >> Inline Scripts:
+The Inline Script page exists to facilitate the registration of Inline Scripts for a model. The page is available by
+navigating through the menu as Models >> References >> Inline Scripts:
 
 ![Index](InlineScriptTopOfTree.png)
 
@@ -161,9 +307,9 @@ Add a new Inline Script by clicking an Entity Model entry in the tree towards th
 
 The parameters available to Inline Script allocation in the model are:
 
-| Value                       | Description                                                               | Example    |
-|-----------------------------|---------------------------------------------------------------------------|------------|
-| Inline Script               | The Inline Script to be invoked on each request being made to the model.  | Issue OTP  |
+| Value         | Description                                                              | Example   |
+|---------------|--------------------------------------------------------------------------|-----------|
+| Inline Script | The Inline Script to be invoked on each request being made to the model. | Issue OTP |
 
 Complete the page as above parameter and as follows:
 
@@ -173,10 +319,15 @@ Click Add to create the first version of this Inline Script allocation in the mo
 
 ![Image](InlineScriptAdded.png)
 
-Synchronise the model via Entity >> Synchronisation and repeat the HTTP POST to endpoint [https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc](https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc) for response as follows:
+Synchronise the model via Entity >> Synchronisation and repeat the HTTP POST to
+endpoint [https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc](https://localhost:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d1-cb7a24a969cc)
+for response as follows:
 
 ![Image](OTPPopulatedInResponsePayload.png)
 
-Notice a field added as "OTP" in the response, which was also exposed by the Inline Script as being a property such that it is available in the rule builder and coder. Keep in mind that an Inline Script can expose many properties and add many elements,  hence the name of the inline script itself has limited relevance.
+Notice a field added as "OTP" in the response, which was also exposed by the Inline Script as being a property such that
+it is available in the rule builder and coder. Keep in mind that an Inline Script can expose many properties and add
+many elements, hence the name of the inline script itself has limited relevance.
 
-Although the inline script set out above is basic, simply appending a value to the payload as if it had been passed originally in the request JSON,  Inline Scripts can be used for far more complex integration and data processing.
+Although the inline script set out above is basic, simply appending a value to the payload as if it had been passed
+originally in the request JSON, Inline Scripts can be used for far more complex integration and data processing.

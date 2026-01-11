@@ -20,35 +20,69 @@ namespace Jube.Parser.Compiler
     using System.Reflection;
     using log4net;
     using Microsoft.CodeAnalysis;
+    using Microsoft.CodeAnalysis.CSharp;
+    using Microsoft.CodeAnalysis.Emit;
     using Microsoft.CodeAnalysis.VisualBasic;
+    using LanguageVersion=Microsoft.CodeAnalysis.VisualBasic.LanguageVersion;
 
     public class Compile
     {
+
+        public enum Language
+        {
+            Vb,
+            CSharp
+        }
+
         public bool Success;
         public Assembly CompiledAssembly { get; set; }
         // ReSharper disable once MemberCanBePrivate.Global
         public IEnumerable<Diagnostic> Errors { get; set; }
 
-        public void CompileCode(string code, ILog log, string[] refs)
+        public void CompileCode(string code, ILog log, string[] refs, Language language)
         {
             var assemblyGuid = Guid.NewGuid().ToString();
 
             if (log.IsInfoEnabled)
             {
                 log.Info("Roslyn Compilation in VB.net: Is about to compile the code " + code +
-                         " with the assembly GUID of " + assemblyGuid + ".");   
-            }
-
-            var compilation = VisualBasicCompilationConfig(code, log, refs, assemblyGuid);
-
-            if (log.IsInfoEnabled)
-            {
-                log.Info(
-                    "Roslyn Compilation in VB.net: Has configured the compiler and will now proceed to compile the code.");
+                         " with the assembly GUID of " + assemblyGuid + ".");
             }
 
             var peStream = new MemoryStream();
-            var result = compilation.Emit(peStream);
+            EmitResult result = null;
+            if (language == Language.Vb)
+            {
+                var compilation = VisualBasicCompilationConfig(code, log, refs, assemblyGuid);
+
+                if (log.IsInfoEnabled)
+                {
+                    log.Info(
+                        "Roslyn Compilation in VB.net: Has configured the compiler and will now proceed to compile the code.");
+                }
+
+                result = compilation.Emit(peStream);
+            }
+            else if (language == Language.CSharp)
+            {
+                var compilation = CSharpCompilationConfig(code, log, refs, assemblyGuid);
+
+                if (log.IsInfoEnabled)
+                {
+                    log.Info(
+                        "Roslyn Compilation in VB.net: Has configured the compiler and will now proceed to compile the code.");
+                }
+
+                result = compilation.Emit(peStream);
+            }
+            else
+            {
+                if (log.IsInfoEnabled)
+                {
+                    log.Info(
+                        "Roslyn Compilation in VB.net: Invalid language.");
+                }
+            }
 
             if (log.IsInfoEnabled)
             {
@@ -56,7 +90,7 @@ namespace Jube.Parser.Compiler
                     "Roslyn Compilation in VB.net: Code compilation process has concluded.  Will now inspect any errors.");
             }
 
-            if (!result.Success)
+            if (result is { Success: false })
             {
                 var failures = result.Diagnostics.Where(diagnostic =>
                     diagnostic.IsWarningAsError || diagnostic.Severity == DiagnosticSeverity.Error);
@@ -97,7 +131,7 @@ namespace Jube.Parser.Compiler
             }
         }
 
-        private static VisualBasicCompilation VisualBasicCompilationConfig(string code, ILog log,
+        private static Compilation VisualBasicCompilationConfig(string code, ILog log,
             IReadOnlyList<string> refs,
             string assemblyGuid)
         {
@@ -109,6 +143,22 @@ namespace Jube.Parser.Compiler
 
             var compilation = VisualBasicCompilation.Create(assemblyGuid)
                 .AddSyntaxTrees(VisualBasicSyntaxTree.ParseText(code, parseOptions))
+                .WithReferences(references).WithOptions(compileOptions);
+            return compilation;
+        }
+
+        private static Compilation CSharpCompilationConfig(string code, ILog log,
+            IReadOnlyList<string> refs,
+            string assemblyGuid)
+        {
+            var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest);
+            var compileOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+                optimizationLevel: OptimizationLevel.Release);
+
+            var references = MetadataReferences(log, refs);
+
+            var compilation = CSharpCompilation.Create(assemblyGuid)
+                .AddSyntaxTrees(CSharpSyntaxTree.ParseText(code, parseOptions))
                 .WithReferences(references).WithOptions(compileOptions);
             return compilation;
         }

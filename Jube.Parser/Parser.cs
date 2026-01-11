@@ -27,6 +27,7 @@ namespace Jube.Parser
         private readonly ILog log;
         private readonly List<string> ruleScriptTokens;
         public List<string> EntityAnalysisModelAbstractionCalculations;
+        public Dictionary<string, int> EntityAnalysisModelInlineScriptProperties;
         public Dictionary<string, EntityAnalysisModelRequestXPath> EntityAnalysisModelRequestXPaths;
         public List<string> EntityAnalysisModelsAbstractionRule;
         public List<string> EntityAnalysisModelsDictionaries;
@@ -628,7 +629,7 @@ namespace Jube.Parser
                 sb.AppendLine("Log.Info(ex.ToString)");
                 sb.AppendLine("End Try");
             }
-            
+
             sb.AppendLine("End Function");
             sb.AppendLine("End Class");
             parsedRule.ParsedRuleText = sb.ToString();
@@ -684,7 +685,7 @@ namespace Jube.Parser
                                 var asFunction = ".AsString()";
                                 var databaseCast = "";
                                 var defaultValue = "";
-                                if (EntityAnalysisModelRequestXPaths != null)
+                                if (EntityAnalysisModelRequestXPaths != null || EntityAnalysisModelInlineScriptProperties != null)
                                 {
                                     if (EntityAnalysisModelRequestXPaths.ContainsKey(elements[k]))
                                     {
@@ -773,6 +774,30 @@ namespace Jube.Parser
                                                     .DefaultValue + "'";
                                                 break;
                                         }
+                                    }
+                                    else if (EntityAnalysisModelInlineScriptProperties.ContainsKey(elements[k]))
+                                    {
+                                        asFunction = EntityAnalysisModelInlineScriptProperties[elements[k]] switch
+                                        {
+                                            1 => "AsString()",
+                                            2 => "AsInt()",
+                                            3 => "AsDouble()",
+                                            4 => "AsDateTime()",
+                                            5 => "AsBool",
+                                            6 => "AsDouble()",
+                                            7 => "AsDouble()",
+                                            _ => "AsString()"
+                                        };
+
+                                        databaseCast = EntityAnalysisModelInlineScriptProperties[elements[k]] switch
+                                        {
+                                            2 => "::int",
+                                            3 => "::float8",
+                                            4 => "::timestamp",
+                                            5 => "::boolean",
+                                            6 or 7 => "::float8",
+                                            _ => databaseCast
+                                        };
                                     }
                                     else
                                     {

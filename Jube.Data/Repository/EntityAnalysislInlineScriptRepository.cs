@@ -28,6 +28,11 @@ namespace Jube.Data.Repository
             return await dbContext.EntityAnalysisInlineScript.ToListAsync(token).ConfigureAwait(false);
         }
 
+        public Task<EntityAnalysisInlineScript> GetByIdAsync(int id, CancellationToken token = default)
+        {
+            return dbContext.EntityAnalysisInlineScript.FirstOrDefaultAsync(w => w.Id == id, token);
+        }
+
         public async Task<EntityAnalysisInlineScript> InsertAsync(EntityAnalysisInlineScript model, CancellationToken token = default)
         {
             model.CreatedDate = DateTime.Now;

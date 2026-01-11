@@ -11,7 +11,7 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models
+namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript
 {
     using System;
     using System.Collections.Generic;
@@ -24,16 +24,14 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
         public Assembly InlineScriptCompile { get; set; }
         public string InlineScriptCode { get; set; }
         public string Dependencies { get; set; }
-        public int InlineScriptId { get; set; }
         public string ClassName { get; set; }
         public string Name { get; set; }
         public Type InlineScriptType { get; set; }
-        public string MethodName { get; set; }
         public MethodInfo PreProcessingMethodInfo { get; set; }
-        public Dictionary<string, int> PromoteReportTableColumns { get; } = [];
+        public Dictionary<string, EntityAnalysisModelInlineScriptPropertyAttribute> EntityAnalysisModelInlineScriptPropertyAttributes { get; } = [];
         // ReSharper disable once CollectionNeverUpdated.Global
         public List<DistinctSearchKey> GroupingKeys { get; } = [];
-        public object ActivatedObject { get; set; }
         public DateTime? CreatedDate { get; set; }
+        public byte LanguageId { get; set; }
     }
 }

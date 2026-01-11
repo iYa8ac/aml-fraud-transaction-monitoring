@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-present Jube Holdings Limited.
+﻿/* Copyright (C) 2022-present Jube Holdings Limited.
  *
  * This file is part of Jube™ software.
  *
@@ -11,18 +11,21 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.Context.Models
+using Jube.Dictionary;
+using Jube.Engine.EntityAnalysisModelInvoke.Context;
+using Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
+var context = new Context
 {
-    using System;
-    using System.Collections.Generic;
-    using EntityAnalysisModel;
-    using EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript;
-
-    public class EntityAnalysisModels
+    EntityAnalysisModelInstanceEntryPayload = new EntityAnalysisModelInstanceEntryPayload
     {
-        public List<EntityAnalysisModelInlineScript> InlineScripts { get; } = [];
-        public Dictionary<int, EntityAnalysisModel> ActiveEntityAnalysisModels { get; } = [];
-        public bool EntityModelsHasLoadedForStartup { get; set; }
-        public Guid EntityAnalysisInstanceGuid { get; set; }
+        Payload = new DictionaryNoBoxing
+        {
+            {
+                "IP", "123.123.123.123"
+            }
+        }
     }
-}
+};
+
+var exampleInlineScript = new Example();
+await exampleInlineScript.ExecuteAsync(context);

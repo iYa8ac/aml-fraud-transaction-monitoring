@@ -68,4 +68,16 @@
         <Compile Remove="Cache\Postgres\Callback\Callback.cs"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Reference Include="Microsoft.CodeAnalysis">
+            <HintPath>..\..\..\.nuget\packages\microsoft.codeanalysis.common\3.8.0\lib\netcoreapp3.1\Microsoft.CodeAnalysis.dll</HintPath>
+        </Reference>
+        <Reference Include="Microsoft.CodeAnalysis.CSharp">
+            <HintPath>..\..\..\.nuget\packages\microsoft.codeanalysis.csharp\3.8.0\lib\netcoreapp3.1\Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="Microsoft.CodeAnalysis.VisualBasic">
+            <HintPath>..\..\..\.nuget\packages\microsoft.codeanalysis.visualbasic\3.8.0\lib\netcoreapp3.1\Microsoft.CodeAnalysis.VisualBasic.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
 </Project>

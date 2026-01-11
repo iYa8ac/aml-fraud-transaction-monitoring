@@ -19,11 +19,11 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
     using System.Text;
     using System.Threading.Tasks;
     using AutoMapper.Internal;
-    using CompilerUtilities;
     using Data.Repository;
     using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
     using Jube.Engine.EntityAnalysisModelManager.Helpers;
     using Parser;
+    using Parser.Compiler;
 
     public static class SyncEntityAnalysisModelAbstractionRulesExtensions
     {
@@ -240,9 +240,9 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                             $"Entity Start: Entity Model {key} and Abstraction Rule {modelAbstractionRule.Id} matched {requestXPath.Name}.");
                                     }
 
-                                    distinctSearchKey.SearchKeyCacheIntervalType =
+                                    distinctSearchKey.SearchKeyCacheInterval =
                                         requestXPath.SearchKeyCacheInterval;
-                                    distinctSearchKey.SearchKeyCacheIntervalValue =
+                                    distinctSearchKey.SearchKeyCacheValue =
                                         requestXPath.SearchKeyCacheValue;
                                     distinctSearchKey.SearchKeyCache = requestXPath.SearchKeyCache;
                                     distinctSearchKey.SearchKeyCacheFetchLimit =
@@ -622,12 +622,12 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                         $"Entity Start: Entity Model {key} and Abstraction Rule Model {modelAbstractionRule.Id} hash {abstractionRuleScriptHash} is not in the hash cache,  will proceed to compile.");
                                 }
 
-                                var compile = new CompileUtility();
+                                var compile = new Compile();
                                 compile.CompileCode(abstractionRuleScript.ToString(), context.Services.Log,
                                 [
                                     Path.Combine(context.Paths.BinaryPath ?? throw new InvalidOperationException(), "log4net.dll"),
                                     Path.Combine(context.Paths.BinaryPath, "Jube.Dictionary.dll")
-                                ]);
+                                ], Compile.Language.Vb);
 
                                 if (context.Services.Log.IsDebugEnabled)
                                 {
@@ -635,7 +635,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                         $"Entity Start: Entity Model {key} and Abstraction Rule Model {modelAbstractionRule.Id} hash {abstractionRuleScriptHash} has been compiled with {compile.Errors}.");
                                 }
 
-                                if (compile.Errors == 0)
+                                if (compile.Errors == null)
                                 {
                                     if (context.Services.Log.IsDebugEnabled)
                                     {

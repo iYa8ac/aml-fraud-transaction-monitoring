@@ -11,18 +11,17 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.Context.Models
+namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript
 {
-    using System;
-    using System.Collections.Generic;
-    using EntityAnalysisModel;
-    using EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript;
 
-    public class EntityAnalysisModels
+    public class EntityAnalysisModelInlineScriptPropertyAttribute
     {
-        public List<EntityAnalysisModelInlineScript> InlineScripts { get; } = [];
-        public Dictionary<int, EntityAnalysisModel> ActiveEntityAnalysisModels { get; } = [];
-        public bool EntityModelsHasLoadedForStartup { get; set; }
-        public Guid EntityAnalysisInstanceGuid { get; set; }
+        public string Name { get; set; }
+        public bool ResponsePayload { get; set; }
+        public bool ReportTable { get; set; }
+        public bool Latitude { get; set; }
+        public bool Longitude { get; set; }
+        public DistinctSearchKey SearchKey { get; set; }
+        public int? DataTypeId { get; set; }
     }
 }
