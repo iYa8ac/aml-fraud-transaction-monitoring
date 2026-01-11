@@ -19,6 +19,7 @@ namespace Jube.Data.Query
     using System.Threading.Tasks;
     using Context;
     using Repository;
+    using SyntaxTree;
 
     public class GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery
     {
@@ -118,6 +119,20 @@ namespace Jube.Data.Query
                     }
 
                     getModelFieldByParserTypeIdDtoList.Add(getModelFieldByParserTypeIdDto);
+                }
+
+                var entityAnalysisModelInlineScriptRepository = new EntityAnalysisModelInlineScriptRepository(dbContext, tenantRegistryId);
+                var entityAnalysisModelInlineScripts = await entityAnalysisModelInlineScriptRepository.GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+                var entityAnalysisInlineScriptRepository = new EntityAnalysisInlineScriptRepository(dbContext);
+
+                foreach (var entityAnalysisModelInlineScript in entityAnalysisModelInlineScripts)
+                {
+                    var entityAnalysisInlineScript = await entityAnalysisInlineScriptRepository.GetByIdAsync(entityAnalysisModelInlineScript.Id, token);
+
+                    var publicPropertyDeclarations = GetPublicPropertyDeclarationSyntax(entityAnalysisInlineScript.Code,
+                        entityAnalysisInlineScript.LanguageId == 2);
+
+                    getModelFieldByParserTypeIdDtoList.AddRange(publicPropertyDeclarations);
                 }
 
                 var entityAnalysisModelDictionaryRepository =
@@ -321,6 +336,80 @@ namespace Jube.Data.Query
             }
 
             return getModelFieldByParserTypeIdDtoList;
+        }
+
+        private static List<Dto> GetPublicPropertyDeclarationSyntax(string code, bool cSharp = false)
+        {
+            var listDto = new List<Dto>();
+
+            foreach (var kvp in SyntaxTreeHelpers.GetPublicProperties(code, cSharp))
+            {
+                var getModelFieldByParserTypeIdDto = new Dto
+                {
+                    Name = $"Payload.{kvp.Key}",
+                    Value = $"Payload.{kvp.Key}",
+                    ValueJsonPath = $"payload.{kvp.Key}",
+                    Group = "Payload",
+                    ProcessingTypeId = 1
+                };
+
+                switch (kvp.Value)
+                {
+                    case 1:
+                        getModelFieldByParserTypeIdDto.ValueSqlPath
+                            = $"(\"Json\"-> 'payload' ->> '{kvp.Key}')";
+                        getModelFieldByParserTypeIdDto.JQueryBuilderDataType = "string";
+                        getModelFieldByParserTypeIdDto.DataTypeId = 1;
+
+                        break;
+                    case 2:
+                        getModelFieldByParserTypeIdDto.ValueSqlPath
+                            = $"(\"Json\"-> 'payload' ->> '{kvp.Key}')::int";
+                        getModelFieldByParserTypeIdDto.JQueryBuilderDataType = "integer";
+                        getModelFieldByParserTypeIdDto.DataTypeId = 2;
+
+                        break;
+                    case 3:
+                        getModelFieldByParserTypeIdDto.ValueSqlPath
+                            = $"(\"Json\"-> 'payload' ->> '{kvp.Key}')::double precision";
+                        getModelFieldByParserTypeIdDto.JQueryBuilderDataType = "double";
+                        getModelFieldByParserTypeIdDto.DataTypeId = 3;
+
+                        break;
+                    case 4:
+                        getModelFieldByParserTypeIdDto.ValueSqlPath
+                            = $"(\"Json\"-> 'payload' ->> '{kvp.Key}')::timestamp";
+                        getModelFieldByParserTypeIdDto.DataTypeId = 4;
+                        getModelFieldByParserTypeIdDto.JQueryBuilderDataType = "datetime";
+
+                        break;
+                    case 5:
+                        getModelFieldByParserTypeIdDto.ValueSqlPath
+                            = $"(\"Json\"-> 'payload' ->> '{kvp.Key}')::boolean";
+                        getModelFieldByParserTypeIdDto.DataTypeId = 5;
+                        getModelFieldByParserTypeIdDto.JQueryBuilderDataType = "boolean";
+
+                        break;
+                    case 6:
+                        getModelFieldByParserTypeIdDto.ValueSqlPath
+                            = $"(\"Json\"-> 'payload' ->> '{kvp.Key}')::double precision";
+                        getModelFieldByParserTypeIdDto.DataTypeId = 6;
+                        getModelFieldByParserTypeIdDto.JQueryBuilderDataType = "double";
+
+                        break;
+                    case 7:
+                        getModelFieldByParserTypeIdDto.ValueSqlPath
+                            = $"(\"Json\"-> 'payload' ->> '{kvp.Key}')::double precision";
+                        getModelFieldByParserTypeIdDto.DataTypeId = 7;
+                        getModelFieldByParserTypeIdDto.JQueryBuilderDataType = "double";
+
+                        break;
+                }
+
+                listDto.Add(getModelFieldByParserTypeIdDto);
+            }
+
+            return listDto;
         }
 
         public class Dto

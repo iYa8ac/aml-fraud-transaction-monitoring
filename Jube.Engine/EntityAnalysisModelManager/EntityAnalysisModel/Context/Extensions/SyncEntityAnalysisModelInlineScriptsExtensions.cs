@@ -17,13 +17,15 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Data.Repository;
+    using Data.SyntaxTree;
     using Helpers;
-    using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
+    using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript;
 
     public static class SyncEntityAnalysisModelInlineScriptsExtensions
     {
         public static async Task<Context> SyncEntityAnalysisModelInlineScriptsAsync(this Context context)
         {
+            var shadowEntityAnalysisModelInlineScriptProperties = new Dictionary<string, int>();
             try
             {
                 foreach (var (key, value) in context.EntityAnalysisModels.ActiveEntityAnalysisModels)
@@ -82,7 +84,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 if (context.Services.Log.IsDebugEnabled)
                                 {
                                     context.Services.Log.Debug(
-                                        $"Entity Start: Inline Script ID {record.EntityAnalysisInlineScriptId} returned for model {key} checking inline script {inlineScript.InlineScriptId}.");
+                                        $"Entity Start: Inline Script ID {record.EntityAnalysisInlineScriptId} returned for model {key} checking inline script {inlineScript.Id}.");
                                 }
 
                                 if (!record.EntityAnalysisInlineScriptId.HasValue)
@@ -93,19 +95,24 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 if (context.Services.Log.IsDebugEnabled)
                                 {
                                     context.Services.Log.Debug(
-                                        $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.InlineScriptId} checking to see if matched to this model.");
+                                        $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.Id} checking to see if matched to this model.");
                                 }
 
-                                if (inlineScript.InlineScriptId !=
+                                if (inlineScript.Id !=
                                     record.EntityAnalysisInlineScriptId.Value)
                                 {
                                     continue;
                                 }
 
+                                foreach (var publicProperty in SyntaxTreeHelpers.GetPublicProperties(inlineScript.InlineScriptCode, inlineScript.LanguageId == 2))
+                                {
+                                    shadowEntityAnalysisModelInlineScriptProperties.TryAdd(publicProperty.Key, publicProperty.Value);
+                                }
+
                                 if (context.Services.Log.IsDebugEnabled)
                                 {
                                     context.Services.Log.Debug(
-                                        $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.InlineScriptId} is matched to this model.  Will now check if there are grouping keys for this inline script that need to be attached to the model.");
+                                        $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.Id} is matched to this model.  Will now check if there are grouping keys for this inline script that need to be attached to the model.");
                                 }
 
                                 foreach (var searchKey in inlineScript.GroupingKeys)
@@ -115,7 +122,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                     if (context.Services.Log.IsDebugEnabled)
                                     {
                                         context.Services.Log.Debug(
-                                            $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.InlineScriptId} grouping ket {searchKey.SearchKey}.");
+                                            $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.Id} grouping ket {searchKey.SearchKey}.");
                                     }
 
                                     if (value.Collections.DistinctSearchKeys.TryAdd(searchKey.SearchKey, searchKey))
@@ -123,7 +130,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                         if (context.Services.Log.IsDebugEnabled)
                                         {
                                             context.Services.Log.Debug(
-                                                $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.InlineScriptId} grouping key {searchKey.SearchKey} has been matched.");
+                                                $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.Id} grouping key {searchKey.SearchKey} has been matched.");
                                         }
                                     }
                                     else
@@ -135,7 +142,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 if (context.Services.Log.IsDebugEnabled)
                                 {
                                     context.Services.Log.Debug(
-                                        $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.InlineScriptId} is in the cache.");
+                                        $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.Id} is in the cache.");
                                 }
 
                                 if (inlineScript == null)
@@ -148,7 +155,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 if (context.Services.Log.IsDebugEnabled)
                                 {
                                     context.Services.Log.Debug(
-                                        $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.InlineScriptId} is in the cache and has been added to a shadow list of inline scripts for this model.");
+                                        $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId.Value} returned for model {key} checking inline script {inlineScript.Id} is in the cache and has been added to a shadow list of inline scripts for this model.");
                                 }
                             }
                         }
@@ -159,6 +166,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                         }
                     }
 
+                    context.Services.Parser.EntityAnalysisModelInlineScriptProperties = shadowEntityAnalysisModelInlineScriptProperties;
                     value.Collections.EntityAnalysisModelInlineScripts = shadowEntityAnalysisModelInlineScripts;
                     value.References.PayloadInitialSize = DictionaryNoBoxingHelpers.CalculateInitialSize(value);
 

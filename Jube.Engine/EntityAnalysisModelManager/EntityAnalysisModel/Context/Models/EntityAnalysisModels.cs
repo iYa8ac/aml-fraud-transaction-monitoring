@@ -16,6 +16,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Mod
     using System;
     using System.Collections.Generic;
     using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
+    using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript;
     using Sanctions.Models;
 
     public class EntityAnalysisModels

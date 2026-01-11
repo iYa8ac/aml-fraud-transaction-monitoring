@@ -11,18 +11,13 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.Context.Models
+namespace Jube.Engine.Interfaces
 {
-    using System;
-    using System.Collections.Generic;
-    using EntityAnalysisModel;
-    using EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript;
+    using System.Threading.Tasks;
+    using EntityAnalysisModelInvoke.Context;
 
-    public class EntityAnalysisModels
+    public interface IInlineScript
     {
-        public List<EntityAnalysisModelInlineScript> InlineScripts { get; } = [];
-        public Dictionary<int, EntityAnalysisModel> ActiveEntityAnalysisModels { get; } = [];
-        public bool EntityModelsHasLoadedForStartup { get; set; }
-        public Guid EntityAnalysisInstanceGuid { get; set; }
+        Task ExecuteAsync(Context context);
     }
 }

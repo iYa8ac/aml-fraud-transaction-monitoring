@@ -15,10 +15,7 @@ namespace Jube.Engine.BackgroundTasks.Context.Models
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Cache.Redis;
     using EntityAnalysisModelManager;
-    using Exhaustive;
-    using TaskStarters;
 
     public class Tasks
     {

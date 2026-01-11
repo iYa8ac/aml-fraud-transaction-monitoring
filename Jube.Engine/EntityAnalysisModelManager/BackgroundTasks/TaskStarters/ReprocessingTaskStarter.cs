@@ -20,7 +20,6 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using CompilerUtilities;
     using Context;
     using Data.Context;
     using Data.Query;
@@ -31,6 +30,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
     using EntityAnalysisModelInvoke;
     using Helpers;
     using Parser;
+    using Parser.Compiler;
     using Reprocessing;
 
     public class ReprocessingTaskStarter(Context context)
@@ -368,7 +368,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                     context.Services.Log.Info(
                         $"Entity Reprocessing: Reprocessing instance {entityAnalysisModelRuleReprocessingInstance.EntityAnalysisModelsReprocessingRuleInstanceId} is processing {processed} and matched the rule and will now invoke.");
                 }
-                
+
                 await EntityAnalysisModelInvoke.InvokeAsync(entityAnalysisModel, entry, entityAnalysisModelRuleReprocessingInstance.EntityAnalysisModelsReprocessingRuleInstanceId).ConfigureAwait(false);
 
                 if (context.Services.Log.IsInfoEnabled)
@@ -724,7 +724,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                     }
 
                     var parser = new Parser(context.Services.Log, []);
-                    
+
                     if (context.Services.Log.IsDebugEnabled)
                     {
                         context.Services.Log.Debug(
@@ -863,12 +863,12 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                             context.Services.Log.Debug($"Entity Model Sync: The code base path has been returned as {codeBase}.");
                         }
 
-                        var compile = new CompileUtility();
+                        var compile = new Compile();
                         compile.CompileCode(gatewayRuleScript.ToString(), context.Services.Log,
                         [
                             Path.Combine(strPathBinary ?? throw new InvalidOperationException(), "log4net.dll"),
                             Path.Combine(strPathBinary, "Jube.Dictionary.dll")
-                        ]);
+                        ], Compile.Language.Vb);
 
                         if (context.Services.Log.IsDebugEnabled)
                         {
@@ -876,7 +876,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                                 $"Entity Start: Model {key} and Gateway Rule Model {returnTuple.EntityAnalysisModelRuleReprocessingInstance.EntityAnalysisModelsReprocessingRuleInstanceId} has been hashed to {gatewayRuleScriptHash} has now been compiled with {compile.Errors} errors.");
                         }
 
-                        if (compile.Errors == 0)
+                        if (compile.Errors == null)
                         {
                             if (context.Services.Log.IsDebugEnabled)
                             {

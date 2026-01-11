@@ -19,11 +19,11 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
     using System.Text;
     using System.Threading.Tasks;
     using System.Web;
-    using CompilerUtilities;
     using Data.Repository;
     using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
     using Jube.Engine.EntityAnalysisModelManager.Helpers;
     using Parser;
+    using Parser.Compiler;
 
     public static class SyncEntityAnalysisModelActivationRulesExtensions
     {
@@ -948,12 +948,12 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                         $"Entity Start: {key} and Activation Rule Model {modelActivationRule.Id} has been hashed to {activationRuleScriptHash} and has not been located in the hash cache, hence it will be compiled.");
                                 }
 
-                                var compile = new CompileUtility();
+                                var compile = new Compile();
                                 compile.CompileCode(activationRuleScript.ToString(), context.Services.Log,
                                 [
                                     Path.Combine(context.Paths.BinaryPath ?? throw new InvalidOperationException(), "log4net.dll"),
                                     Path.Combine(context.Paths.BinaryPath, "Jube.Dictionary.dll")
-                                ]);
+                                ], Compile.Language.Vb);
 
                                 if (context.Services.Log.IsDebugEnabled)
                                 {
@@ -961,7 +961,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                         $"Entity Start: {key} and Activation Rule Model {modelActivationRule.Id} has been hashed to {activationRuleScriptHash} and compiled with {compile.Errors}.");
                                 }
 
-                                if (compile.Errors == 0)
+                                if (compile.Errors == null)
                                 {
                                     if (context.Services.Log.IsDebugEnabled)
                                     {

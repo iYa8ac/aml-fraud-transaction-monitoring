@@ -37,15 +37,15 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
                 if (entityAnalysisModel.Services.Log.IsInfoEnabled)
                 {
                     entityAnalysisModel.Services.Log.Info(
-                        $"Abstraction Rule Caching: For model {entityAnalysisModel.Instance.Id} and grouping key {distinctSearchKey.SearchKey} has a interval value of {distinctSearchKey.SearchKeyCacheTtlIntervalValue} and an interval of {distinctSearchKey.SearchKeyCacheIntervalType}.  Calculating the threshold for grouping keys that have expired.");
+                        $"Abstraction Rule Caching: For model {entityAnalysisModel.Instance.Id} and grouping key {distinctSearchKey.SearchKey} has a interval value of {distinctSearchKey.SearchKeyCacheTtlValue} and an interval of {distinctSearchKey.SearchKeyCacheInterval}.  Calculating the threshold for grouping keys that have expired.");
                 }
 
-                var deleteLineCacheKeys = distinctSearchKey.SearchKeyCacheIntervalType switch
+                var deleteLineCacheKeys = distinctSearchKey.SearchKeyCacheTtlInterval switch
                 {
-                    "s" => value.AddSeconds(distinctSearchKey.SearchKeyCacheTtlIntervalValue * -1),
-                    "n" => value.AddMinutes(distinctSearchKey.SearchKeyCacheTtlIntervalValue * -1),
-                    "h" => value.AddHours(distinctSearchKey.SearchKeyCacheTtlIntervalValue * -1),
-                    _ => value.AddDays(distinctSearchKey.SearchKeyCacheTtlIntervalValue * -1)
+                    "s" => value.AddSeconds(distinctSearchKey.SearchKeyCacheTtlValue * -1),
+                    "n" => value.AddMinutes(distinctSearchKey.SearchKeyCacheTtlValue * -1),
+                    "h" => value.AddHours(distinctSearchKey.SearchKeyCacheTtlValue * -1),
+                    _ => value.AddDays(distinctSearchKey.SearchKeyCacheTtlValue * -1)
                 };
 
                 if (entityAnalysisModel.Services.Log.IsInfoEnabled)

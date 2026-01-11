@@ -15,11 +15,12 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
 {
     using System;
     using System.Diagnostics;
+    using System.Threading.Tasks;
     using ReflectionHelpers;
 
     public static class InlineScriptsExtensions
     {
-        public static Context ExecuteInlineScripts(this Context context)
+        public static async Task<Context> ExecuteInlineScriptsAsync(this Context context)
         {
             if (context.Log.IsInfoEnabled)
             {
@@ -27,7 +28,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
                     $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id}.");
             }
 
-            IterateAndProcess(context);
+            await IterateAndProcessAsync(context);
             StorePerformanceFromStopwatch(context);
 
             return context;
@@ -44,7 +45,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
             }
         }
 
-        private static void IterateAndProcess(Context context)
+        private static async Task IterateAndProcessAsync(Context context)
         {
             var inlineScriptCount = context.EntityAnalysisModel.Collections.EntityAnalysisModelInlineScripts.Count;
             for (var i = 0; i < inlineScriptCount; i++)
@@ -58,10 +59,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
                             $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} is going to invoke {inlineScript.InlineScriptCode}.");
                     }
 
-                    ReflectInlineScriptHelper.Execute(
-                        inlineScript,
-                        context.EntityAnalysisModelInstanceEntryPayload.Payload,
-                        context.Log);
+                    await ReflectInlineScriptHelper.ExecuteAsync(inlineScript, context);
 
                     if (context.Log.IsInfoEnabled)
                     {

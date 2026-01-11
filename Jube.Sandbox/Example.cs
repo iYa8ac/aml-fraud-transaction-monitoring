@@ -1,0 +1,68 @@
+/* Copyright (C) 2022-present Jube Holdings Limited.
+ *
+ * This file is part of Jube™ software.
+ *
+ * Jube™ is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ * Jube™ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+ * You should have received a copy of the GNU Affero General Public License along with Jube™. If not,
+ * see <https://www.gnu.org/licenses/>.
+ */
+
+// ReSharper disable RedundantUsingDirective
+// ReSharper disable CheckNamespace
+
+//The following are the minimum .Net libraries to make this work, however,  if using the Jube.Sandbox,  this will be shown,  as the project file is set to not default any assemblies and will be a like for like compile.
+using System;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+
+//All assemblies are passed on the basis of what the Jube.App context is using, so nearly all libraries are supported.
+using Newtonsoft.Json.Linq;
+
+//The following are Jube libraries that contain the context and Inline Script attributes.
+using Jube.Engine.Attributes;
+using Jube.Engine.EntityAnalysisModelInvoke.Context;
+using Jube.Engine.Interfaces;
+
+public class Example : IInlineScript//Class entry point is available in table configuration.
+{
+    //Attributes overlap with the same options available in Request XPath
+    [ReportTable]    //ReportTable is evaluated on recall.
+    [ResponsePayload]//ResponsePayload is evaluated in model synchronization and used in model response preparation.
+    [Latitude]       //Latitude is evaluated in model synchronization and is used during model activation watcher dispatch.
+    [Longitude]      //Longitude is evaluated in model synchronization and is used during model activation watcher dispatch.
+    [SearchKey(SearchKeyTtlInterval = "h",
+        SearchKeyTtlIntervalValue = 1,
+        SearchKeyFetchLimit = 100,
+        SearchKeyCache = false,
+        SearchKeyCacheInterval = "d",
+        SearchKeyCacheValue = 1,
+        SearchKeyCacheSample = true,
+        SearchKeyCacheFetchLimit = 100,
+        SearchKeyCacheTtlInterval = "h",
+        SearchKeyCacheTtlValue = 1)]      //SearchKey ensures that this is exposed in for aggregation in both the background engine.
+    public string? UserAgent { get; set; }//Public properties are available for processing, being analogous,  when taken together with attributes, to a Request XPath entry
+
+    public async Task ExecuteAsync(Context context)//Method entry point.  The Context object gives access to all resources that would otherwise be available during invocation.
+    {
+        //Example HTTP Call with the fetching of data from the context.
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
+        client.DefaultRequestHeaders.Add("IP", context.EntityAnalysisModelInstanceEntryPayload.Payload["IP"]);//Here we are looking at the context, and while we are only extracting data here,  full access to all application resources are available in this context,  such as logging.
+
+        var response = await client.GetStringAsync("https://postman-echo.com/get");//Get the data from remote using the standard HTTP client.
+
+        //Example Parse and transpose to payload.
+        var jObject = JObject.Parse(response);//The response stream is processed using Newtonsoft
+        
+ #pragma warning disable CS8600               // Converting null literal or possible null value to non-nullable type.
+        var userAgent = (string)jObject["headers"]?["user-agent"] ?? "Unknown";
+ #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+        
+        UserAgent = userAgent;
+    }
+}

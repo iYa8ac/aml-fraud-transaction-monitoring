@@ -14,83 +14,162 @@
 namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHelpers
 {
     using System;
-    using Dictionary;
-    using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
-    using log4net;
+    using System.Threading.Tasks;
+    using Data.Poco;
+    using EntityAnalysisModelInlineScript=EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript;
 
     public static class ReflectInlineScriptHelper
     {
-        public static void Execute(EntityAnalysisModelInlineScript entityAnalysisModelInlineScript,
-            DictionaryNoBoxing dataPayload, ILog log)
+        public static async Task ExecuteAsync(EntityAnalysisModelInlineScript.EntityAnalysisModelInlineScript entityAnalysisModelInlineScript, Context context)
         {
-            object[] args = [dataPayload, log];
-            entityAnalysisModelInlineScript.PreProcessingMethodInfo.Invoke(entityAnalysisModelInlineScript.ActivatedObject,
-                args);
+            var activatedObject = Activator.CreateInstance(entityAnalysisModelInlineScript.InlineScriptType);
 
-            foreach (var p in entityAnalysisModelInlineScript.InlineScriptType.GetProperties())
+            object[] args = [context];
+            var result = entityAnalysisModelInlineScript.PreProcessingMethodInfo.Invoke(activatedObject, args);
+
+            if (result is Task task)
             {
                 try
                 {
-                    if (entityAnalysisModelInlineScript.ActivatedObject == null)
+                    await task;
+                }
+                catch (Exception ex)
+                {
+                    context.Log.Info($"Error executing Inline Script {entityAnalysisModelInlineScript.Id}:", ex);
+                }
+            }
+
+            foreach (var entityAnalysisModelInlineScriptPropertyAttribute in entityAnalysisModelInlineScript.EntityAnalysisModelInlineScriptPropertyAttributes)
+            {
+                try
+                {
+                    if (activatedObject == null)
                     {
                         continue;
                     }
 
-                    var responsePayload = new DictionaryNoBoxing();
-                    foreach (var customAttributeData in p.CustomAttributes)
+                    var property = entityAnalysisModelInlineScript.InlineScriptType.GetProperty(entityAnalysisModelInlineScriptPropertyAttribute.Key);
+                    var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+
+                    if (propertyType != typeof(string)
+                        && propertyType != typeof(int)
+                        && propertyType != typeof(bool)
+                        && propertyType != typeof(DateTime)
+                        && propertyType != typeof(double))
                     {
-                        if (customAttributeData.AttributeType.Name.Contains("Latitude"))
-                        {
-                            if (!dataPayload.ContainsKey(p.Name))
-                            {
-                                dataPayload.TryAdd("Latitude", dataPayload[p.Name].AsDouble());
-                            }
-                        }
-                        else if (customAttributeData.AttributeType.Name.Contains("Longitude"))
-                        {
-                            if (!dataPayload.ContainsKey(p.Name))
-                            {
-                                dataPayload.TryAdd("Longitude", dataPayload[p.Name].AsDouble());
-                            }
-                        }
+                        continue;
+                    }
 
-                        else if (customAttributeData.AttributeType.Name.Contains("ResponsePayload"))
-                        {
-                            if (responsePayload.ContainsKey(p.Name))
-                            {
-                                continue;
-                            }
+                    var value = property.GetValue(activatedObject);
 
-                            if (p.PropertyType == typeof(int))
+                    switch (value)
+                    {
+                        case string s:
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, s);
+
+                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
                             {
-                                responsePayload.TryAdd(p.Name, dataPayload[p.Name].AsInt());
+                                context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
+                                {
+                                    ProcessingTypeId = 1,
+                                    Key = property.Name,
+                                    KeyValueString = value == null ? null : Convert.ToString(value),
+                                    EntityAnalysisModelInstanceEntryGuid =
+                                        context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
+                                });
                             }
 
-                            else if (p.PropertyType == typeof(string))
+                            break;
+
+                        case int i:
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, i);
+
+                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
                             {
-                                responsePayload.TryAdd(p.Name, dataPayload[p.Name].AsString());
+                                context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
+                                {
+                                    ProcessingTypeId = 1,
+                                    Key = property.Name,
+                                    KeyValueInteger = i,
+                                    EntityAnalysisModelInstanceEntryGuid =
+                                        context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
+                                });
                             }
 
-                            else if (p.PropertyType == typeof(double))
+                            break;
+
+                        case byte b:
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, b);
+
+                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
                             {
-                                responsePayload.TryAdd(p.Name, dataPayload[p.Name].AsDouble());
+                                context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
+                                {
+                                    ProcessingTypeId = 1,
+                                    Key = property.Name,
+                                    KeyValueBoolean = b,
+                                    EntityAnalysisModelInstanceEntryGuid =
+                                        context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
+                                });
                             }
 
-                            else if (p.PropertyType == typeof(DateTime))
+                            break;
+
+                        case double d:
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, d);
+
+                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
                             {
-                                responsePayload.TryAdd(p.Name, dataPayload[p.Name].AsDateTime());
+                                context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
+                                {
+                                    ProcessingTypeId = 1,
+                                    Key = property.Name,
+                                    KeyValueFloat = d,
+                                    EntityAnalysisModelInstanceEntryGuid =
+                                        context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
+                                });
                             }
 
-                            else if (p.PropertyType == typeof(bool))
+                            break;
+
+                        case DateTime dt:
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, dt);
+
+                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
                             {
-                                responsePayload.TryAdd(p.Name, dataPayload[p.Name].AsBool());
+                                context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
+                                {
+                                    ProcessingTypeId = 1,
+                                    Key = property.Name,
+                                    KeyValueDate = dt,
+                                    EntityAnalysisModelInstanceEntryGuid =
+                                        context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
+                                });
                             }
-                        }
+
+                            break;
+
+                        default:
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, value.ToString());
+
+                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
+                            {
+                                context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
+                                {
+                                    ProcessingTypeId = 1,
+                                    Key = property.Name,
+                                    KeyValueString = value.ToString(),
+                                    EntityAnalysisModelInstanceEntryGuid =
+                                        context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
+                                });
+                            }
+
+                            break;
                     }
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    log.Error(ex.ToString());
+                    context.Log.Error(ex.ToString());
                 }
             }
         }

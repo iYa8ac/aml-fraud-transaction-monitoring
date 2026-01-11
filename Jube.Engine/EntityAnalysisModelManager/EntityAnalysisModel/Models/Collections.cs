@@ -16,6 +16,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models
     using System.Collections.Generic;
     using Exhaustive.Models;
     using Models;
+    using Models.EntityAnalysisModelInlineScript;
 
     public class Collections
     {

@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2022-present Jube Holdings Limited.
+/* Copyright (C) 2022-present Jube Holdings Limited.
  *
  * This file is part of Jube™ software.
  *
@@ -11,17 +11,21 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelManager.CompilerUtilities
+namespace Jube.Engine.Attributes
 {
-    using System.Reflection;
-    using System.Runtime.Loader;
+    using System;
 
-    internal class SimpleUnloadableAssemblyLoadContext() : AssemblyLoadContext(true)
+    public class SearchKey : Attribute
     {
-
-        protected override Assembly Load(AssemblyName assemblyName)
-        {
-            return null;
-        }
+        public bool SearchKeyCache { get; set; }
+        public string SearchKeyCacheInterval { get; set; }
+        public int SearchKeyCacheValue { get; set; }
+        public string SearchKeyCacheTtlInterval { get; set; }
+        public int SearchKeyCacheTtlValue { get; set; }
+        public int SearchKeyCacheFetchLimit { get; set; }
+        public bool SearchKeyCacheSample { get; set; }
+        public string SearchKeyTtlInterval { get; set; }
+        public int SearchKeyTtlIntervalValue { get; set; }
+        public int SearchKeyFetchLimit { get; set; }
     }
 }

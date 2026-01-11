@@ -25,10 +25,11 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
         public string SqlSelect;
         public string SqlSelectFrom;
         public string SqlSelectOrderBy;
-        public string SearchKeyCacheIntervalType { get; set; }
-        public int SearchKeyCacheIntervalValue { get; set; }
+        public string SearchKeyCacheInterval { get; set; }
+        public int SearchKeyCacheValue { get; set; }
         public bool SearchKeyCache { get; set; }
-        public int SearchKeyCacheTtlIntervalValue { get; set; }
+        public string SearchKeyCacheTtlInterval { get; set; }
+        public int SearchKeyCacheTtlValue { get; set; }
         public int SearchKeyCacheFetchLimit { get; set; }
         public string SearchKey { get; set; }
         public bool SearchKeyCacheSample { get; set; }

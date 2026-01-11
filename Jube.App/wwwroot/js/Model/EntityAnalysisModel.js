@@ -72,7 +72,6 @@ function loadTemplate(id) {
             }
             ExpandCollapseResponseElevationLimit();
 
-
             if (data.enableRdbmsArchive) {
                 $("#EnableRdbmsArchive").data("kendoSwitch").check(true);
             } else {

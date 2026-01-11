@@ -16,13 +16,15 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
     using System;
     using System.IO;
     using System.Linq;
+    using System.Reflection;
     using System.Threading.Tasks;
-    using CompilerUtilities;
+    using Attributes;
     using Data.Repository;
-    using Dictionary;
+    using Interfaces;
     using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
+    using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript;
     using Jube.Engine.EntityAnalysisModelManager.Helpers;
-    using log4net;
+    using Parser.Compiler;
 
     public static class SyncEntityAnalysisInlineScriptsExtensions
     {
@@ -53,7 +55,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                             $"Entity Start: Found an inline script with the id of {record.Id} and will proceed to check if already have this inline script available.");
                     }
 
-                    var inlineScript = context.EntityAnalysisModels.InlineScripts.Find(x => x.InlineScriptId == record.Id);
+                    var inlineScript = context.EntityAnalysisModels.InlineScripts.Find(x => x.Id == record.Id);
                     if (inlineScript == null)
                     {
                         inlineScript = new EntityAnalysisModelInlineScript();
@@ -93,24 +95,15 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                     }
 
                     inlineScript.CreatedDate = record.CreatedDate;
-                    inlineScript.InlineScriptId = record.Id;
+                    inlineScript.Id = record.Id;
                     inlineScript.InlineScriptCode = record.Code;
+                    inlineScript.LanguageId = record.LanguageId ?? 1;
 
                     if (context.Services.Log.IsDebugEnabled)
                     {
                         context.Services.Log.Debug(
                             $"Entity Start: Inline Script {record.Id} has rule script of {inlineScript.InlineScriptCode}.");
                     }
-
-                    inlineScript.MethodName = record.MethodName;
-
-                    if (context.Services.Log.IsDebugEnabled)
-                    {
-                        context.Services.Log.Debug(
-                            $"Entity Start: Inline Script {record.Id} has method specification of {inlineScript.MethodName}.");
-                    }
-
-                    inlineScript.ClassName = record.ClassName;
 
                     if (context.Services.Log.IsDebugEnabled)
                     {
@@ -125,9 +118,10 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                         context.Services.Log.Debug($"Entity Start: Inline Script {record.Id} has name of {inlineScript.Name}.");
                     }
 
-                    var dependencyArray = new string[2];
-                    dependencyArray[0] = Path.Combine(context.Paths.BinaryPath, "log4net.dll");
-                    dependencyArray[1] = Path.Combine(context.Paths.BinaryPath, "Jube.Dictionary.dll");
+                    var dependencyArray = AppDomain.CurrentDomain.GetAssemblies()
+                        .Where(a => !a.IsDynamic && !String.IsNullOrEmpty(a.Location))
+                        .Select(a => a.Location)
+                        .ToArray();
 
                     if (context.Services.Log.IsDebugEnabled)
                     {
@@ -189,8 +183,8 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                         inlineScript.InlineScriptType =
                             inlineScript.InlineScriptCompile.GetType(inlineScript.ClassName);
                         inlineScript.PreProcessingMethodInfo =
-                            inlineScript.InlineScriptType.GetMethod(inlineScript.MethodName,
-                                [typeof(DictionaryNoBoxing), typeof(ILog)]);
+                            inlineScript.InlineScriptType.GetMethod("ExecuteAsync",
+                                [typeof(EntityAnalysisModelInvoke.Context.Context)]);
 
                         if (context.Services.Log.IsDebugEnabled)
                         {
@@ -208,8 +202,10 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 $"Entity Start: Inline Script {record.Id} has been hashed to {inlineScriptHash} but has not been located in the hash cache.  The inline script will now be compiled.");
                         }
 
-                        var compile = new CompileUtility();
-                        compile.CompileCode(inlineScript.InlineScriptCode, context.Services.Log, dependencyArray);
+                        var compile = new Compile();
+                        compile.CompileCode(inlineScript.InlineScriptCode, context.Services.Log,
+                            dependencyArray,
+                            inlineScript.LanguageId == 2 ? Compile.Language.CSharp : Compile.Language.Vb);
 
                         if (context.Services.Log.IsDebugEnabled)
                         {
@@ -217,7 +213,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 $"Entity Start: Inline Script {record.Id} has been compiled with {compile.Errors} errors.");
                         }
 
-                        if (compile.Errors == 0)
+                        if (compile.Errors == null)
                         {
                             if (context.Services.Log.IsDebugEnabled)
                             {
@@ -226,11 +222,39 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                             }
 
                             inlineScript.InlineScriptCompile = compile.CompiledAssembly;
+
+                            var interfaceType = typeof(IInlineScript);
+                            var implementations = inlineScript.InlineScriptCompile.GetExportedTypes()
+                                .Where(t => interfaceType.IsAssignableFrom(t) && t.IsClass && !t.IsAbstract);
+
+                            foreach (var type in implementations)
+                            {
+                                inlineScript.ClassName = type.FullName;
+                                break;
+                            }
+
                             inlineScript.InlineScriptType =
                                 inlineScript.InlineScriptCompile.GetType(inlineScript.ClassName);
+
+                            if (inlineScript.InlineScriptType == null)
+                            {
+                                context.Services.Log.Error(
+                                    $"Entity Start: Could not compile inline script: {inlineScript.Id} did not fine class entry point for {inlineScript.ClassName}.");
+
+                                continue;
+                            }
+
                             inlineScript.PreProcessingMethodInfo =
-                                inlineScript.InlineScriptType.GetMethod(inlineScript.MethodName,
-                                    [typeof(DictionaryNoBoxing), typeof(ILog)]);
+                                inlineScript.InlineScriptType.GetMethod("ExecuteAsync",
+                                    [typeof(EntityAnalysisModelInvoke.Context.Context)]);
+
+                            if (inlineScript.PreProcessingMethodInfo == null)
+                            {
+                                context.Services.Log.Error(
+                                    $"Entity Start: Could not compile inline script: {inlineScript.Id} did not find method entry point for ExecuteAsync.");
+
+                                continue;
+                            }
 
                             context.EntityAnalysisModels.InlineScripts.Add(inlineScript);
                             context.Caching.HashCacheAssembly.Add(inlineScriptHash, compile.CompiledAssembly);
@@ -244,10 +268,10 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                         }
                         else
                         {
-                            if (context.Services.Log.IsDebugEnabled)
+                            foreach (var error in compile.Errors)
                             {
-                                context.Services.Log.Debug(
-                                    $"Entity Start: Could not compile inline script: {inlineScript.InlineScriptCode}.");
+                                context.Services.Log.Error(
+                                    $"Entity Start: Could not compile inline script: {inlineScript.Id} with error: {error.ToString()}.");
                             }
 
                             compiled = false;
@@ -264,147 +288,66 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 $"Entity Start: Inline Script {record.Id} has been compiled will now proceed to inspect the properties exposed by the class.");
                         }
 
-                        var searchKeyAttributesPropertyInfo = inlineScript.InlineScriptCompile.GetTypes()
-                            .SelectMany(t => t.GetProperties()).ToArray();
-                        foreach (var propertyInfoWithinLoop in searchKeyAttributesPropertyInfo)
+                        foreach (var p in inlineScript.InlineScriptType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                         {
+                            var entityAnalysisModelInlineScriptProperty = new EntityAnalysisModelInlineScriptPropertyAttribute
+                            {
+                                Name = p.Name,
+                                ReportTable = p.GetCustomAttribute<ReportTable>() != null,
+                                Latitude = p.GetCustomAttribute<Latitude>() != null,
+                                Longitude = p.GetCustomAttribute<Longitude>() != null,
+                                ResponsePayload = p.GetCustomAttribute<ResponsePayload>() != null
+                            };
+
+                            var propertyType = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType;
+
+                            entityAnalysisModelInlineScriptProperty.DataTypeId = propertyType switch
+                            {
+                                not null when propertyType == typeof(string) => 1,
+                                not null when propertyType == typeof(int) => 2,
+                                not null when propertyType == typeof(byte) => 3,
+                                not null when propertyType == typeof(double) => 4,
+                                not null when propertyType == typeof(DateTime) => 5,
+                                not null when propertyType == typeof(bool) => 3,
+                                _ => entityAnalysisModelInlineScriptProperty.DataTypeId
+                            };
+
                             if (context.Services.Log.IsDebugEnabled)
                             {
                                 context.Services.Log.Debug(
-                                    $"Entity Start: Inline Script {record.Id} is inspecting property {propertyInfoWithinLoop.Name} and looking for custom attributes.");
+                                    $"Entity Start: Inline Script {record.Id} is inspecting property {p.Name} and looking for custom attributes.");
                             }
 
-                            foreach (var customAttributeDataWithinLoop in propertyInfoWithinLoop
-                                         .CustomAttributes)
+                            var searchKeyAttribute = p.GetCustomAttribute<SearchKey>();
+
+                            if (searchKeyAttribute != null)
                             {
-                                if (context.Services.Log.IsDebugEnabled)
+                                var distinctSearchKey = new DistinctSearchKey
                                 {
-                                    context.Services.Log.Debug(
-                                        $"Entity Start: Inline Script {record.Id} is inspecting property {propertyInfoWithinLoop.Name} and is inspecting custom attribute {customAttributeDataWithinLoop.AttributeType.Name}.");
-                                }
+                                    SearchKey = p.Name,
+                                    SearchKeyTtlInterval = searchKeyAttribute.SearchKeyTtlInterval,
+                                    SearchKeyTtlIntervalValue = searchKeyAttribute.SearchKeyTtlIntervalValue,
+                                    SearchKeyFetchLimit = searchKeyAttribute.SearchKeyFetchLimit,
+                                    SearchKeyCache = searchKeyAttribute.SearchKeyCache,
+                                    SearchKeyCacheInterval = searchKeyAttribute.SearchKeyCacheInterval,
+                                    SearchKeyCacheValue = searchKeyAttribute.SearchKeyCacheValue,
+                                    SearchKeyCacheSample = searchKeyAttribute.SearchKeyCacheSample,
+                                    SearchKeyCacheFetchLimit = searchKeyAttribute.SearchKeyFetchLimit,
+                                    SearchKeyCacheTtlInterval = searchKeyAttribute.SearchKeyCacheTtlInterval,
+                                    SearchKeyCacheTtlValue = searchKeyAttribute.SearchKeyCacheTtlValue
+                                };
 
-                                switch (customAttributeDataWithinLoop.AttributeType.Name)
-                                {
-                                    case "SearchKey":
-                                    {
-                                        if (context.Services.Log.IsDebugEnabled)
-                                        {
-                                            context.Services.Log.Debug(
-                                                $"Entity Start: Inline Script {record.Id} is inspecting property {propertyInfoWithinLoop.Name} and has found a Search Key.");
-                                        }
-
-                                        var groupingKey = new DistinctSearchKey
-                                        {
-                                            SearchKey = propertyInfoWithinLoop.Name
-                                        };
-
-                                        foreach (var customAttributeNamedArgument in
-                                                 customAttributeDataWithinLoop
-                                                     .NamedArguments)
-                                        {
-                                            var customAttributeTypedArgument =
-                                                customAttributeNamedArgument.TypedValue;
-                                            switch (customAttributeNamedArgument.MemberName)
-                                            {
-                                                case "CacheKey":
-                                                    if (context.Services.Log.IsDebugEnabled)
-                                                    {
-                                                        context.Services.Log.Debug(
-                                                            $"Entity Start: Inline Script {record.Id} is inspecting property {propertyInfoWithinLoop.Name} and has found a Search Key, CacheKey with value of {customAttributeTypedArgument.Value}.");
-                                                    }
-
-                                                    groupingKey.SearchKeyCache =
-                                                        Convert.ToBoolean(customAttributeTypedArgument.Value);
-                                                    break;
-                                                case "CacheKeyIntervalType":
-                                                    if (context.Services.Log.IsDebugEnabled)
-                                                    {
-                                                        context.Services.Log.Debug(
-                                                            $"Entity Start: Inline Script {record.Id} is inspecting property {propertyInfoWithinLoop.Name} and has found a Search Key, CacheKeyIntervalType with value of {customAttributeTypedArgument.Value}.");
-                                                    }
-
-                                                    groupingKey.SearchKeyCacheIntervalType =
-                                                        customAttributeTypedArgument.Value.ToString();
-                                                    break;
-                                                case "CacheKeyIntervalValue":
-                                                    if (context.Services.Log.IsDebugEnabled)
-                                                    {
-                                                        context.Services.Log.Debug(
-                                                            $"Entity Start: Inline Script {record.Id} is inspecting property {propertyInfoWithinLoop.Name} and has found a Search Key, CacheKeyIntervalValue with value of {customAttributeTypedArgument.Value}.");
-                                                    }
-
-                                                    groupingKey.SearchKeyCacheIntervalValue =
-                                                        Convert.ToInt32(customAttributeTypedArgument.Value);
-                                                    break;
-                                            }
-                                        }
-
-                                        inlineScript.GroupingKeys.Add(groupingKey);
-
-                                        if (context.Services.Log.IsDebugEnabled)
-                                        {
-                                            context.Services.Log.Debug(
-                                                $"Entity Start: Inline Script {record.Id} is inspecting property {propertyInfoWithinLoop.Name} and has found a Search Key and is adding the grouping key to the model.");
-                                        }
-
-                                        break;
-                                    }
-                                    case "ReportTable":
-                                    {
-                                        var columnName = propertyInfoWithinLoop.Name;
-                                        int columnType;
-
-                                        if (propertyInfoWithinLoop.PropertyType == typeof(string))
-                                        {
-                                            columnType = 1;
-                                        }
-
-                                        else if (propertyInfoWithinLoop.PropertyType == typeof(int))
-                                        {
-                                            columnType = 2;
-                                        }
-
-                                        else if (propertyInfoWithinLoop.PropertyType == typeof(double))
-                                        {
-                                            columnType = 3;
-                                        }
-
-                                        else if (propertyInfoWithinLoop.PropertyType ==
-                                                 typeof(DateTime))
-                                        {
-                                            columnType = 4;
-                                        }
-
-                                        else if (propertyInfoWithinLoop.PropertyType == typeof(bool))
-                                        {
-                                            columnType = 5;
-                                        }
-
-                                        else
-                                        {
-                                            columnType = 1;
-                                        }
-
-                                        if (!inlineScript.PromoteReportTableColumns.ContainsKey(
-                                                "ColumnName"))
-                                        {
-                                            inlineScript.PromoteReportTableColumns.Add(columnName,
-                                                columnType);
-                                        }
-
-                                        break;
-                                    }
-                                }
+                                inlineScript.GroupingKeys.Add(distinctSearchKey);
+                                entityAnalysisModelInlineScriptProperty.SearchKey = distinctSearchKey;
                             }
-                        }
 
-                        inlineScript.ActivatedObject =
-                            Activator.CreateInstance(inlineScript.InlineScriptType, context.Services.Log);
+                            inlineScript.EntityAnalysisModelInlineScriptPropertyAttributes.Add(p.Name, entityAnalysisModelInlineScriptProperty);
 
-                        if (context.Services.Log.IsDebugEnabled)
-                        {
-                            context.Services.Log.Debug(
-                                $"Entity Start: Inline Script {record.Id} has been created and the method referenced.");
+                            if (context.Services.Log.IsDebugEnabled)
+                            {
+                                context.Services.Log.Debug(
+                                    $"Entity Start: Inline Script {record.Id} is inspecting property {p.Name} and has found a Search Key and is adding the grouping key to the model.");
+                            }
                         }
                     }
                 }

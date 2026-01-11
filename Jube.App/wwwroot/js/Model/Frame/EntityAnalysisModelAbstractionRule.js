@@ -183,6 +183,21 @@ $.get("../api/EntityAnalysisModelRequestXPath/ByEntityAnalysisModelId/" + parent
             }
         }
 
+        $.get("../api/GetEntityAnalysisInlineScriptSearchKeysQuery/" + parentKey,
+            function (data) {
+                for (const value of data) {
+                    searchKey.getKendoDropDownList().dataSource.add({
+                        "value": value.name,
+                        "text": value.name
+                    });
+                }
+            });
+
+        searchKey.getKendoDropDownList().dataSource.sort({
+            field: "text",
+            dir: "asc"
+        });
+
         if (typeof id === "undefined") {
             initBuilderCoder(3, parentKey);
             ExpandCollapseOffset();
@@ -263,7 +278,7 @@ function GetData() {
         searchFunctionKey: searchFunctionKeyValue,
         offset: offset.prop("checked"),
         offsetTypeId: $('input[name=OffsetTypeId]:checked').val(),
-        offsetValue: offsetValue.val(),
+        offsetValue: offsetValue.val()
     };
 }
 
