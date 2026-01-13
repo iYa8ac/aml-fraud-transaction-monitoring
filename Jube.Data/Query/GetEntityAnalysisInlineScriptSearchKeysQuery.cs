@@ -43,7 +43,12 @@ namespace Jube.Data.Query
 
             foreach (var entityAnalysisModelInlineScript in entityAnalysisModelInlineScripts)
             {
-                var entityAnalysisInlineScript = await entityAnalysisInlineScriptRepository.GetByIdAsync(entityAnalysisModelInlineScript.Id, token);
+                if (!entityAnalysisModelInlineScript.EntityAnalysisInlineScriptId.HasValue)
+                {
+                    continue;
+                }
+                
+                var entityAnalysisInlineScript = await entityAnalysisInlineScriptRepository.GetByIdAsync(entityAnalysisModelInlineScript.EntityAnalysisInlineScriptId.Value, token);
                 searchKeys.AddRange(SyntaxTreeHelpers
                     .GetPublicPropertiesForSearchKey(entityAnalysisInlineScript.Code,
                         entityAnalysisInlineScript.LanguageId == 2)

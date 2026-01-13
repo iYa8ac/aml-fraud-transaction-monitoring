@@ -21,19 +21,19 @@ namespace Jube.Data.Query
     using Repository;
     using SyntaxTree;
 
-    public class GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery
+    public class GetEntityAnalysisModelFieldByEntityAnalysisModelIdParseTypeIdQuery
     {
         private readonly DbContext dbContext;
         private readonly int tenantRegistryId;
 
-        public GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery(DbContext dbContext, string userName)
+        public GetEntityAnalysisModelFieldByEntityAnalysisModelIdParseTypeIdQuery(DbContext dbContext, string userName)
         {
             this.dbContext = dbContext;
             tenantRegistryId = this.dbContext.UserInTenant.Where(w => w.User == userName)
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery(DbContext dbContext, int tenantRegistryId)
+        public GetEntityAnalysisModelFieldByEntityAnalysisModelIdParseTypeIdQuery(DbContext dbContext, int tenantRegistryId)
         {
             this.dbContext = dbContext;
             this.tenantRegistryId = tenantRegistryId;
@@ -127,7 +127,12 @@ namespace Jube.Data.Query
 
                 foreach (var entityAnalysisModelInlineScript in entityAnalysisModelInlineScripts)
                 {
-                    var entityAnalysisInlineScript = await entityAnalysisInlineScriptRepository.GetByIdAsync(entityAnalysisModelInlineScript.Id, token);
+                    if (!entityAnalysisModelInlineScript.EntityAnalysisInlineScriptId.HasValue)
+                    {
+                        continue;
+                    }
+                    
+                    var entityAnalysisInlineScript = await entityAnalysisInlineScriptRepository.GetByIdAsync(entityAnalysisModelInlineScript.EntityAnalysisInlineScriptId.Value, token);
 
                     var publicPropertyDeclarations = GetPublicPropertyDeclarationSyntax(entityAnalysisInlineScript.Code,
                         entityAnalysisInlineScript.LanguageId == 2);

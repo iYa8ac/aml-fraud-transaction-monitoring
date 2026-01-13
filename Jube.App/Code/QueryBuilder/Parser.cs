@@ -26,7 +26,7 @@ namespace Jube.App.Code.QueryBuilder
     {
         public readonly List<Rule> Rules = new List<Rule>();
         public readonly List<object> Tokens = new List<object>();
-        private IEnumerable<GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery.Dto> completionDto;
+        private IEnumerable<GetEntityAnalysisModelFieldByEntityAnalysisModelIdParseTypeIdQuery.Dto> completionDto;
         public string Sql;
 
         public static async Task<Parser> CreateAsync(Rule rule, DbContext dbContext, Guid caseWorkflowGuid, string userName, CancellationToken token = default)
@@ -37,7 +37,7 @@ namespace Jube.App.Code.QueryBuilder
             return parser;
         }
 
-        private async Task<IEnumerable<GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery.Dto>> GetCompletionsAsync(DbContext dbContext,
+        private async Task<IEnumerable<GetEntityAnalysisModelFieldByEntityAnalysisModelIdParseTypeIdQuery.Dto>> GetCompletionsAsync(DbContext dbContext,
             Guid caseWorkflowGuid, string userName, CancellationToken token = default)
         {
             var caseWorkflowRepository = new CaseWorkflowRepository(dbContext, userName);
@@ -46,7 +46,7 @@ namespace Jube.App.Code.QueryBuilder
                 (await caseWorkflowRepository.GetByGuidIncludingDeletedAsync(caseWorkflowGuid, token)).EntityAnalysisModelId;
 
             var getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
-                = new GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery(dbContext, userName);
+                = new GetEntityAnalysisModelFieldByEntityAnalysisModelIdParseTypeIdQuery(dbContext, userName);
 
             if (entityAnalysisModelId != null)
             {

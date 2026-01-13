@@ -1,16 +1,3 @@
-/* Copyright (C) 2022-present Jube Holdings Limited.
- *
- * This file is part of Jube™ software.
- *
- * Jube™ is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
- * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
- * Jube™ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
- * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
- * You should have received a copy of the GNU Affero General Public License along with Jube™. If not,
- * see <https://www.gnu.org/licenses/>.
- */
-
 // ReSharper disable RedundantUsingDirective
 // ReSharper disable CheckNamespace
 
@@ -44,8 +31,8 @@ public class Example : IInlineScript//Class entry point is available in table co
         SearchKeyCacheSample = true,
         SearchKeyCacheFetchLimit = 100,
         SearchKeyCacheTtlInterval = "h",
-        SearchKeyCacheTtlValue = 1)]      //SearchKey ensures that this is exposed in for aggregation in both the background engine.
-    public string? UserAgent { get; set; }//Public properties are available for processing, being analogous,  when taken together with attributes, to a Request XPath entry
+        SearchKeyCacheTtlValue = 1)]                     //SearchKey ensures that this is exposed in for aggregation in both the background engine.
+    public string UserAgent { get; set; } = string.Empty;//Public properties are available for processing, being analogous,  when taken together with attributes, to a Request XPath entry
 
     public async Task ExecuteAsync(Context context)//Method entry point.  The Context object gives access to all resources that would otherwise be available during invocation.
     {
@@ -58,11 +45,11 @@ public class Example : IInlineScript//Class entry point is available in table co
 
         //Example Parse and transpose to payload.
         var jObject = JObject.Parse(response);//The response stream is processed using Newtonsoft
-        
- #pragma warning disable CS8600               // Converting null literal or possible null value to non-nullable type.
+
+ #pragma warning disable CS8600// Converting null literal or possible null value to non-nullable type.
         var userAgent = (string)jObject["headers"]?["user-agent"] ?? "Unknown";
- #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-        
+ #pragma warning restore CS8600// Converting null literal or possible null value to non-nullable type.
+
         UserAgent = userAgent;
     }
 }

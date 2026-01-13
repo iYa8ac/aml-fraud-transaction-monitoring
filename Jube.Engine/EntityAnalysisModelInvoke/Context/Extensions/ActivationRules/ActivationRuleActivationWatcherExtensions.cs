@@ -189,7 +189,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
         private static double GetLongitude(Context context)
         {
             var longitudeValue = 0d;
-            var longitudeFieldName = context.EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.FirstOrDefault(f => f.DataTypeId == 6)?.Name;
+            var longitudeFieldName = context.EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.FirstOrDefault(f => f.DataTypeId == 7)?.Name;
 
             if (String.IsNullOrEmpty(longitudeFieldName))
             {
@@ -220,7 +220,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
         private static double GetLatitude(Context context)
         {
             var latitudeValue = 0d;
-            var latitudeFieldName = context.EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.FirstOrDefault(f => f.DataTypeId == 7)?.Name;
+            var latitudeFieldName = context.EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.FirstOrDefault(f => f.DataTypeId == 6)?.Name;
 
             if (String.IsNullOrEmpty(latitudeFieldName))
             {

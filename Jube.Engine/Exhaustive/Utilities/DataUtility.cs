@@ -119,7 +119,7 @@ namespace Jube.Engine.Exhaustive.Utilities
             if (!mockData)
             {
                 var getModelFieldByEntityAnalysisModelIdParseTypeIdQuery =
-                    new GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery(dbContext, tenantRegistryId);
+                    new GetEntityAnalysisModelFieldByEntityAnalysisModelIdParseTypeIdQuery(dbContext, tenantRegistryId);
 
                 var fields = await getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
                     .ExecuteAsync(entityAnalysisModelId, 5, true, token).ConfigureAwait(false);

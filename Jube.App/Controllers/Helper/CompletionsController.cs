@@ -223,7 +223,7 @@ namespace Jube.App.Controllers.Helper
         private async Task<List<CompletionDto>> CompletionDtosAsync(int entityAnalysisModelId, int parseTypeId, bool reporting, CancellationToken token = default)
         {
             var getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
-                = new GetModelFieldByEntityAnalysisModelIdParseTypeIdQuery(dbContext, userName);
+                = new GetEntityAnalysisModelFieldByEntityAnalysisModelIdParseTypeIdQuery(dbContext, userName);
 
             var modelFields = await getModelFieldByEntityAnalysisModelIdParseTypeIdQuery
                 .ExecuteAsync(entityAnalysisModelId, parseTypeId, reporting, token).ConfigureAwait(false);

@@ -254,7 +254,12 @@ namespace Jube.App.Controllers.Helper
 
             foreach (var entityAnalysisModelInlineScript in entityAnalysisModelInlineScripts)
             {
-                var entityAnalysisInlineScript = await entityAnalysisInlineScriptRepository.GetByIdAsync(entityAnalysisModelInlineScript.Id, token);
+                if (!entityAnalysisModelInlineScript.EntityAnalysisInlineScriptId.HasValue)
+                {
+                    continue;
+                }
+                
+                var entityAnalysisInlineScript = await entityAnalysisInlineScriptRepository.GetByIdAsync(entityAnalysisModelInlineScript.EntityAnalysisInlineScriptId.Value, token);
                 foreach (var publicProperty in SyntaxTreeHelpers.GetPublicProperties(entityAnalysisInlineScript.Code, entityAnalysisInlineScript.LanguageId == 2))
                 {
                     value.Add(publicProperty.Key, publicProperty.Value);
