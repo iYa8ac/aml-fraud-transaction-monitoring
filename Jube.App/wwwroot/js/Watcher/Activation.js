@@ -135,8 +135,6 @@ function createChart() {
     });
 }
 
-//$(document).bind("kendo:skinChange", createChart);
-
 function createMap() {
     $("#map").kendoMap({
         center: [30.268107, -97.744821],
@@ -160,7 +158,7 @@ function createMap() {
 
 $(document).ready(function () {
     $("#ReplayFrom").kendoDateTimePicker({
-        value: new Date(),
+        value: new Date(Date.now() - 60000),
         dateInput: true,
         parseFormats: ["yyyy-MM-ddThh:mm:ss"]
     });

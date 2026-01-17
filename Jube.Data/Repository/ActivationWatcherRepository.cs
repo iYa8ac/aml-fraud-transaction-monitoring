@@ -60,9 +60,10 @@ namespace Jube.Data.Repository
                 .OrderBy(s => s.Id).Take(limit).ToListAsync(token);
         }
 
-        public Task BulkCopyAsync(List<ActivationWatcher> models, CancellationToken token = default)
+        public async Task<ActivationWatcher> InsertAsync(ActivationWatcher model, CancellationToken token = default)
         {
-            return dbContext.BulkCopyAsync(models, token);
+            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
+            return model;
         }
     }
 }

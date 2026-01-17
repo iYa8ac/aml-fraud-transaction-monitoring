@@ -103,6 +103,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                                 },
                                 ConcurrentQueues =
                                 {
+                                    PersistToActivationWatcherAsync = context.ConcurrentQueues.PersistToActivationWatcher,
                                     PendingNotifications = context.ConcurrentQueues.PendingNotifications,
                                     Callbacks = context.ConcurrentQueues.Callbacks,
                                     PendingEntityInvoke = context.ConcurrentQueues.PendingEntityInvoke

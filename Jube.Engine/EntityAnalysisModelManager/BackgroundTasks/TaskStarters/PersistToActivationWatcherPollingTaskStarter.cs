@@ -28,7 +28,6 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
         {
             try
             {
-                var activationWatchers = new List<ActivationWatcher>();
                 while (!context.Services.TaskCoordinator.CancellationToken.IsCancellationRequested)
                 {
                     try
@@ -49,75 +48,23 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                                     DataConnectionDbContext.GetDbContextDataConnection(
                                         context.Services.DynamicEnvironment.AppSettings("ConnectionString"));
 
-                                activationWatchers.Add(payload);
-
-                                if (context.Services.Log.IsInfoEnabled)
-                                {
-                                    context.Services.Log.Info(
-                                        $"Database Persist: Added record to the data table pending SQL Bulk insert Tenant_Registry_ID {payload.TenantRegistryId},Symbol_Entity_Key {payload.Key},Longitude {payload.Longitude},Latitude {payload.Latitude}, Activation_Rule_Summary {payload.ActivationRuleSummary}, Response_Elevation_Content {payload.ResponseElevationContent}, Response_Elevation {payload.ResponseElevation}, Back_Color {payload.BackColor}, Fore_Color {payload.ForeColor}.");
-                                }
-
-                                if (context.Services.Log.IsInfoEnabled)
-                                {
-                                    context.Services.Log.Info(
-                                        $"Database Activation Watcher Persist: The table count threshold has been set to {activationWatchers.Count} and the bulk copy threshold is {context.Services.DynamicEnvironment.AppSettings("ActivationWatcherBulkCopyThreshold")}.");
-                                }
-
-                                if (activationWatchers.Count <
-                                    Int32.Parse(context.Services.DynamicEnvironment.AppSettings("ActivationWatcherBulkCopyThreshold")))
-                                {
-                                    continue;
-                                }
-
-                                var sw = new Stopwatch();
-                                sw.Start();
-
-                                if (context.Services.Log.IsInfoEnabled)
-                                {
-                                    context.Services.Log.Info(
-                                        "Database Activation Watcher Persist: The bulk copy threshold has been exceeded and the SQL Bulk Copy will be executed. A timer has been started.");
-                                }
-
-                                if (context.Services.Log.IsInfoEnabled)
-                                {
-                                    context.Services.Log.Info("Database Activation Watcher Persist: Opened an SQL Bulk Collection.");
-                                }
-
                                 var repository = new ActivationWatcherRepository(dbContext);
-
-                                if (context.Services.Log.IsInfoEnabled)
-                                {
-                                    context.Services.Log.Info("Database Activation Watcher Persist: Will proceed to bulk copy.");
-                                }
-
                                 try
                                 {
-                                    await repository.BulkCopyAsync(activationWatchers, context.Services.TaskCoordinator.CancellationToken).ConfigureAwait(false);
-
-                                    if (context.Services.Log.IsInfoEnabled)
-                                    {
-                                        context.Services.Log.Info(
-                                            $"Database Activation Watcher Persist: The bulk copy has inserted {activationWatchers.Count} Activation Watcher records and cleared the data table.  The time taken is {sw.ElapsedMilliseconds} in ms.");
-                                    }
-
-                                    sw.Reset();
+                                    await repository.InsertAsync(payload, context.Services.TaskCoordinator.CancellationToken).ConfigureAwait(false);
                                 }
                                 catch (Exception ex) when (ex is not OperationCanceledException)
                                 {
                                     context.Services.Log.Error(ex.ToString());
-
-                                    sw.Reset();
                                 }
                                 finally
                                 {
-                                    activationWatchers.Clear();
-
                                     await dbContext.CloseAsync(context.Services.TaskCoordinator.CancellationToken).ConfigureAwait(false);
                                     await dbContext.DisposeAsync(context.Services.TaskCoordinator.CancellationToken).ConfigureAwait(false);
 
                                     if (context.Services.Log.IsInfoEnabled)
                                     {
-                                        context.Services.Log.Info("Database Activation Watcher Persist: Closed an SQL Bulk Collection.");
+                                        context.Services.Log.Info("Database Activation Watcher Persist: Closed and Disposed Connection.");
                                     }
                                 }
                             }
