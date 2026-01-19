@@ -20,7 +20,8 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models
         public string ReferenceDateXpath { get; set; }
         public string ReferenceDateName { get; set; }
         public byte ReferenceDatePayloadLocationTypeId { get; set; }
-        public string ArchivePayloadSql { get; set; }
+        public string ArchivePayloadSqlSelect { get; set; }
+        public string ArchivePayloadSqlBody { get; set; }
         public int PayloadInitialSize { get; set; }
     }
 }

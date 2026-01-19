@@ -50,9 +50,9 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                         repository.GetByEntityAnalysisModelIdOrderByIdAsync(key, context.Services.CancellationToken).ConfigureAwait(false);
 
                     var shadowEntityAnalysisModelRequestXPath = new List<Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelRequestXPath>();
-                    var archivePayloadSql = "select a.\"EntityAnalysisModelInstanceEntryGuid\"," +
-                                            "a.\"CreatedDate\"," +
-                                            $"a.\"ReferenceDate\" AS \"{value.References.ReferenceDateName}\"";
+                    var archivePayloadSqlSelect = "select a.\"EntityAnalysisModelInstanceEntryGuid\"," +
+                                                  "a.\"CreatedDate\"," +
+                                                  $"a.\"ReferenceDate\" AS \"{value.References.ReferenceDateName}\"";
 
                     foreach (var record in records)
                     {
@@ -524,7 +524,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 _ => ""
                             };
 
-                            archivePayloadSql +=
+                            archivePayloadSqlSelect +=
                                 $",(a.\"Json\" -> 'payload' ->> '{entityAnalysisModelRequestXPath.Name}'){databaseType} AS \"{entityAnalysisModelRequestXPath.Name}\"";
 
                             shadowEntityAnalysisModelRequestXPath.Add(entityAnalysisModelRequestXPath);
@@ -559,11 +559,12 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                         }
                     }
 
-                    value.References.ArchivePayloadSql = archivePayloadSql + " From \"Archive\" a" +
-                                                         " inner join \"EntityAnalysisModel\" m on a.\"EntityAnalysisModelId\" = m.\"Id\"  where "
-                                                         + "m.\"Guid\" = '" + value.Instance.Guid + "'::uuid"
-                                                         + " and \"ReferenceDate\" >= (@adjustedStartDate) " +
-                                                         "order by m.\"Id\" asc limit (@limit) offset (@skip);";
+                    value.References.ArchivePayloadSqlSelect = archivePayloadSqlSelect;
+                    value.References.ArchivePayloadSqlBody = " From \"Archive\" a" +
+                                                             " inner join \"EntityAnalysisModel\" m on a.\"EntityAnalysisModelId\" = m.\"Id\"  where "
+                                                             + "m.\"Guid\" = '" + value.Instance.Guid + "'::uuid"
+                                                             + " and \"ReferenceDate\" >= (@adjustedStartDate) " +
+                                                             "order by m.\"Id\" asc limit (@limit) offset (@skip);";
 
                     value.Collections.EntityAnalysisModelRequestXPaths = shadowEntityAnalysisModelRequestXPath;
                     value.References.PayloadInitialSize = DictionaryNoBoxingHelpers.CalculateInitialSize(value);

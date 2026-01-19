@@ -16,6 +16,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Reflection;
     using System.Text;
     using System.Threading;
@@ -25,6 +26,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
     using Data.Query;
     using Data.Reporting;
     using Data.Repository;
+    using Data.SyntaxTree;
     using Dictionary;
     using EntityAnalysisModel;
     using EntityAnalysisModelInvoke;
@@ -134,9 +136,11 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                                                 $"Entity Reprocessing: Reprocessing instance {entityAnalysisModelRuleReprocessing.EntityAnalysisModelRuleReprocessingInstance.EntityAnalysisModelsReprocessingRuleInstanceId} is about to run a query on cache to bring back all document for filter,  skipping {processed} and limiting {limit}.");
                                         }
 
+                                        var archivePayloadSelectAndBody = modelKvp.Value.References.ArchivePayloadSqlSelect + " " + modelKvp.Value.References.ArchivePayloadSqlBody;
+                                        
                                         var documents =
                                             await archiveDatabase.ExecuteReturnPayloadFromArchiveWithSkipLimitAsync(
-                                                modelKvp.Value.References.ArchivePayloadSql, dateRangeAndCount.adjustedStartDate,
+                                                archivePayloadSelectAndBody, dateRangeAndCount.adjustedStartDate,
                                                 processed,
                                                 limit, context.Services.TaskCoordinator.CancellationToken).ConfigureAwait(false);
 
@@ -601,7 +605,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
 
             try
             {
-                var (key, _) = modelKvp;
+                var (key, entityAnalysisModel) = modelKvp;
                 if (context.Services.Log.IsDebugEnabled)
                 {
                     context.Services.Log.Debug(
@@ -723,7 +727,31 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                             $"Entity Reprocessing:  Has found model id {key}.  Is loading the rule parser and tokens.");
                     }
 
-                    var parser = new Parser(context.Services.Log, []);
+                    var parser = new Parser(context.Services.Log, [])
+                    {
+                        EntityAnalysisModelRequestXPaths = [],
+                        EntityAnalysisModelInlineScriptProperties = []
+                    };
+
+                    foreach (var entityAnalysisModelRequestXPath in
+                             entityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths
+                                 .Where(entityAnalysisModelRequestXPath => !parser.EntityAnalysisModelRequestXPaths.ContainsKey(entityAnalysisModelRequestXPath.Name)))
+                    {
+                        parser.EntityAnalysisModelRequestXPaths.Add(entityAnalysisModelRequestXPath.Name,
+                            new EntityAnalysisModelRequestXPath
+                            {
+                                DataTypeId = entityAnalysisModelRequestXPath.DataTypeId,
+                                DefaultValue = entityAnalysisModelRequestXPath.DefaultValue
+                            });
+                    }
+
+                    foreach (var publicProperty in
+                             entityAnalysisModel.Collections.EntityAnalysisModelInlineScripts
+                                 .SelectMany(entityAnalysisModelInlineScript
+                                     => SyntaxTreeHelpers.GetPublicProperties(entityAnalysisModelInlineScript.InlineScriptCode, entityAnalysisModelInlineScript.LanguageId == 2)))
+                    {
+                        parser.EntityAnalysisModelInlineScriptProperties.TryAdd(publicProperty.Key, publicProperty.Value);
+                    }
 
                     if (context.Services.Log.IsDebugEnabled)
                     {
@@ -739,6 +767,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                             OriginalRuleText = record.BuilderRuleScript,
                             ErrorSpans = []
                         };
+
                         parsedRule = parser.TranslateFromDotNotation(parsedRule);
                         parsedRule = parser.Parse(parsedRule);
 

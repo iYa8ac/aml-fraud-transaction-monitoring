@@ -682,7 +682,7 @@ namespace Jube.Parser
                             {
                                 findString = firstString + "." + elements[k];
 
-                                var asFunction = ".AsString()";
+                                var asFunction = "AsString()";
                                 var databaseCast = "";
                                 var defaultValue = "";
                                 if (EntityAnalysisModelRequestXPaths != null || EntityAnalysisModelInlineScriptProperties != null)
