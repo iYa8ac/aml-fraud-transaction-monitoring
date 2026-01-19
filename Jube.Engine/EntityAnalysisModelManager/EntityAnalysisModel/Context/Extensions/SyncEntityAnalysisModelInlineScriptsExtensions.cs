@@ -107,6 +107,20 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 foreach (var publicProperty in SyntaxTreeHelpers.GetPublicProperties(inlineScript.InlineScriptCode, inlineScript.LanguageId == 2))
                                 {
                                     shadowEntityAnalysisModelInlineScriptProperties.TryAdd(publicProperty.Key, publicProperty.Value);
+
+                                    var databaseType = publicProperty.Value switch
+                                    {
+                                        2 => "::int",
+                                        3 => "::float8",
+                                        4 => "::timestamp",
+                                        5 => "::boolean",
+                                        6 => "::float8",
+                                        7 => "::float8",
+                                        _ => ""
+                                    };
+                                    
+                                    value.References.ArchivePayloadSqlSelect +=
+                                        $",(a.\"Json\" -> 'payload' ->> '{publicProperty.Key}'){databaseType} AS \"{publicProperty.Key}\"";
                                 }
 
                                 if (context.Services.Log.IsDebugEnabled)
