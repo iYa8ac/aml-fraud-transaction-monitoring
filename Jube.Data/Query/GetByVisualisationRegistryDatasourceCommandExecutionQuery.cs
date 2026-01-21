@@ -13,14 +13,10 @@
 
 namespace Jube.Data.Query
 {
-    using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Context;
-    using FluentMigrator.Runner;
-    using Poco;
     using Reporting;
     using Repository;
 
@@ -29,83 +25,16 @@ namespace Jube.Data.Query
         string connectionString,
         string user)
     {
-        public async Task<dynamic> ExecuteAsync(int id, Dictionary<int, object> parametersById, CancellationToken token = default)
+        public async Task<List<IDictionary<string, object>>> ExecuteAsync(int id, Dictionary<string, object> parametersByName, CancellationToken token = default)
         {
-            var values = new List<IDictionary<string, object>>();
             var visualisationRegistryDatasourceRepository =
                 new VisualisationRegistryDatasourceRepository(dbContext, user);
+
             var visualisationRegistryDatasource = await visualisationRegistryDatasourceRepository.GetByIdAsync(id, token);
 
-            var visualisationRegistryParameterRepository =
-                new VisualisationRegistryParameterRepository(dbContext, user);
-
-            if (visualisationRegistryDatasource.VisualisationRegistryId == null)
-            {
-                return values;
-            }
-
-            var visualisationRegistryParameter
-                = await visualisationRegistryParameterRepository
-                    .GetByVisualisationRegistryIdOrderByIdAsync(visualisationRegistryDatasource.VisualisationRegistryId.Value, token);
-
-            var parametersByName = visualisationRegistryParameter.ToDictionary(
-                parameter => parameter.Name.Replace(" ", "_"), parameter =>
-                    parametersById.TryGetValue(parameter.Id, out var value)
-                        ? value
-                        : parameter.DefaultValue);
-
-            var sw = new StopWatch();
-            sw.Start();
-
-            string error = null;
-            try
-            {
-                var postgres = new Postgres(connectionString);
-                values = await postgres.ExecuteByNamedParametersAsync(visualisationRegistryDatasource.Command,
-                    parametersByName, token).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                error = ex.ToString();
-            }
-
-            sw.Stop();
-
-            var visualisationRegistryDatasourceExecutionLog =
-                new VisualisationRegistryDatasourceExecutionLog
-                {
-                    Records = values.Count,
-                    Error = error,
-                    ResponseTime = sw.ElapsedTime().Milliseconds,
-                    VisualisationRegistryDatasourceId = visualisationRegistryDatasource.Id,
-                    CreatedDate = DateTime.Now,
-                    CreatedUser = user
-                };
-
-            var visualisationRegistryDatasourceExecutionLogRepository
-                = new VisualisationRegistryDatasourceExecutionLogRepository(dbContext);
-
-            visualisationRegistryDatasourceExecutionLog =
-                await visualisationRegistryDatasourceExecutionLogRepository.InsertAsync(
-                    visualisationRegistryDatasourceExecutionLog, token);
-
-            var visualisationRegistryDatasourceExecutionLogParameterRepository
-                = new VisualisationRegistryDatasourceExecutionLogParameterRepository(dbContext);
-
-            foreach (var visualisationRegistryDatasourceExecutionLogParameter in parametersById.Select(parameter =>
-                         new VisualisationRegistryDatasourceExecutionLogParameter
-                         {
-                             Value = parameter.Value.ToString(),
-                             VisualisationRegistryDatasourceExecutionLogId =
-                                 visualisationRegistryDatasourceExecutionLog.Id,
-                             VisualisationRegistryParameterId = parameter.Key
-                         }))
-            {
-                await visualisationRegistryDatasourceExecutionLogParameterRepository
-                    .InsertAsync(visualisationRegistryDatasourceExecutionLogParameter, token);
-            }
-
-            return values;
+            var postgres = new Postgres(connectionString);
+            return await postgres.ExecuteByNamedParametersAsync(visualisationRegistryDatasource.Command,
+                parametersByName, token).ConfigureAwait(false);
         }
     }
 }

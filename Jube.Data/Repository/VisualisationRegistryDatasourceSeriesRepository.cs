@@ -33,6 +33,16 @@ namespace Jube.Data.Repository
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
+        public VisualisationRegistryDatasourceSeriesRepository(DbContext dbContext)
+        {
+            this.dbContext = dbContext;
+        }
+
+        public Task<int> DeleteByVisualisationRegistryDatasourceIdAsync(int visualisationRegistryDatasourceId)
+        {
+            return dbContext.VisualisationRegistryDatasourceSeries.DeleteAsync(d => d.VisualisationRegistryDatasourceId == visualisationRegistryDatasourceId);
+        }
+
         public async Task<IEnumerable<VisualisationRegistryDatasourceSeries>> GetByVisualisationRegistryDatasourceIdAsync(
             int visualisationRegistryDatasourceId, CancellationToken token = default)
         {

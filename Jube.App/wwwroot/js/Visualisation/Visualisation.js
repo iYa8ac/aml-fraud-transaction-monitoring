@@ -53,9 +53,9 @@ function generateColumns(series) {
     for (let i = 0; i < series.length; i++) {
         const column = {};
         column["width"] = "300px;";
-        column["field"] = series[i].Name;
+        column["field"] = series[i].name;
         if (series[i].dataType === 6) {
-            column["template"] = '#=generateStringifyTemplate(' + series[i].Name + ')#';
+            column["template"] = '#=generateStringifyTemplate(' + series[i].name + ')#';
         }
         columns.push(column);
     }
@@ -291,7 +291,7 @@ function Run() {
                                         fields = fields + ',';
                                     }
 
-                                    fields = fields + field.Name + ': {type:"';
+                                    fields = fields + field.name + ': {type:"';
 
                                     switch (field.dataTypeId) {
                                         case 1:
@@ -335,7 +335,7 @@ function Run() {
                             if (this.includeDisplay === false) {
                                 evalGetDatasourceData = "var ds" +
                                     this.id +
-                                    " = new kendo.data.DataSource({transport: {read: {dataType: 'json',type:'POST',data:paramsValues,url: '../api/GetByVisualisationRegistryDatasourceCommandExecutionQuery/" +
+                                    " = new kendo.data.DataSource({transport: {read: {dataType: 'json',contentType: 'application/json' ,type:'POST',data:paramsValues,url: '../api/GetByVisualisationRegistryDatasourceCommandExecutionQuery/" +
                                     this.id +
                                     "'},parameterMap: function(data) {return KendoDataToJSONArray(data);}}," +
                                     schema +
@@ -359,7 +359,7 @@ function Run() {
                                     case 1:
                                         evalGetDatasourceData = "var ds" +
                                             this.id +
-                                            " = new kendo.data.DataSource({transport: {read: {dataType: 'json',type:'POST',data:paramsValues,url: '../api/GetByVisualisationRegistryDatasourceCommandExecutionQuery/" +
+                                            " = new kendo.data.DataSource({transport: {read: {dataType: 'json', contentType: 'application/json', type:'POST',data:paramsValues,url: '../api/GetByVisualisationRegistryDatasourceCommandExecutionQuery/" +
                                             this.id +
                                             "'},parameterMap: function(data) {return KendoDataToJSONArray(data);}}," +
                                             schema +
@@ -395,7 +395,7 @@ function Run() {
                                     case 2:
                                         evalGetDatasourceData = "var ds" +
                                             this.id +
-                                            " = new kendo.data.DataSource({transport: {read: {dataType: 'json',type:'POST',data:paramsValues,url: '../api/GetByVisualisationRegistryDatasourceCommandExecutionQuery/" +
+                                            " = new kendo.data.DataSource({transport: {read: {dataType: 'json',contentType: 'application/json', type:'POST',data:paramsValues,url: '../api/GetByVisualisationRegistryDatasourceCommandExecutionQuery/" +
                                             this.id +
                                             "'},parameterMap: function(data) {return KendoDataToJSONArray(data);}}" +
                                             requestEndString +
@@ -428,6 +428,7 @@ function Run() {
                                                 this.id,
                                             data: kendo.stringify(paramsValues),
                                             dataType: 'json',
+                                            contentType: 'application/json',
                                             context: {
                                                 visualisationText: this.visualisationText,
                                                 id: this.id,

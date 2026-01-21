@@ -15,19 +15,20 @@ namespace Jube.App.Controllers.Query
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
+    using System.Diagnostics;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Code;
     using Data.Context;
+    using Data.Poco;
     using Data.Query;
+    using Data.Repository;
     using DynamicEnvironment;
     using log4net;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
-    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     [Route("api/[controller]")]
@@ -75,8 +76,10 @@ namespace Jube.App.Controllers.Query
 
         // ReSharper disable once RouteTemplates.RouteParameterIsNotPassedToMethod
         [HttpPost("{id}")]
-        // ReSharper disable once RouteTemplates.MethodMissingRouteParameters
-        public async Task<ActionResult<dynamic>> ExecuteAsync(CancellationToken token = default)
+        public async Task<ActionResult<dynamic>> ExecuteAsync(
+            [FromRoute] int id,
+            [FromBody] JArray parameters,
+            CancellationToken token = default)
         {
             try
             {
@@ -88,87 +91,113 @@ namespace Jube.App.Controllers.Query
                     return Forbid();
                 }
 
-                var idFromRoute = Request.RouteValues["id"]?.ToString();
+                var parametersByParsedId = parameters.ToDictionary(parameter => (int)parameter.SelectToken("id"), parameter => parameter.SelectToken("value"));
+                var parametersByName = await ParametersByNameAsync(id, token, parametersByParsedId);
 
-                if (idFromRoute == null)
+                string error = null;
+                var values = new List<IDictionary<string, object>>();
+                var sw = new Stopwatch();
+                try
                 {
-                    return StatusCode(500);
+                    sw.Start();
+                    values = await query.ExecuteAsync(id, parametersByName, token).ConfigureAwait(false);
+                    sw.Stop();
+                }
+                catch (Exception ex)
+                {
+                    sw.Stop();
+                    error = ex.ToString();
                 }
 
-                var idParsedToInt = Int32.Parse(idFromRoute);
+                await StoreAuditAsync(id, parameters, token, values, error, sw, parametersByParsedId);
 
-                var ms = new MemoryStream();
-                await Request.Body.CopyToAsync(ms, token).ConfigureAwait(false);
-
-                var payloadString = Encoding.UTF8.GetString(ms.ToArray());
-                var jArray = JsonConvert.DeserializeObject<JArray>(payloadString);
-
-                var parameters = new Dictionary<int, object>();
-
-                if (jArray == null)
-                {
-                    return Ok(await query.ExecuteAsync(idParsedToInt, parameters, token).ConfigureAwait(false));
-                }
-
-                foreach (var param in jArray)
-                {
-                    var value = param.SelectToken("value");
-                    var id = param.SelectToken("id");
-
-                    if (value != null && id != null)
-                    {
-                        switch (value.Type)
-                        {
-                            case JTokenType.String:
-                                parameters.Add(Int32.Parse(id.ToString()),
-                                    value.ToString());
-                                break;
-                            case JTokenType.Integer:
-                                parameters.Add(Int32.Parse(id.ToString()),
-                                    Int32.Parse(value.ToString()));
-                                break;
-                            case JTokenType.None:
-                            case JTokenType.Object:
-                            case JTokenType.Array:
-                            case JTokenType.Constructor:
-                            case JTokenType.Property:
-                            case JTokenType.Comment:
-                            case JTokenType.Float:
-                            case JTokenType.Boolean:
-                            case JTokenType.Null:
-                            case JTokenType.Undefined:
-                            case JTokenType.Date:
-                            case JTokenType.Raw:
-                            case JTokenType.Bytes:
-                            case JTokenType.Guid:
-                            case JTokenType.Uri:
-                            case JTokenType.TimeSpan:
-                            default:
-                            {
-                                if (id.Type == JTokenType.Float)
-                                {
-                                    parameters.Add(Int32.Parse(id.ToString()),
-                                        Double.Parse(value.ToString()));
-                                }
-                                else
-                                {
-                                    parameters.Add(Int32.Parse(id.ToString()),
-                                        value.ToString());
-                                }
-
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                return Ok(await query.ExecuteAsync(idParsedToInt, parameters, token).ConfigureAwait(false));
+                return values;
             }
             catch (Exception e)
             {
                 log.Error(e);
                 return StatusCode(500);
             }
+        }
+
+        private async Task StoreAuditAsync(int id, JArray parameters, CancellationToken token, List<IDictionary<string, object>> values, string error, Stopwatch sw, Dictionary<int, JToken> paramsByParsedId)
+        {
+            var visualisationRegistryDatasourceExecutionLog =
+                new VisualisationRegistryDatasourceExecutionLog
+                {
+                    Records = values.Count,
+                    Error = error,
+                    ResponseTime = (int)sw.ElapsedMilliseconds,
+                    VisualisationRegistryDatasourceId = id,
+                    CreatedDate = DateTime.Now,
+                    CreatedUser = userName
+                };
+
+            var visualisationRegistryDatasourceExecutionLogRepository
+                = new VisualisationRegistryDatasourceExecutionLogRepository(dbContext);
+
+            visualisationRegistryDatasourceExecutionLog =
+                await visualisationRegistryDatasourceExecutionLogRepository.InsertAsync(
+                    visualisationRegistryDatasourceExecutionLog, token);
+
+            var visualisationRegistryDatasourceExecutionLogParameterRepository
+                = new VisualisationRegistryDatasourceExecutionLogParameterRepository(dbContext);
+
+            for (var i = 0; i < parameters.Count; i++)
+            {
+                var visualisationRegistryDatasourceExecutionLogParameter = new VisualisationRegistryDatasourceExecutionLogParameter
+                {
+                    Value = paramsByParsedId.ElementAt(i).Value.ToString(),
+                    VisualisationRegistryDatasourceExecutionLogId =
+                        visualisationRegistryDatasourceExecutionLog.Id,
+                    VisualisationRegistryParameterId = paramsByParsedId.ElementAt(i).Key
+                };
+
+                await visualisationRegistryDatasourceExecutionLogParameterRepository
+                    .InsertAsync(visualisationRegistryDatasourceExecutionLogParameter, token);
+            }
+        }
+
+        private async Task<Dictionary<string, object>> ParametersByNameAsync(int id, CancellationToken token, Dictionary<int, JToken> paramsByParsedId)
+        {
+            var visualisationRegistryParameterRepository = new VisualisationRegistryParameterRepository(dbContext, userName);
+            var visualisationRegistryParameters = await visualisationRegistryParameterRepository.GetByVisualisationRegistryDatasourceIdAsync(id, token);
+
+            var parametersByName = new Dictionary<string, object>();
+            foreach (var parameter in paramsByParsedId)
+            {
+                var visualisationRegistry = visualisationRegistryParameters.FirstOrDefault(f => f.Id == parameter.Key);
+                if (visualisationRegistry == null)
+                {
+                    continue;
+                }
+
+                var cleanName = visualisationRegistry.Name.Replace(" ", "_");
+
+                switch (visualisationRegistry.DataTypeId)
+                {
+                    case 1:
+                        parametersByName.Add(cleanName, parameter.Value == null ? visualisationRegistry.DefaultValue : parameter.Value.ToString());
+                        break;
+                    case 2:
+                        parametersByName.Add(cleanName, parameter.Value == null ? Int32.Parse(visualisationRegistry.DefaultValue) : Int32.Parse(parameter.Value.ToString()));
+                        break;
+                    case 3:
+                        parametersByName.Add(cleanName, parameter.Value == null ? Double.Parse(visualisationRegistry.DefaultValue) : Double.Parse(parameter.Value.ToString()));
+                        break;
+                    case 4:
+                        parametersByName.Add(cleanName, parameter.Value == null ? DateTime.Now.AddDays(Int32.Parse(visualisationRegistry.DefaultValue) * -1) : DateTime.Parse(parameter.Value.ToString()));
+                        break;
+                    case 5:
+                        parametersByName.Add(cleanName, parameter.Value == null ? Byte.Parse(visualisationRegistry.DefaultValue) : Byte.Parse(parameter.Value.ToString()));
+                        break;
+                    default:
+                        parametersByName.Add(cleanName, parameter.Value == null ? visualisationRegistry.DefaultValue : parameter.Value.ToString());
+                        break;
+                }
+            }
+
+            return parametersByName;
         }
     }
 }

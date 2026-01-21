@@ -170,8 +170,8 @@ namespace Jube.Data.Repository
                 cfg.CreateMap<VisualisationRegistryDatasource, VisualisationRegistryDatasourceVersion>();
             }));
 
-            var audit = mapper.Map<EntityAnalysisModelDictionaryKvpVersion>(existing);
-            audit.EntityAnalysisModelDictionaryKvpId = existing.Id;
+            var audit = mapper.Map<VisualisationRegistryDatasourceVersion>(existing);
+            audit.VisualisationRegistryDatasourceId = existing.Id;
 
             await dbContext.InsertAsync(audit, token: token).ConfigureAwait(false);
 
@@ -182,6 +182,11 @@ namespace Jube.Data.Repository
 
         private async Task FillSeriesAsync(int id, Dictionary<string, string> columns, CancellationToken token = default)
         {
+            await dbContext.BeginTransactionAsync(token);
+
+            var visualisationRegistryDatasourceSeriesRepository = new VisualisationRegistryDatasourceSeriesRepository(dbContext);
+            await visualisationRegistryDatasourceSeriesRepository.DeleteByVisualisationRegistryDatasourceIdAsync(id);
+
             foreach (var (key, value) in columns)
             {
                 var visualisationRegistryDatasourceSeries = new VisualisationRegistryDatasourceSeries
@@ -220,6 +225,7 @@ namespace Jube.Data.Repository
                 }
 
                 await dbContext.InsertAsync(visualisationRegistryDatasourceSeries, token: token);
+                await dbContext.CommitTransactionAsync(token);
             }
         }
 
