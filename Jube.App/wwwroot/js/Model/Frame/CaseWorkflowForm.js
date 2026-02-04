@@ -13,6 +13,7 @@
 
 var endpoint = "/api/CaseWorkflowForm";
 var parentKeyName = "caseWorkflowId";
+var childKeyName = "caseWorkflowFormGuid";
 var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
 var CoderHasChanged;

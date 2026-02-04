@@ -1,4 +1,17 @@
-﻿namespace Jube.Preservation
+﻿/* Copyright (C) 2022-present Jube Holdings Limited.
+ *
+ * This file is part of Jube™ software.
+ *
+ * Jube™ is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ * Jube™ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+ * You should have received a copy of the GNU Affero General Public License along with Jube™. If not,
+ * see <https://www.gnu.org/licenses/>.
+ */
+
+namespace Jube.Preservation
 {
     using Cryptography;
     using Data.Context;
@@ -256,6 +269,39 @@
                 var visualisationRegistryParameterRepository =
                     new VisualisationRegistryParameterRepository(dbContext, import.TenantRegistryId);
                 await visualisationRegistryParameterRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var caseWorkflowRoleRepository = new CaseWorkflowRoleRepository(dbContext, import.TenantRegistryId);
+                await caseWorkflowRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var caseWorkflowActionRoleRepository = new CaseWorkflowActionRoleRepository(dbContext, import.TenantRegistryId);
+                await caseWorkflowActionRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var caseWorkflowDisplayRoleRepository = new CaseWorkflowDisplayRoleRepository(dbContext, import.TenantRegistryId);
+                await caseWorkflowDisplayRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var caseWorkflowFilterRoleRepository = new CaseWorkflowFilterRoleRepository(dbContext, import.TenantRegistryId);
+                await caseWorkflowFilterRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var caseWorkflowFormRoleRepository = new CaseWorkflowFormRoleRepository(dbContext, import.TenantRegistryId);
+                await caseWorkflowFormRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var caseWorkflowMacroRoleRepository = new CaseWorkflowMacroRoleRepository(dbContext, import.TenantRegistryId);
+                await caseWorkflowMacroRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var caseWorkflowStatusRoleRepository = new CaseWorkflowStatusRoleRepository(dbContext, import.TenantRegistryId);
+                await caseWorkflowStatusRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var caseWorkflowXPathRoleRepository = new CaseWorkflowXPathRoleRepository(dbContext, import.TenantRegistryId);
+                await caseWorkflowXPathRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var visualisationRegistryRoleRepository = new VisualisationRegistryRoleRepository(dbContext, import.TenantRegistryId);
+                await visualisationRegistryRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var visualisationRegistryDatasourceRoleRepository = new VisualisationRegistryDatasourceRoleRepository(dbContext, import.TenantRegistryId);
+                await visualisationRegistryDatasourceRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
+
+                var visualisationRegistryParameterRoleRepository = new VisualisationRegistryParameterRoleRepository(dbContext, import.TenantRegistryId);
+                await visualisationRegistryParameterRoleRepository.DeleteByTenantRegistryIdOutsideOfInstanceAsync(import.TenantRegistryId, import.Id, token);
 
                 if (wrapper.Payload?.EntityAnalysisModel != null)
                 {
@@ -661,7 +707,6 @@
                             }
                         }
 
-                        // ReSharper disable once InvertIf
                         if (options.Dictionaries)
                         {
                             foreach (var oldEntityAnalysisModelDictionary in oldEntityAnalysisModel
@@ -680,6 +725,73 @@
                                         oldEntityAnalysisModelDictionaryKvp, token);
                                 }
                             }
+                        }
+                    }
+                }
+
+                if (wrapper.Payload is { EntityPermission: not null })
+                {
+                    if (wrapper.Payload.EntityPermission.CaseWorkflowRole != null)
+                    {
+                        foreach (var caseWorkflowRole in wrapper.Payload.EntityPermission.CaseWorkflowRole)
+                        {
+                            await caseWorkflowRoleRepository.InsertAsync(caseWorkflowRole, token);
+                        }
+                    }
+
+                    if (wrapper.Payload.EntityPermission.CaseWorkflowActionRole != null)
+                    {
+                        foreach (var caseWorkflowActionRole in wrapper.Payload.EntityPermission.CaseWorkflowActionRole)
+                        {
+                            await caseWorkflowActionRoleRepository.InsertAsync(caseWorkflowActionRole, token);
+                        }
+                    }
+
+                    if (wrapper.Payload.EntityPermission.CaseWorkflowDisplayRole != null)
+                    {
+                        foreach (var caseWorkflowDisplayRole in wrapper.Payload.EntityPermission.CaseWorkflowDisplayRole)
+                        {
+                            await caseWorkflowDisplayRoleRepository.InsertAsync(caseWorkflowDisplayRole, token);
+                        }
+                    }
+
+                    if (wrapper.Payload.EntityPermission.CaseWorkflowFilterRole != null)
+                    {
+                        foreach (var caseWorkflowFilterRole in wrapper.Payload.EntityPermission.CaseWorkflowFilterRole)
+                        {
+                            await caseWorkflowFilterRoleRepository.InsertAsync(caseWorkflowFilterRole, token);
+                        }
+                    }
+
+                    if (wrapper.Payload.EntityPermission.CaseWorkflowFormRole != null)
+                    {
+                        foreach (var caseWorkflowFormRole in wrapper.Payload.EntityPermission.CaseWorkflowFormRole)
+                        {
+                            await caseWorkflowFormRoleRepository.InsertAsync(caseWorkflowFormRole, token);
+                        }
+                    }
+
+                    if (wrapper.Payload.EntityPermission.CaseWorkflowMacroRole != null)
+                    {
+                        foreach (var caseWorkflowMacroRole in wrapper.Payload.EntityPermission.CaseWorkflowMacroRole)
+                        {
+                            await caseWorkflowMacroRoleRepository.InsertAsync(caseWorkflowMacroRole, token);
+                        }
+                    }
+
+                    if (wrapper.Payload.EntityPermission.CaseWorkflowStatusRole != null)
+                    {
+                        foreach (var caseWorkflowStatusRole in wrapper.Payload.EntityPermission.CaseWorkflowStatusRole)
+                        {
+                            await caseWorkflowStatusRoleRepository.InsertAsync(caseWorkflowStatusRole, token);
+                        }
+                    }
+
+                    if (wrapper.Payload.EntityPermission.CaseWorkflowXPathRole != null)
+                    {
+                        foreach (var caseWorkflowXPathRole in wrapper.Payload.EntityPermission.CaseWorkflowXPathRole)
+                        {
+                            await caseWorkflowXPathRoleRepository.InsertAsync(caseWorkflowXPathRole, token);
                         }
                     }
                 }
@@ -704,6 +816,33 @@
                             {
                                 visualisationRegistryParameter.VisualisationRegistryId = visualisationRegistryId;
                                 await visualisationRegistryParameterRepository.InsertAsync(visualisationRegistryParameter, token);
+                            }
+                        }
+                    }
+
+                    if (wrapper.Payload is { EntityPermission: not null })
+                    {
+                        if (wrapper.Payload.EntityPermission.VisualisationRegistryRole != null)
+                        {
+                            foreach (var visualisationRegistryRole in wrapper.Payload.EntityPermission.VisualisationRegistryRole)
+                            {
+                                await visualisationRegistryRoleRepository.InsertAsync(visualisationRegistryRole, token);
+                            }
+                        }
+
+                        if (wrapper.Payload.EntityPermission.VisualisationRegistryParameterRole != null)
+                        {
+                            foreach (var visualisationRegistryParameterRole in wrapper.Payload.EntityPermission.VisualisationRegistryParameterRole)
+                            {
+                                await visualisationRegistryParameterRoleRepository.InsertAsync(visualisationRegistryParameterRole, token);
+                            }
+                        }
+
+                        if (wrapper.Payload.EntityPermission.VisualisationRegistryDatasourceRole != null)
+                        {
+                            foreach (var visualisationRegistryDatasourceRole in wrapper.Payload.EntityPermission.VisualisationRegistryDatasourceRole)
+                            {
+                                await visualisationRegistryDatasourceRoleRepository.InsertAsync(visualisationRegistryDatasourceRole, token);
                             }
                         }
                     }
@@ -812,7 +951,10 @@
 
         private async Task<Payload> ExportPayloadAsync(ImportExportOptions options, int tenantRegistryId, CancellationToken token = default)
         {
-            var payload = new Payload();
+            var payload = new Payload
+            {
+                EntityPermission = new EntityPermission()
+            };
 
             var entityAnalysisModelRepository = new EntityAnalysisModelRepository(dbContext, tenantRegistryId);
             payload.EntityAnalysisModel = await entityAnalysisModelRepository.GetAsync(token).ConfigureAwait(false);
@@ -1140,8 +1282,7 @@
                                         .Id, token).ConfigureAwait(false);
                     }
                 }
-
-                // ReSharper disable once InvertIf
+                
                 if (options.Visualisations)
                 {
                     var visualisationRegistryRepository =
@@ -1164,7 +1305,43 @@
                     }
                 }
             }
+            
+            var caseWorkflowRoleRepository = new CaseWorkflowRoleRepository(dbContext, tenantRegistryId);
+            payload.EntityPermission.CaseWorkflowRole = await caseWorkflowRoleRepository.GetAllDescAsync(token);
 
+            var caseWorkflowActionRoleRepository = new CaseWorkflowActionRoleRepository(dbContext, tenantRegistryId);
+            payload.EntityPermission.CaseWorkflowActionRole = await caseWorkflowActionRoleRepository.GetAllDescAsync(token);
+
+            var caseWorkflowDisplayRoleRepository = new CaseWorkflowDisplayRoleRepository(dbContext, tenantRegistryId);
+            payload.EntityPermission.CaseWorkflowDisplayRole = await caseWorkflowDisplayRoleRepository.GetAllDescAsync(token);
+
+            var caseWorkflowFilterRoleRepository = new CaseWorkflowFilterRoleRepository(dbContext, tenantRegistryId);
+            payload.EntityPermission.CaseWorkflowFilterRole = await caseWorkflowFilterRoleRepository.GetAllDescAsync(token);
+
+            var caseWorkflowFormRoleRepository = new CaseWorkflowFormRoleRepository(dbContext, tenantRegistryId);
+            payload.EntityPermission.CaseWorkflowFormRole = await caseWorkflowFormRoleRepository.GetAllDescAsync(token);
+
+            var caseWorkflowMacroRoleRepository = new CaseWorkflowMacroRoleRepository(dbContext, tenantRegistryId);
+            payload.EntityPermission.CaseWorkflowMacroRole = await caseWorkflowMacroRoleRepository.GetAllDescAsync(token);
+
+            var caseWorkflowStatusRoleRepository = new CaseWorkflowStatusRoleRepository(dbContext, tenantRegistryId);
+            payload.EntityPermission.CaseWorkflowStatusRole = await caseWorkflowStatusRoleRepository.GetAllDescAsync(token);
+
+            var caseWorkflowXPathRoleRepository = new CaseWorkflowXPathRoleRepository(dbContext, tenantRegistryId);
+            payload.EntityPermission.CaseWorkflowXPathRole = await caseWorkflowXPathRoleRepository.GetAllDescAsync(token);
+
+            if (options.Visualisations)
+            {
+                var visualisationRegistryRole = new VisualisationRegistryRoleRepository(dbContext, tenantRegistryId);
+                payload.EntityPermission.VisualisationRegistryRole = await visualisationRegistryRole.GetAllDescAsync(token);
+
+                var visualisationRegistryParameterRole = new VisualisationRegistryParameterRoleRepository(dbContext, tenantRegistryId);
+                payload.EntityPermission.VisualisationRegistryParameterRole = await visualisationRegistryParameterRole.GetAllDescAsync(token);
+
+                var visualisationRegistryDatasourceRole = new VisualisationRegistryDatasourceRoleRepository(dbContext, tenantRegistryId);
+                payload.EntityPermission.VisualisationRegistryDatasourceRole = await visualisationRegistryDatasourceRole.GetAllDescAsync(token);    
+            }
+            
             return payload;
         }
     }

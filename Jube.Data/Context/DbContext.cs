@@ -1038,5 +1038,93 @@ namespace Jube.Data.Context
                 return GetTable<CacheTtlCounterEntryRemovalBatchEntry>();
             }
         }
+
+        public ITable<CaseWorkflowStatusRole> CaseWorkflowStatusRole
+        {
+            get
+            {
+                return GetTable<CaseWorkflowStatusRole>();
+            }
+        }
+
+        public ITable<CaseWorkflowRole> CaseWorkflowRole
+        {
+            get
+            {
+                return GetTable<CaseWorkflowRole>();
+            }
+        }
+
+        public ITable<CaseWorkflowMacroRole> CaseWorkflowMacroRole
+        {
+            get
+            {
+                return GetTable<CaseWorkflowMacroRole>();
+            }
+        }
+
+        public ITable<CaseWorkflowFormRole> CaseWorkflowFormRole
+        {
+            get
+            {
+                return GetTable<CaseWorkflowFormRole>();
+            }
+        }
+
+        public ITable<CaseWorkflowActionRole> CaseWorkflowActionRole
+        {
+            get
+            {
+                return GetTable<CaseWorkflowActionRole>();
+            }
+        }
+
+        public ITable<CaseWorkflowDisplayRole> CaseWorkflowDisplayRole
+        {
+            get
+            {
+                return GetTable<CaseWorkflowDisplayRole>();
+            }
+        }
+
+        public ITable<CaseWorkflowXPathRole> CaseWorkflowXPathRole
+        {
+            get
+            {
+                return GetTable<CaseWorkflowXPathRole>();
+            }
+        }
+
+        public ITable<VisualisationRegistryRole> VisualisationRegistryRole
+        {
+            get
+            {
+                return GetTable<VisualisationRegistryRole>();
+            }
+        }
+
+        public ITable<VisualisationRegistryDatasourceRole> VisualisationRegistryDatasourceRole
+        {
+            get
+            {
+                return GetTable<VisualisationRegistryDatasourceRole>();
+            }
+        }
+
+        public ITable<VisualisationRegistryParameterRole> VisualisationRegistryParameterRole
+        {
+            get
+            {
+                return GetTable<VisualisationRegistryParameterRole>();
+            }
+        }
+
+        public ITable<CaseWorkflowFilterRole> CaseWorkflowFilterRole
+        {
+            get
+            {
+                return GetTable<CaseWorkflowFilterRole>();
+            }
+        }
     }
 }

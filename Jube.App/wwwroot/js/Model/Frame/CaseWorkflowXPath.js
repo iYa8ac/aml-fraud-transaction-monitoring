@@ -13,6 +13,7 @@
 
 var endpoint = "/api/CaseWorkflowXPath";
 var parentKeyName = "caseWorkflowId";
+var childKeyName = "caseWorkflowXPathGuid";
 var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
 var xPath = $("#XPath").kendoDropDownList({

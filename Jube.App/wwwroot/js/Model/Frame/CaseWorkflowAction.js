@@ -13,6 +13,7 @@
 
 var endpoint = "/api/CaseWorkflowAction";
 var parentKeyName = "caseWorkflowId";
+var childKeyName = "caseWorkflowActionGuid";
 var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
 var enableHttpEndpoint = $("#EnableHttpEndpoint").kendoSwitch({

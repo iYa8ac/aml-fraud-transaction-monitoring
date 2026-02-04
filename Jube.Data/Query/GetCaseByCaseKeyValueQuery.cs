@@ -21,21 +21,26 @@ namespace Jube.Data.Query
     using Context;
     using LinqToDB;
 
-    public class GetCaseByCaseKeyValueQuery(DbContext dbContext, string user)
+    public class GetCaseByCaseKeyValueQuery(DbContext dbContext, string userName)
     {
         public async Task<IEnumerable<Dto>> ExecuteAsync(string key, string value, CancellationToken token = default)
         {
             var query = from c in dbContext.Case
-                from i in dbContext.CaseWorkflow.InnerJoin(w => w.Guid == c.CaseWorkflowGuid)
+                from i in dbContext.CaseWorkflow.InnerJoin(w =>
+                    w.Guid == c.CaseWorkflowGuid
+                    && (w.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                        && w.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflowRole.Deleted == null))
                 from m in dbContext.EntityAnalysisModel.InnerJoin(w =>
                     w.Id == i.EntityAnalysisModelId && (w.Deleted == 0 || w.Deleted == null))
                 from t in dbContext.TenantRegistry.InnerJoin(w => w.Id == m.TenantRegistryId)
                 from u in dbContext.UserInTenant.InnerJoin(w => w.TenantRegistryId == t.Id)
-                from s in dbContext.CaseWorkflowStatus.LeftJoin(w =>
-                    w.Guid == c.CaseWorkflowStatusGuid && w.CaseWorkflowId == i.Id &&
-                    (w.Deleted == 0 || w.Deleted == null))
+                from s in dbContext.CaseWorkflowStatus.InnerJoin(w =>
+                    w.Guid == c.CaseWorkflowStatusGuid
+                    && (w.Deleted == 0 || w.Deleted == null)
+                    && (w.CaseWorkflowStatusRole.RoleRegistry.UserRegistry.Name == userName
+                        && w.CaseWorkflowStatusRole.Deleted == 0 || w.CaseWorkflowStatusRole.Deleted == null))
                 orderby c.Id descending
-                where c.CaseKey == key && c.CaseKeyValue == value && u.User == user
+                where c.CaseKey == key && c.CaseKeyValue == value && u.User == userName
                 select new Dto
                 {
                     Id = c.Id,

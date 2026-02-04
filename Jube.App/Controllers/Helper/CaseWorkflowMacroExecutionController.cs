@@ -94,7 +94,7 @@ namespace Jube.App.Controllers.Helper
 
             var caseWorkflowMacroRepository = new CaseWorkflowMacroRepository(dbContext, userName);
 
-            var caseWorkflowMacro = await caseWorkflowMacroRepository.GetByIdAsync(model.CaseWorkflowMacroId, token);
+            var caseWorkflowMacro = await caseWorkflowMacroRepository.GetByIdActiveOnlyAsync(model.CaseWorkflowMacroId, token);
 
             if (caseWorkflowMacro.EnableNotification != 1 && caseWorkflowMacro.EnableHttpEndpoint != 1)
             {

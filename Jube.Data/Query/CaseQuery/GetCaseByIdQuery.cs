@@ -37,13 +37,20 @@ namespace Jube.Data.Query.CaseQuery
         {
             var query = from c in dbContext.Case
                 from i in dbContext.CaseWorkflow.InnerJoin(w =>
-                    w.Guid == c.CaseWorkflowGuid && (w.Deleted == 0 || w.Deleted == null))
+                    w.Guid == c.CaseWorkflowGuid
+                    && w.Deleted == 0 || w.Deleted == null
+                    && (w.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                        && w.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflowRole.Deleted == null)
+                )
                 from m in dbContext.EntityAnalysisModel.InnerJoin(w =>
                     w.Id == i.EntityAnalysisModelId && (w.Deleted == 0 || w.Deleted == null))
                 from t in dbContext.TenantRegistry.InnerJoin(w => w.Id == m.TenantRegistryId)
                 from u in dbContext.UserInTenant.InnerJoin(w => w.TenantRegistryId == t.Id)
-                from s in dbContext.CaseWorkflowStatus.LeftJoin(w =>
-                    w.Guid == c.CaseWorkflowStatusGuid && w.CaseWorkflowId == i.Id &&
+                from s in dbContext.CaseWorkflowStatus.InnerJoin(w =>
+                    w.Guid == c.CaseWorkflowStatusGuid
+                    && w.CaseWorkflowStatusRole.RoleRegistry.UserRegistry.Name == userName
+                    && (w.CaseWorkflowStatusRole.Deleted == 0 || w.CaseWorkflowStatusRole.Deleted == null)
+                    && w.CaseWorkflowId == i.Id &&
                     (w.Deleted == 0 || w.Deleted == null))
                 where c.Id == id && u.User == userName
                 select new CaseQueryDto

@@ -54,15 +54,19 @@ namespace Jube.Data.Repository
                 !tenantRegistryId.HasValue).ToListAsync(token);
         }
 
-        public async Task<IEnumerable<CaseWorkflowFormEntry>> GetByCaseKeyValueAsync(string key, string value, CancellationToken token = default)
+        public async Task<IEnumerable<CaseWorkflowFormEntry>> GetByCaseKeyValueActiveOnlyAsync(string key, string value, CancellationToken token = default)
         {
             return await dbContext.CaseWorkflowFormEntry.Where(w
-                    => (w.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
-                        !tenantRegistryId.HasValue)
-                       && (w.Case.CaseWorkflow.EntityAnalysisModel.Deleted == 0 ||
-                           w.Case.CaseWorkflow.EntityAnalysisModel.Deleted == null)
-                       && w.CaseKey == key && w.CaseKeyValue == value)
-                .OrderByDescending(o => o.Id).ToListAsync(token);
+                => (w.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
+                    !tenantRegistryId.HasValue)
+                   && (w.Case.CaseWorkflow.EntityAnalysisModel.Deleted == 0 ||
+                       w.Case.CaseWorkflow.EntityAnalysisModel.Deleted == null)
+                   && w.CaseKey == key && w.CaseKeyValue == value
+                   && (w.Case.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                       && w.Case.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.Case.CaseWorkflow.CaseWorkflowRole.Deleted == null)
+                   && (w.Case.CaseWorkflowStatus.CaseWorkflowStatusRole.RoleRegistry.UserRegistry.Name == userName
+                       && w.Case.CaseWorkflowStatus.CaseWorkflowStatusRole.Deleted == 0 || w.Case.CaseWorkflowStatus.CaseWorkflowStatusRole.Deleted == null)
+            ).OrderByDescending(o => o.Id).ToListAsync(token);
         }
 
         public async Task<CaseWorkflowFormEntry> InsertAsync(CaseWorkflowFormEntry model, CancellationToken token = default)

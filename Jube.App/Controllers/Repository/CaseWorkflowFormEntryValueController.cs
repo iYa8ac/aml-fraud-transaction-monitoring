@@ -88,7 +88,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseWorkflowFormEntryValue>>(await repository.GetByCaseWorkflowFormEntryIdAsync(id, token)));
+                return Ok(mapper.Map<List<CaseWorkflowFormEntryValue>>(await repository.GetByCaseWorkflowFormEntryIdActiveOnlyAsync(id, token)));
             }
             catch (Exception e)
             {

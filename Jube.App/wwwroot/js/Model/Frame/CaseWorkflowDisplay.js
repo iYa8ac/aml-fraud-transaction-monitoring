@@ -11,12 +11,13 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-const endpoint = "/api/CaseWorkflowDisplay";
-const parentKeyName = "caseWorkflowId";
-const validationFail = "There is invalid data in the form. Please check fields and correct.";
+var endpoint = "/api/CaseWorkflowDisplay";
+var parentKeyName = "caseWorkflowId";
+var childKeyName = "caseWorkflowDisplayGuid";
+var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
-let CoderHasChanged;
-let CompileInProgress = 0;
+var CoderHasChanged;
+var CompileInProgress = 0;
 
 $.getScript('/js/ace/ace.js', function () {
     ace.config.set('basePath', '/js/ace/');

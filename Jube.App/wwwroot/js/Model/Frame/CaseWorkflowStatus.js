@@ -13,6 +13,7 @@
 
 var endpoint = "/api/CaseWorkflowStatus";
 var parentKeyName = "caseWorkflowId";
+var childKeyName = "caseWorkflowStatusGuid";
 var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
 var priority = $("#Priority").kendoDropDownList({

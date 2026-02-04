@@ -95,6 +95,8 @@ namespace Jube.Data.Repository
                     (w.VisualisationRegistry.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
                     && w.VisualisationRegistryId == visualisationRegistryId
                     && w.Active == 1
+                    && (w.VisualisationRegistry.VisualisationRegistryRole.RoleRegistry.UserRegistry.Name == userName && w.VisualisationRegistry.VisualisationRegistryRole.Deleted == 0 || w.VisualisationRegistry.VisualisationRegistryRole.Deleted == null)
+                    && (w.VisualisationRegistryParameterRole.RoleRegistry.UserRegistry.Name == userName && w.VisualisationRegistryParameterRole.Deleted == 0 || w.VisualisationRegistryParameterRole.Deleted == null)
                     && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
         }
 

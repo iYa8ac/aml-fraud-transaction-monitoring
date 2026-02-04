@@ -56,7 +56,7 @@ namespace Jube.Data.Repository
             model.CreatedUser = userName;
             model.Version = 1;
             model.CreatedDate = DateTime.Now;
-            model.Guid = Guid.NewGuid();
+            model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
             model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }

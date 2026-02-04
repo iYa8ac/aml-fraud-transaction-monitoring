@@ -11,14 +11,15 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-using System;
-using Jube.App.Dto.Interfaces;
-
 namespace Jube.App.Dto
 {
+    using System;
+    using Interfaces;
+
     public class CaseWorkflowFilterDto : IUpdated
     {
         public int CaseWorkflowId { get; set; }
+        public Guid Guid { get; set; }
         public string Name { get; set; }
         public bool Locked { get; set; }
         public bool Active { get; set; }
@@ -33,7 +34,6 @@ namespace Jube.App.Dto
         public string NotificationDestination { get; set; }
         public string NotificationSubject { get; set; }
         public string NotificationBody { get; set; }
-        public Guid Guid { get; set; }
         public int Id { get; set; }
         public string CreatedUser { get; set; }
         public DateTime CreatedDate { get; set; }

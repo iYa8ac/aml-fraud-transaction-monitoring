@@ -105,7 +105,7 @@ namespace Jube.App.Controllers.Repository
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<VisualisationRegistryDto>> GetByGuidAsync(int id, CancellationToken token = default)
+        public async Task<ActionResult<VisualisationRegistryDto>> GetByIdAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -126,8 +126,8 @@ namespace Jube.App.Controllers.Repository
             }
         }
 
-        [HttpGet("{guid:guid}")]
-        public async Task<ActionResult<VisualisationRegistryDto>> GetByGuidAsync(Guid guid, CancellationToken token = default)
+        [HttpGet("GetByGuidActiveOnly/{guid:guid}")]
+        public async Task<ActionResult<VisualisationRegistryDto>> GetByGuidActiveOnlyAsync(Guid guid, CancellationToken token = default)
         {
             try
             {
@@ -139,7 +139,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<VisualisationRegistryDto>(await repository.GetByGuidAsync(guid, token)));
+                return Ok(mapper.Map<VisualisationRegistryDto>(await repository.GetByGuidActiveOnlyAsync(guid, token)));
             }
             catch (Exception e)
             {
@@ -161,7 +161,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<VisualisationRegistryDto>>(await repository.GetOrderByIdAsync(token)));
+                return Ok(mapper.Map<List<VisualisationRegistryDto>>(await repository.GetByShowInDirectoryActiveOrderByIdDescAsync(token)));
             }
             catch (Exception e)
             {

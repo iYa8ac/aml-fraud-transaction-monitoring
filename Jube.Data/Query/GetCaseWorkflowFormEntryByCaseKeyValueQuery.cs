@@ -21,20 +21,23 @@ namespace Jube.Data.Query
     using Context;
     using LinqToDB;
 
-    public class GetCaseWorkflowFormEntryByCaseKeyValueQuery(DbContext dbContext, string user)
+    public class GetCaseWorkflowFormEntryByCaseKeyValueQuery(DbContext dbContext, string userName)
     {
         public async Task<IEnumerable<Dto>> ExecuteAsync(string key, string value, CancellationToken token = default)
         {
             var query = from c in dbContext.Case
                 from n in dbContext.CaseWorkflowFormEntry.InnerJoin(w => w.CaseId == c.Id)
                 from a in dbContext.CaseWorkflowForm.InnerJoin(w => w.Id == n.CaseWorkflowFormId)
-                from i in dbContext.CaseWorkflow.InnerJoin(w => w.Guid == c.CaseWorkflowGuid)
+                from i in dbContext.CaseWorkflow.InnerJoin(w => w.Guid == c.CaseWorkflowGuid && (w.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                    && w.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflowRole.Deleted == null))
+                from s in dbContext.CaseWorkflowStatus.InnerJoin(w => w.Guid == c.CaseWorkflowStatusGuid && (w.CaseWorkflowStatusRole.RoleRegistry.UserRegistry.Name == userName
+                    && w.CaseWorkflowStatusRole.Deleted == 0 || w.CaseWorkflowStatusRole.Deleted == null))
                 from m in dbContext.EntityAnalysisModel.InnerJoin(w =>
                     w.Id == i.EntityAnalysisModelId && (w.Deleted == 0 || w.Deleted == null))
                 from t in dbContext.TenantRegistry.InnerJoin(w => w.Id == m.TenantRegistryId)
                 from u in dbContext.UserInTenant.InnerJoin(w => w.TenantRegistryId == t.Id)
                 orderby c.Id descending
-                where c.CaseKey == key && c.CaseKeyValue == value && u.User == user
+                where c.CaseKey == key && c.CaseKeyValue == value && u.User == userName
                 select new Dto
                 {
                     Id = n.Id,

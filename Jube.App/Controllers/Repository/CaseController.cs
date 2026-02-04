@@ -16,6 +16,7 @@ namespace Jube.App.Controllers.Repository
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.Linq;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
@@ -101,7 +102,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseDto>>(await repositoryCase.GetAsync(token)));
+                return Ok(mapper.Map<List<CaseDto>>(await repositoryCase.GetAsyncActiveOnlyAsync(token)));
             }
             catch (Exception e)
             {
@@ -112,7 +113,7 @@ namespace Jube.App.Controllers.Repository
 
         [HttpGet]
         [Route("{id:int}")]
-        public async Task<ActionResult<CaseDto>> GetByCaseIdAsync(int id, CancellationToken token = default)
+        public async Task<ActionResult<CaseDto>> GetByCaseIdActiveOnlyAsync(int id, CancellationToken token = default)
         {
             try
             {
@@ -125,7 +126,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<CaseDto>(
-                    await repositoryCase.GetByIdAsync(id, token)));
+                    await repositoryCase.GetByIdActiveOnlyAsync(id, token)));
             }
             catch (Exception e)
             {
@@ -186,7 +187,7 @@ namespace Jube.App.Controllers.Repository
                     return BadRequest(results);
                 }
 
-                var existing = await repositoryCase.GetByIdAsync(model.Id, token);
+                var existing = await repositoryCase.GetByIdActiveOnlyAsync(model.Id, token);
 
                 var caseEvents = new List<CaseEvent>();
 
@@ -362,6 +363,15 @@ namespace Jube.App.Controllers.Repository
 
                 if (existing.CaseWorkflowStatusGuid != model.CaseWorkflowStatusGuid)
                 {
+                    var caseWorkflowStatusRepository = new CaseWorkflowStatusRepository(dbContext, userName);
+                    var caseWorkflowStatuses = await caseWorkflowStatusRepository.GetByCasesWorkflowGuidActiveOnlyAsync(existing.CaseWorkflowGuid, token);
+                    var caseWorkflowStatus = caseWorkflowStatuses.FirstOrDefault(f => f.Guid == existing.CaseWorkflowStatusGuid);
+
+                    if (caseWorkflowStatus == null)
+                    {
+                        return Forbid();
+                    }
+
                     caseEvents.Add(new CaseEvent
                         {
                             CaseEventTypeId = 9,
@@ -387,12 +397,6 @@ namespace Jube.App.Controllers.Repository
                                 values.Add(key, value.ToString());
                             }
                         }
-
-                        var caseWorkflowStatusRepository =
-                            new CaseWorkflowStatusRepository(dbContext, userName);
-
-                        var caseWorkflowStatus =
-                            await caseWorkflowStatusRepository.GetByGuidAsync(model.CaseWorkflowStatusGuid, token);
 
                         if (caseWorkflowStatus.EnableNotification == 1 ||
                             caseWorkflowStatus.EnableHttpEndpoint == 1)
