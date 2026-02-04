@@ -306,6 +306,11 @@ namespace Jube.Data.Poco
             Relationship = Relationship.ManyToOne)]
         [Key(20)]
         public CaseWorkflow CaseWorkflow { get; set; }
+
+        [Association(ThisKey = "CaseWorkflowStatusGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(21)]
+        public CaseWorkflowStatus CaseWorkflowStatus { get; set; }
     }
 
     [Table]
@@ -551,6 +556,11 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(26)] public Guid Guid { get; set; }
 
         [Column] [Nullable] [Key(27)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "CaseWorkflowGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(28)]
+        public CaseWorkflowRole CaseWorkflowRole { get; set; }
     }
 
     [Table]
@@ -660,6 +670,11 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(23)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(24)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "CaseWorkflowActionGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(25)]
+        public CaseWorkflowActionRole CaseWorkflowActionRole { get; set; }
     }
 
     [Table]
@@ -722,6 +737,11 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(16)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(17)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "CaseWorkflowDisplayGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(18)]
+        public CaseWorkflowDisplayRole CaseWorkflowDisplayRole { get; set; }
     }
 
     [Table]
@@ -815,6 +835,11 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(20)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(21)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "CaseWorkflowFilterGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(22)]
+        public CaseWorkflowFilterRole CaseWorkflowFilterRole { get; set; }
     }
 
     [Table]
@@ -893,6 +918,11 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(24)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(25)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "CaseWorkflowFormGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(26)]
+        public CaseWorkflowFormRole CaseWorkflowFormRole { get; set; }
     }
 
     [Table]
@@ -1017,6 +1047,363 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(25)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(26)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "CaseWorkflowMacroGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(27)]
+        public CaseWorkflowMacroRole CaseWorkflowMacroRole { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CaseWorkflowStatusRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid CaseWorkflowStatusGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "CaseWorkflowStatusGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public CaseWorkflowStatus CaseWorkflowStatus { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CaseWorkflowFilterRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid CaseWorkflowFilterGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "CaseWorkflowFilterGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public CaseWorkflowFilter CaseWorkflowFilter { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(13)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CaseWorkflowRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid CaseWorkflowGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "CaseWorkflowGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public CaseWorkflow CaseWorkflow { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CaseWorkflowMacroRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid CaseWorkflowMacroGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "CaseWorkflowMacroGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public CaseWorkflowMacro CaseWorkflowMacro { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CaseWorkflowFormRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid CaseWorkflowFormGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "CaseWorkflowFormGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public CaseWorkflowForm CaseWorkflowForm { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CaseWorkflowActionRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid CaseWorkflowActionGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "CaseWorkflowActionGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public CaseWorkflowAction CaseWorkflowAction { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CaseWorkflowDisplayRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid CaseWorkflowDisplayGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "CaseWorkflowDisplayGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public CaseWorkflowDisplay CaseWorkflowDisplay { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class VisualisationRegistryRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid VisualisationRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "VisualisationRegistryGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public VisualisationRegistry VisualisationRegistry { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class VisualisationRegistryDatasourceRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid VisualisationRegistryDatasourceGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "VisualisationRegistryDatasourceGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public VisualisationRegistryDatasource VisualisationRegistryDatasource { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class VisualisationRegistryParameterRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid VisualisationRegistryParameterGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "VisualisationRegistryParameterGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public VisualisationRegistryParameter VisualisationRegistryParameter { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
+    }
+
+    [Table]
+    [MessagePackObject]
+    public class CaseWorkflowXPathRole
+    {
+        [Column]
+        [PrimaryKey]
+        [Identity]
+        [Key(0)]
+        public int Id { get; set; }
+
+        [Column] [Nullable] [Key(1)] public Guid CaseWorkflowXPathGuid { get; set; }
+        [Column] [Nullable] [Key(2)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(3)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(4)] public Guid RoleRegistryGuid { get; set; }
+        [Column] [Nullable] [Key(5)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(6)] public byte? Deleted { get; set; }
+        [Column] [Nullable] [Key(7)] public string DeletedUser { get; set; }
+        [Column] [Nullable] [Key(8)] public DateTime? DeletedDate { get; set; }
+        [Column] [Nullable] [Key(9)] public int? Version { get; set; }
+        [Column] [Nullable] [Key(10)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "CaseWorkflowXPathGuid", OtherKey = "Guid", CanBeNull = true,
+            Relationship = Relationship.ManyToOne)]
+        [Key(11)]
+        public CaseWorkflowXPath CaseWorkflowXPath { get; set; }
+
+        [Association(ThisKey = "RoleRegistryGuid", OtherKey = "Guid", CanBeNull = false,
+            Relationship = Relationship.ManyToOne)]
+        [Key(12)]
+        public RoleRegistry RoleRegistry { get; set; }
     }
 
     [Table]
@@ -1060,6 +1447,11 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(25)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(26)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "CaseWorkflowStatusGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(28)]
+        public CaseWorkflowStatusRole CaseWorkflowStatusRole { get; set; }
     }
 
     [Table]
@@ -1178,6 +1570,11 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(26)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(27)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "CaseWorkflowXPathGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(28)]
+        public CaseWorkflowXPathRole CaseWorkflowXPathRole { get; set; }
     }
 
     [Table]
@@ -4000,6 +4397,11 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(11)] public byte? Deleted { get; set; }
         [Column] [Nullable] [Key(12)] public int? TenantRegistryId { get; set; }
         [Column] [Nullable] [Key(13)] public int? Version { get; set; }
+
+        [Association(ThisKey = "Id", OtherKey = "RoleRegistryId", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(14)]
+        public UserRegistry UserRegistry { get; set; }
     }
 
     [Table]
@@ -4319,6 +4721,11 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(20)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(21)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "VisualisationRegistryGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(25)]
+        public VisualisationRegistryRole VisualisationRegistryRole { get; set; }
     }
 
     [Table]
@@ -4388,13 +4795,18 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(20)] public int? ColumnSpan { get; set; }
         [Column] [Nullable] [Key(21)] public int? RowSpan { get; set; }
 
-        [Association(ThisKey = "VisualisationRegistryId", OtherKey = "Id", CanBeNull = true,
+        [Association(ThisKey = "VisualisationRegistryId", OtherKey = "Id", CanBeNull = false,
             Relationship = Relationship.ManyToOne)]
         [Key(22)]
         public VisualisationRegistry VisualisationRegistry { get; set; }
 
         [Column] [Nullable] [Key(23)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(24)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "VisualisationRegistryDatasourceGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(25)]
+        public VisualisationRegistryDatasourceRole VisualisationRegistryDatasourceRole { get; set; }
     }
 
     [Table]
@@ -4514,5 +4926,10 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(18)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(19)] public int? ImportId { get; set; }
+
+        [Association(ThisKey = "Guid", OtherKey = "VisualisationRegistryParameterGuid", CanBeNull = false,
+            Relationship = Relationship.OneToMany)]
+        [Key(25)]
+        public VisualisationRegistryParameterRole VisualisationRegistryParameterRole { get; set; }
     }
 }

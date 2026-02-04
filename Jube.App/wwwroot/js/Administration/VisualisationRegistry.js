@@ -11,8 +11,9 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-const endpoint = "/api/VisualisationRegistry";
-const validationFail = "There is invalid data in the form. Please check fields and correct.";
+var endpoint = "/api/VisualisationRegistry";
+var childKeyName = "visualisationRegistryGuid";
+var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
 function getRecords() {
     $("#Visualisations").html("");
@@ -74,6 +75,7 @@ $(document).ready(function () {
             click: function () {
                 showHomePage();
                 clearFieldErrorStyles();
+                hideRoles();
             }
         });
 

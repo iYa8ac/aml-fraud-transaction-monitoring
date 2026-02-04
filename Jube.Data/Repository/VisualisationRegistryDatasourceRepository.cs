@@ -79,8 +79,10 @@ namespace Jube.Data.Repository
             return await dbContext.VisualisationRegistryDatasource
                 .Where(w => w.VisualisationRegistry.TenantRegistryId == tenantRegistryId
                             && w.VisualisationRegistryId == visualisationRegistryId
-                            && w.Active == 1 &&
-                            (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
+                            && (w.VisualisationRegistry.VisualisationRegistryRole.RoleRegistry.UserRegistry.Name == userName && w.VisualisationRegistry.VisualisationRegistryRole.Deleted == 0 || w.VisualisationRegistry.VisualisationRegistryRole.Deleted == null)
+                            && (w.VisualisationRegistryDatasourceRole.RoleRegistry.UserRegistry.Name == userName && w.VisualisationRegistryDatasourceRole.Deleted == 0 || w.VisualisationRegistryDatasourceRole.Deleted == null)
+                            && w.Active == 1
+                            && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
         }
 
         public Task<VisualisationRegistryDatasource> GetByIdAsync(int id, CancellationToken token = default)
@@ -88,6 +90,17 @@ namespace Jube.Data.Repository
             return dbContext.VisualisationRegistryDatasource.FirstOrDefaultAsync(w
                 => w.VisualisationRegistry.TenantRegistryId == tenantRegistryId
                    && w.Id == id
+                   && (w.Deleted == 0 || w.Deleted == null), token);
+        }
+
+        public Task<VisualisationRegistryDatasource> GetByIdActiveOnlyAsync(int id, CancellationToken token = default)
+        {
+            return dbContext.VisualisationRegistryDatasource.FirstOrDefaultAsync(w
+                => w.VisualisationRegistry.TenantRegistryId == tenantRegistryId
+                   && w.Id == id
+                   && (w.VisualisationRegistry.VisualisationRegistryRole.RoleRegistry.UserRegistry.Name == userName && w.VisualisationRegistry.VisualisationRegistryRole.Deleted == 0 || w.VisualisationRegistry.VisualisationRegistryRole.Deleted == null)
+                   && (w.VisualisationRegistryDatasourceRole.RoleRegistry.UserRegistry.Name == userName && w.VisualisationRegistryDatasourceRole.Deleted == 0 || w.VisualisationRegistryDatasourceRole.Deleted == null)
+                   && w.Active == 1
                    && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
@@ -121,7 +134,7 @@ namespace Jube.Data.Repository
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
             model.Version = 1;
-            model.Guid = Guid.NewGuid();
+            model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
             model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token).ConfigureAwait(false);
 
             await FillSeriesAsync(model.Id, columns, token);

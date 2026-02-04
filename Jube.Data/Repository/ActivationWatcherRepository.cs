@@ -20,7 +20,6 @@ namespace Jube.Data.Repository
     using System.Threading.Tasks;
     using Context;
     using LinqToDB;
-    using LinqToDB.Data;
     using Poco;
 
     public class ActivationWatcherRepository

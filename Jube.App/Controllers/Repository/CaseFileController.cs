@@ -88,6 +88,14 @@ namespace Jube.App.Controllers.Repository
                 return Forbid();
             }
 
+            var repositoryCase = new CaseRepository(dbContext, userName);
+            var existing = await repositoryCase.GetByIdActiveOnlyAsync(caseId, token);
+
+            if (existing == null)
+            {
+                return Forbid();
+            }
+
             foreach (var file in files)
             {
                 if (file.Length <= 0)
@@ -127,6 +135,26 @@ namespace Jube.App.Controllers.Repository
                 return Forbid();
             }
 
+            var existingFile = await repository.GetByIdAsync(id, token);
+            if (existingFile == null)
+            {
+                return Forbid();
+            }
+
+            var repositoryCase = new CaseRepository(dbContext, userName);
+
+            if (existingFile.CaseId == null)
+            {
+                return Forbid();
+            }
+
+            var existingCase = await repositoryCase.GetByIdActiveOnlyAsync(existingFile.CaseId.Value, token);
+
+            if (existingCase == null)
+            {
+                return Forbid();
+            }
+
             await repository.DeleteAsync(id, token);
 
             return Ok();
@@ -139,6 +167,26 @@ namespace Jube.App.Controllers.Repository
                 {
                     1
                 }))
+            {
+                return Forbid();
+            }
+
+            var existingFile = await repository.GetByIdAsync(id, token);
+            if (existingFile == null)
+            {
+                return Forbid();
+            }
+
+            var repositoryCase = new CaseRepository(dbContext, userName);
+
+            if (existingFile.CaseId == null)
+            {
+                return Forbid();
+            }
+
+            var existingCase = await repositoryCase.GetByIdActiveOnlyAsync(existingFile.CaseId.Value, token);
+
+            if (existingCase == null)
             {
                 return Forbid();
             }
@@ -160,7 +208,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseFile>>(await repository.GetByCaseKeyValueAsync(key, value, token)));
+                return Ok(mapper.Map<List<CaseFile>>(await repository.GetByCaseKeyValueActiveOnlyAsync(key, value, token)));
             }
             catch (Exception e)
             {

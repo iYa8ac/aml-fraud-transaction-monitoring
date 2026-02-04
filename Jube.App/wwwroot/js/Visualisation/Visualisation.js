@@ -497,7 +497,7 @@ function getUrlVars() {
 }
 
 function InitVisualisation() {
-    $.get("../api/VisualisationRegistry/" + VisualisationRegistryGuid,
+    $.get("../api/VisualisationRegistry/GetByGuidActiveOnly/" + VisualisationRegistryGuid,
         function (dataVisualisation) {
             Visualisation = dataVisualisation;
             const serviceRootParams = "../api/VisualisationRegistryParameter/ByVisualisationRegistryIdActiveOnly/" +

@@ -74,7 +74,12 @@ namespace Jube.Data.Repository
                 .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && w.Active == 1
                             && w.CaseWorkflowId == casesWorkflowId
-                            && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
+                            && (w.Deleted == 0 || w.Deleted == null)
+                            && (w.CaseWorkflowFilterRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflowFilterRole.Deleted == 0 || w.CaseWorkflowFilterRole.Deleted == null)
+                            && (w.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflow.CaseWorkflowRole.Deleted == null)
+                ).ToListAsync(token);
         }
 
         public async Task<IEnumerable<CaseWorkflowFilter>> GetByCasesWorkflowGuidActiveOnlyAsync(Guid caseWorkflowGuid, CancellationToken token = default)
@@ -85,7 +90,12 @@ namespace Jube.Data.Repository
                             && w.CaseWorkflow.Guid == caseWorkflowGuid
                             && (w.CaseWorkflow.EntityAnalysisModel.Deleted == 0 ||
                                 w.CaseWorkflow.EntityAnalysisModel.Deleted == null)
-                            && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
+                            && (w.Deleted == 0 || w.Deleted == null)
+                            && (w.CaseWorkflowFilterRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflowFilterRole.Deleted == 0 || w.CaseWorkflowFilterRole.Deleted == null)
+                            && (w.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflow.CaseWorkflowRole.Deleted == null)
+                ).ToListAsync(token);
         }
 
         public Task<CaseWorkflowFilter> GetByIdAsync(int id, CancellationToken token = default)

@@ -620,7 +620,8 @@ function GetCase() {
                         SetOutCase(data);
                     },
                     error: function (xhr, status, error) {
-                        //Not implemented.
+                        $('#Updating').text("Not Found");
+                        $('#Updating').show();
                     }
                 });
             } else {

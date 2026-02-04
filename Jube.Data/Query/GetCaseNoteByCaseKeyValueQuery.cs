@@ -21,7 +21,7 @@ namespace Jube.Data.Query
     using Context;
     using LinqToDB;
 
-    public class GetCaseNoteByCaseKeyValueQuery(DbContext dbContext, string user)
+    public class GetCaseNoteByCaseKeyValueQuery(DbContext dbContext, string userName)
     {
 
 
@@ -29,14 +29,21 @@ namespace Jube.Data.Query
         {
             var query = from c in dbContext.Case
                 from n in dbContext.CaseNote.InnerJoin(w => w.CaseId == c.Id)
-                from a in dbContext.CaseWorkflowAction.InnerJoin(w => w.Id == n.ActionId)
-                from i in dbContext.CaseWorkflow.InnerJoin(w => w.Guid == c.CaseWorkflowGuid)
+                from a in dbContext.CaseWorkflowAction.InnerJoin(w =>
+                    w.Id == n.ActionId && (w.CaseWorkflowActionRole.RoleRegistry.UserRegistry.Name == userName
+                        && w.CaseWorkflowActionRole.Deleted == 0 || w.CaseWorkflowActionRole.Deleted == null))
+                from i in dbContext.CaseWorkflow.InnerJoin(w =>
+                    w.Guid == c.CaseWorkflowGuid && (w.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                        && w.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflowRole.Deleted == null))
+                from s in dbContext.CaseWorkflowStatus.InnerJoin(w =>
+                    w.Guid == c.CaseWorkflowStatusGuid && (w.CaseWorkflowStatusRole.RoleRegistry.UserRegistry.Name == userName
+                        && w.CaseWorkflowStatusRole.Deleted == 0 || w.CaseWorkflowStatusRole.Deleted == null))
                 from m in dbContext.EntityAnalysisModel.InnerJoin(w =>
                     w.Id == i.EntityAnalysisModelId && (w.Deleted == 0 || w.Deleted == null))
                 from t in dbContext.TenantRegistry.InnerJoin(w => w.Id == m.TenantRegistryId)
                 from u in dbContext.UserInTenant.InnerJoin(w => w.TenantRegistryId == t.Id)
                 orderby n.Id descending
-                where c.CaseKey == key && c.CaseKeyValue == value && u.User == user
+                where c.CaseKey == key && c.CaseKeyValue == value && u.User == userName
                 select new Dto
                 {
                     Id = n.Id,

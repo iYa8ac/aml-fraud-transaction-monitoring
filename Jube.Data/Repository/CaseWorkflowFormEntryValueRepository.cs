@@ -24,35 +24,30 @@ namespace Jube.Data.Repository
     public class CaseWorkflowFormEntryValueRepository
     {
         private readonly DbContext dbContext;
-        private readonly int? tenantRegistryId;
+        private readonly int tenantRegistryId;
+        private readonly string userName;
 
         public CaseWorkflowFormEntryValueRepository(DbContext dbContext, string userName)
         {
             this.dbContext = dbContext;
+            this.userName = userName;
             tenantRegistryId = dbContext.UserInTenant.Where(w => w.User == userName)
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
 
-        public CaseWorkflowFormEntryValueRepository(DbContext dbContext, int tenantRegistryId)
-        {
-            this.dbContext = dbContext;
-            this.tenantRegistryId = tenantRegistryId;
-        }
-
-        public CaseWorkflowFormEntryValueRepository(DbContext dbContext)
-        {
-            this.dbContext = dbContext;
-        }
-
-        public async Task<IEnumerable<CaseWorkflowFormEntryValue>> GetByCaseWorkflowFormEntryIdAsync(int caseWorkflowFormEntryId, CancellationToken token = default)
+        public async Task<IEnumerable<CaseWorkflowFormEntryValue>> GetByCaseWorkflowFormEntryIdActiveOnlyAsync(int caseWorkflowFormEntryId, CancellationToken token = default)
         {
             return await dbContext.CaseWorkflowFormEntryValue.Where(w
-                    => (w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId ==
-                        tenantRegistryId ||
-                        !tenantRegistryId.HasValue)
+                    => w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.EntityAnalysisModel.TenantRegistryId ==
+                       tenantRegistryId
                        && w.CaseWorkflowFormEntryId == caseWorkflowFormEntryId
                        & (w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.EntityAnalysisModel.Deleted == 0 ||
-                          w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.EntityAnalysisModel.Deleted == null))
+                          w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.EntityAnalysisModel.Deleted == null)
+                       && (w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                           && w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflowsFormsEntry.Case.CaseWorkflow.CaseWorkflowRole.Deleted == null)
+                       && (w.CaseWorkflowsFormsEntry.Case.CaseWorkflowStatus.CaseWorkflowStatusRole.RoleRegistry.UserRegistry.Name == userName
+                           && w.CaseWorkflowsFormsEntry.Case.CaseWorkflowStatus.CaseWorkflowStatusRole.Deleted == 0 || w.CaseWorkflowsFormsEntry.Case.CaseWorkflowStatus.CaseWorkflowStatusRole.Deleted == null)
+                )
                 .OrderByDescending(o => o.Id).ToListAsync(token);
         }
 

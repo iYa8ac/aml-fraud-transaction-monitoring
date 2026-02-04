@@ -107,6 +107,14 @@ namespace Jube.App.Controllers.Repository
                     return BadRequest(results);
                 }
 
+                var repositoryCase = new CaseRepository(dbContext, userName);
+                var existingCase = await repositoryCase.GetByIdActiveOnlyAsync(model.CaseId, token);
+
+                if (existingCase == null)
+                {
+                    return Forbid();
+                }
+
                 var entry = await repository.InsertAsync(mapper.Map<CaseWorkflowFormEntry>(model), token);
 
                 if (model.Payload == null)
@@ -197,7 +205,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseWorkflowFormEntry>>(await repository.GetByCaseKeyValueAsync(key, value, token)));
+                return Ok(mapper.Map<List<CaseWorkflowFormEntry>>(await repository.GetByCaseKeyValueActiveOnlyAsync(key, value, token)));
             }
             catch (Exception e)
             {

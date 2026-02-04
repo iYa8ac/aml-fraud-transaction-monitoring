@@ -67,6 +67,10 @@ namespace Jube.Data.Repository
                             && w.Active == 1
                             && w.Drill == 1
                             && w.CaseWorkflowId == casesWorkflowId
+                            && (w.CaseWorkflowXPathRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflowXPathRole.Deleted == 0 || w.CaseWorkflowXPathRole.Deleted == null)
+                            && (w.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflow.CaseWorkflowRole.Deleted == null)
                             && (w.Deleted == 0 || w.Deleted == null))
                 .ToListAsync(token);
         }
@@ -78,7 +82,39 @@ namespace Jube.Data.Repository
                             && w.Active == 1
                             && w.Drill == 1
                             && w.CaseWorkflow.Guid == casesWorkflowGuid
-                            && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
+                            && (w.Deleted == 0 || w.Deleted == null)
+                            && (w.CaseWorkflowXPathRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflowXPathRole.Deleted == 0 || w.CaseWorkflowXPathRole.Deleted == null)
+                            && (w.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflow.CaseWorkflowRole.Deleted == null)
+                ).ToListAsync(token);
+        }
+
+        public async Task<IEnumerable<CaseWorkflowXPath>> GetByCasesWorkflowIdActiveOnlyAsync(int casesWorkflowId, CancellationToken token = default)
+        {
+            return await dbContext.CaseWorkflowXPath
+                .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                            && w.Active == 1
+                            && w.CaseWorkflowId == casesWorkflowId
+                            && (w.CaseWorkflowXPathRole.RoleRegistry.UserRegistry.Name == userName && w.CaseWorkflowXPathRole.Deleted == 0 || w.CaseWorkflowXPathRole.Deleted == null)
+                            && (w.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflow.CaseWorkflowRole.Deleted == null)
+                            && (w.Deleted == 0 || w.Deleted == null))
+                .ToListAsync(token);
+        }
+
+        public async Task<IEnumerable<CaseWorkflowXPath>> GetByCasesWorkflowGuidActiveOnlyAsync(Guid casesWorkflowGuid, CancellationToken token = default)
+        {
+            return await dbContext.CaseWorkflowXPath
+                .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                            && w.Active == 1
+                            && w.CaseWorkflow.Guid == casesWorkflowGuid
+                            && (w.Deleted == 0 || w.Deleted == null)
+                            && (w.CaseWorkflowXPathRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflowXPathRole.Deleted == 0 || w.CaseWorkflowXPathRole.Deleted == null)
+                            && (w.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                                && w.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflow.CaseWorkflowRole.Deleted == null)
+                ).ToListAsync(token);
         }
 
         public async Task<IEnumerable<CaseWorkflowXPath>> GetByCasesWorkflowIdOrderByIdDescAsync(int casesWorkflowId, CancellationToken token = default)
@@ -101,7 +137,7 @@ namespace Jube.Data.Repository
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
             model.Version = 1;
-            model.Guid = Guid.NewGuid();
+            model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
             model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
             return model;
         }

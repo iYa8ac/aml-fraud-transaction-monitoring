@@ -13,6 +13,7 @@
 
 var endpoint = "/api/VisualisationRegistryDatasource";
 var parentKeyName = "visualisationRegistryId";
+var childKeyName = "visualisationRegistryDatasourceGuid";
 var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
 var coderBacking;

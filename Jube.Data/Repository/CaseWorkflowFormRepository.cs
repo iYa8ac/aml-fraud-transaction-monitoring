@@ -59,7 +59,9 @@ namespace Jube.Data.Repository
                 .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
                             && w.Active == 1
                             && w.CaseWorkflowId == casesWorkflowId
-                            && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
+                            && (w.Deleted == 0 || w.Deleted == null)
+                            && (w.CaseWorkflowFormRole.RoleRegistry.UserRegistry.Name == userName && w.CaseWorkflowFormRole.Deleted == 0 || w.CaseWorkflowFormRole.Deleted == null)
+                ).ToListAsync(token);
         }
 
         public async Task<IEnumerable<CaseWorkflowForm>> GetByCasesWorkflowGuidActiveOnlyAsync(Guid casesWorkflowGuid, CancellationToken token = default)
@@ -70,7 +72,9 @@ namespace Jube.Data.Repository
                             && w.CaseWorkflow.Guid == casesWorkflowGuid
                             && (w.CaseWorkflow.EntityAnalysisModel.Deleted == 0 ||
                                 w.CaseWorkflow.EntityAnalysisModel.Deleted == null)
-                            && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
+                            && (w.Deleted == 0 || w.Deleted == null)
+                            && (w.CaseWorkflowFormRole.RoleRegistry.UserRegistry.Name == userName && w.CaseWorkflowFormRole.Deleted == 0 || w.CaseWorkflowFormRole.Deleted == null)
+                ).ToListAsync(token);
         }
 
         public async Task<IEnumerable<CaseWorkflowForm>> GetAsync(CancellationToken token = default)

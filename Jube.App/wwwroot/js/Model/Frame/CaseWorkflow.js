@@ -11,9 +11,10 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-const endpoint = "/api/CaseWorkflow";
-const parentKeyName = "entityAnalysisModelId";
-const validationFail = "There is invalid data in the form. Please check fields and correct.";
+var endpoint = "/api/CaseWorkflow";
+var parentKeyName = "entityAnalysisModel";
+var childKeyName = "caseWorkflowGuid";
+var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
 var enableVisualisation = $("#EnableVisualisation").kendoSwitch({
     change: function () {

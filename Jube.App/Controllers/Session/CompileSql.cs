@@ -2,6 +2,7 @@ namespace Jube.App.Controllers.Session
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Code.QueryBuilder;
@@ -53,6 +54,9 @@ namespace Jube.App.Controllers.Session
                 "\"CaseWorkflowStatus\".\"BackColor\" as \"BackColor\"",
                 "\"CaseWorkflowStatus\".\"ForeColor\" as \"ForeColor\""
             };
+            
+            var caseWorkflowXPathRepository = new CaseWorkflowXPathRepository(dbContext, userName);
+            var caseWorkflowXPaths = (await caseWorkflowXPathRepository.GetByCasesWorkflowGuidActiveOnlyAsync(model.CaseWorkflowGuid, token)).ToList();
 
             var columnsOrder = new List<string>();
             foreach (var rule in selectRule.Rules)
@@ -85,6 +89,14 @@ namespace Jube.App.Controllers.Session
                 {
                     continue;
                 }
+                
+                if (rule.Id is not ("Id" or "CaseKey" or "CaseKeyValue" or "CaseWorkflowStatus" or "Locked" or "Diary" or "ClosedStatusId" or "Priority"))
+                {
+                    if (caseWorkflowXPaths.FirstOrDefault(w => w.XPath.Equals(rule.Id, StringComparison.CurrentCultureIgnoreCase)) == null)
+                    {
+                        continue;
+                    }
+                }
 
                 if (rule.Id.Contains('.'))
                 {
@@ -113,7 +125,8 @@ namespace Jube.App.Controllers.Session
             model.SelectSqlSearch = "select " + String.Join(",", columnsSelect);
 
             model.WhereSql = "from \"Case\",\"CaseWorkflow\",\"EntityAnalysisModel\",\"TenantRegistry\"," +
-                             "\"CaseWorkflowStatus\",\"UserInTenant\"" +
+                             "\"CaseWorkflowStatus\",\"UserInTenant\",\"CaseWorkflowRole\",\"CaseWorkflowStatusRole\"," +
+                             "(select \"RoleRegistry\".\"Guid\" from \"RoleRegistry\",\"UserRegistry\" where \"RoleRegistry\".\"Id\" = \"UserRegistry\".\"RoleRegistryId\" and (\"RoleRegistry\".\"Deleted\" = 0 or \"RoleRegistry\".\"Deleted\" IS NULL) and \"UserRegistry\".\"Name\" = (@" + positionUser + ")) \"RoleRegistry\"" +
                              " where \"EntityAnalysisModel\".\"Id\" = \"CaseWorkflow\".\"EntityAnalysisModelId\"" +
                              " and \"EntityAnalysisModel\".\"TenantRegistryId\" = \"TenantRegistry\".\"Id\"" +
                              " and \"UserInTenant\".\"TenantRegistryId\" = \"TenantRegistry\".\"Id\"" +
@@ -121,8 +134,10 @@ namespace Jube.App.Controllers.Session
                              " and (\"Case\".\"CaseWorkflowStatusGuid\" = \"CaseWorkflowStatus\".\"Guid\"" +
                              " and (\"CaseWorkflowStatus\".\"Deleted\" = 0" +
                              " or \"CaseWorkflowStatus\".\"Deleted\" IS null) ) and " + filterRule.Sql +
-                             " and (\"CaseWorkflow\".\"Guid\" = uuid(@" + positionCaseWorkflowGuid +
-                             ") and (\"CaseWorkflow\".\"Deleted\" = 0 or \"CaseWorkflow\".\"Deleted\" is null))" +
+                             " and (\"CaseWorkflow\".\"Guid\" = uuid(@" + positionCaseWorkflowGuid + ") " +
+                             " and (\"CaseWorkflowRole\".\"CaseWorkflowGuid\" = \"CaseWorkflow\".\"Guid\" and \"CaseWorkflowRole\".\"RoleRegistryGuid\" = \"RoleRegistry\".\"Guid\" and (\"CaseWorkflowRole\".\"Deleted\" = 0 or \"CaseWorkflowRole\".\"Deleted\" IS NULL)) " +
+                             " and (\"CaseWorkflowStatusRole\".\"CaseWorkflowStatusGuid\" = \"CaseWorkflowStatus\".\"Guid\" and \"CaseWorkflowStatusRole\".\"RoleRegistryGuid\" = \"RoleRegistry\".\"Guid\" and (\"CaseWorkflowStatusRole\".\"Deleted\" = 0 or \"CaseWorkflowStatusRole\".\"Deleted\" IS NULL)) " +
+                             " and (\"CaseWorkflow\".\"Deleted\" = 0 or \"CaseWorkflow\".\"Deleted\" is null))" +
                              " and \"UserInTenant\".\"User\" = (@" + positionUser + ")";
 
             model.OrderSql = "order by " + String.Join(",", columnsOrder);

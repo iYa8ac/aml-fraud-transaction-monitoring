@@ -13,6 +13,7 @@
 
 var endpoint = "/api/VisualisationRegistryParameter";
 var parentKeyName = "visualisationRegistryId";
+var childKeyName = "visualisationRegistryParameterGuid";
 var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
 var dataType = $("#DataType").kendoDropDownList(

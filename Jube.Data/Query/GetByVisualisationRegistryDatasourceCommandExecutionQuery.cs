@@ -13,6 +13,7 @@
 
 namespace Jube.Data.Query
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -27,14 +28,74 @@ namespace Jube.Data.Query
     {
         public async Task<List<IDictionary<string, object>>> ExecuteAsync(int id, Dictionary<string, object> parametersByName, CancellationToken token = default)
         {
-            var visualisationRegistryDatasourceRepository =
-                new VisualisationRegistryDatasourceRepository(dbContext, user);
+            var mergedParametersByName = parametersByName;
 
-            var visualisationRegistryDatasource = await visualisationRegistryDatasourceRepository.GetByIdAsync(id, token);
+            var visualisationRegistryDatasourceRepository = new VisualisationRegistryDatasourceRepository(dbContext, user);
+            var visualisationRegistryDatasource = await visualisationRegistryDatasourceRepository.GetByIdActiveOnlyAsync(id, token);
+
+            if (visualisationRegistryDatasource.VisualisationRegistryId != null)
+            {
+                var visualisationRegistryParameterRepository = new VisualisationRegistryParameterRepository(dbContext, user);
+                var visualisationRegistryParameters = await visualisationRegistryParameterRepository.GetByVisualisationRegistryIdOrderByIdAsync(visualisationRegistryDatasource.VisualisationRegistryId.Value, token);
+
+                foreach (var visualisationRegistryParameter in visualisationRegistryParameters)
+                {
+                    var cleanName = visualisationRegistryParameter.Name.Replace(" ", "_");
+                    if (!mergedParametersByName.ContainsKey(cleanName))
+                    {
+                        var defaultString = visualisationRegistryParameter.DefaultValue;
+                        switch (visualisationRegistryParameter.DataTypeId)
+                        {
+                            case 1:
+                            {
+                                mergedParametersByName.Add(cleanName, defaultString);
+                                break;
+                            }
+                            case 2:
+                            {
+                                if (Int32.TryParse(defaultString, out var intValue))
+                                {
+                                    mergedParametersByName.Add(cleanName, intValue);
+                                }
+
+                                break;
+                            }
+                            case 3:
+                            {
+                                if (Double.TryParse(defaultString, out var doubleValue))
+                                {
+                                    mergedParametersByName.Add(cleanName, doubleValue);
+                                }
+
+                                break;
+                            }
+                            case 4:
+                            {
+                                if (Boolean.TryParse(defaultString, out var dateTimeValue))
+                                {
+                                    mergedParametersByName.Add(cleanName, dateTimeValue);
+                                }
+
+                                break;
+                            }
+                            case 5:
+                            {
+                                if (DateTime.TryParse(defaultString, out var dateTimeValue))
+                                {
+                                    mergedParametersByName.Add(cleanName, dateTimeValue);
+                                }
+
+                                break;
+                            }
+                        }
+
+                    }
+                }
+            }
 
             var postgres = new Postgres(connectionString);
             return await postgres.ExecuteByNamedParametersAsync(visualisationRegistryDatasource.Command,
-                parametersByName, token).ConfigureAwait(false);
+                mergedParametersByName, token).ConfigureAwait(false);
         }
     }
 }

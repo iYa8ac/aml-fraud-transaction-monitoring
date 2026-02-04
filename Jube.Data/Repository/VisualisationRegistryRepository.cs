@@ -67,6 +67,15 @@ namespace Jube.Data.Repository
                                                                             && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
+        public Task<VisualisationRegistry> GetByGuidActiveOnlyAsync(Guid guid, CancellationToken token = default)
+        {
+            return dbContext.VisualisationRegistry.FirstOrDefaultAsync(w => w.Guid == guid
+                                                                            && w.TenantRegistryId == tenantRegistryId
+                                                                            && w.Active == 1
+                                                                            && (w.VisualisationRegistryRole.RoleRegistry.UserRegistry.Name == userName && w.Deleted == 0 || w.VisualisationRegistryRole.Deleted == null)
+                                                                            && (w.Deleted == 0 || w.Deleted == null), token);
+        }
+
         public Task<VisualisationRegistry> GetByIdAsync(int id, CancellationToken token = default)
         {
             return dbContext.VisualisationRegistry.FirstOrDefaultAsync(w => w.Id == id
@@ -75,12 +84,13 @@ namespace Jube.Data.Repository
         }
 
 
-        public async Task<IEnumerable<VisualisationRegistry>> GetByShowInDirectoryAsync(CancellationToken token = default)
+        public async Task<IEnumerable<VisualisationRegistry>> GetByShowInDirectoryActiveOrderByIdDescAsync(CancellationToken token = default)
         {
             return await dbContext.VisualisationRegistry.Where(w => w.ShowInDirectory == 1
                                                                     && w.Active == 1
+                                                                    && (w.VisualisationRegistryRole.RoleRegistry.UserRegistry.Name == userName && w.Deleted == 0 || w.VisualisationRegistryRole.Deleted == null)
                                                                     && w.TenantRegistryId == tenantRegistryId
-                                                                    && (w.Deleted == 0 || w.Deleted == null)).ToListAsync(token);
+                                                                    && (w.Deleted == 0 || w.Deleted == null)).OrderBy(o => o.Id).ToListAsync(token);
         }
 
 

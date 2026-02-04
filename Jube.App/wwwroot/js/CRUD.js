@@ -12,8 +12,8 @@
  */
 
 var processingFailed = "Processing failed.  Please contact Support to check logs for the source of the error.";
-var keyNotFound = "Attempted to update something that does not exist.";
 var id;
+var guid;
 var hasResponsePayload;
 var hasReportTable;
 var parentKey;
@@ -93,6 +93,11 @@ function DisplayServerValidationErrors(responseObject) {
     }
 
     errorMessage.append(container);
+}
+
+function hideRoles() {
+    const roleManager = $("#RoleManager").data("kendoRoleManager");
+    roleManager.destroy();
 }
 
 function clearFieldErrorStyles() {
@@ -188,6 +193,7 @@ function Create(endpoint, data, keyName, parentKeyName, callback) {
             addButton.hide();
             updateButton.show();
             deleteButton.show();
+            showRoleAllocation();
 
             const guid = $("#Guid");
             if (typeof guid !== "undefined") {
@@ -349,9 +355,10 @@ function ReadyExisting(data) {
         active.data("kendoSwitch").check(false);
     }
 
-    const guid = $("#Guid");
-    if (typeof guid !== "undefined") {
-        guid.html(data.guid);
+    const guidTextbox = $("#Guid");
+    if (typeof guidTextbox !== "undefined") {
+        guid = data.guid;
+        guidTextbox.html(data.guid);
     }
 
     $("#Version").html(data.version);
@@ -363,6 +370,7 @@ function ReadyExisting(data) {
     addButton.hide();
     updateButton.show();
     deleteButton.show();
+    showRoleAllocation();
 
     if (locked.length > 0) {
         if (data.locked) {
@@ -373,6 +381,17 @@ function ReadyExisting(data) {
             Lock(false);
         }
         locked.data("kendoSwitch").enable(false);
+    }
+}
+
+function showRoleAllocation() {
+    const roleManager = $('#RoleManager');
+
+    if (roleManager.length) {
+        roleManager.kendoRoleManager({
+            baseEndpoint: endpoint + "Role",
+            parentKeyField: childKeyName
+        });
     }
 }
 

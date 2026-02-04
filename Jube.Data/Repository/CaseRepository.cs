@@ -67,18 +67,20 @@ namespace Jube.Data.Repository
                 .UpdateAsync(token);
         }
 
-        public async Task<IEnumerable<Case>> GetAsync(CancellationToken token = default)
+        public async Task<IEnumerable<Case>> GetAsyncActiveOnlyAsync(CancellationToken token = default)
         {
             return await dbContext.Case.Where(w =>
                 w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                 !tenantRegistryId.HasValue).ToListAsync(token: token);
         }
 
-        public Task<Case> GetByIdAsync(int id, CancellationToken token = default)
+        public Task<Case> GetByIdActiveOnlyAsync(int id, CancellationToken token = default)
         {
             return dbContext.Case.FirstOrDefaultAsync(w
                 => (w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId ||
                     !tenantRegistryId.HasValue)
+                   && (w.CaseWorkflowStatus.CaseWorkflowStatusRole.RoleRegistry.UserRegistry.Name == userName && w.CaseWorkflowStatus.CaseWorkflowStatusRole.Deleted == 0 || w.CaseWorkflowStatus.CaseWorkflowStatusRole.Deleted == null)
+                   && (w.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName && w.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflow.CaseWorkflowRole.Deleted == null)
                    && w.Id == id, token);
         }
 

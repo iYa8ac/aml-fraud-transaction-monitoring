@@ -115,7 +115,12 @@ namespace Jube.App.Controllers.Repository
 
             var caseWorkflowActionRepository = new CaseWorkflowActionRepository(dbContext, userName);
 
-            var caseWorkflowAction = await caseWorkflowActionRepository.GetByIdAsync(model.ActionId, token);
+            var caseWorkflowAction = await caseWorkflowActionRepository.GetByIdActiveOnlyAsync(model.ActionId, token);
+
+            if (caseWorkflowAction == null)
+            {
+                return Forbid();
+            }
 
             if (caseWorkflowAction.EnableNotification != 1 && caseWorkflowAction.EnableHttpEndpoint != 1)
             {

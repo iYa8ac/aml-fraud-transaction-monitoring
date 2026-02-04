@@ -25,10 +25,12 @@ namespace Jube.Data.Query
     {
         private readonly DbContext dbContext;
         private readonly int tenantRegistryId;
+        private readonly string userName;
 
         public GetCaseWorkflowXPathByCaseWorkflowIdQuery(DbContext dbContext, string userName)
         {
             this.dbContext = dbContext;
+            this.userName = userName;
             tenantRegistryId = this.dbContext.UserInTenant.Where(w => w.User == userName)
                 .Select(s => s.TenantRegistryId).FirstOrDefault();
         }
@@ -39,6 +41,8 @@ namespace Jube.Data.Query
                     => w.CaseWorkflow.Guid == caseWorkflowGuid &&
                        w.Active == 1 && (w.Deleted == 0 || w.Deleted == null) &&
                        w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                       && (w.CaseWorkflowXPathRole.RoleRegistry.UserRegistry.Name == userName && w.CaseWorkflowXPathRole.Deleted == 0 || w.CaseWorkflowXPathRole.Deleted == null)
+                       && (w.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName && w.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflow.CaseWorkflowRole.Deleted == null)
                 )
                 .Select(s => new Dto
                 {

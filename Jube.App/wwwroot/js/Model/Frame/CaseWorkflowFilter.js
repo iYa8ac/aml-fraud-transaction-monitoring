@@ -13,6 +13,7 @@
 
 var endpoint = "../api/CaseWorkflowFilter";
 var parentKeyName = "caseWorkflowId";
+var childKeyName = "caseWorkflowFilterGuid";
 var validationFail = "There is invalid data in the form. Please check fields and correct.";
 
 if (typeof id === "undefined") {
