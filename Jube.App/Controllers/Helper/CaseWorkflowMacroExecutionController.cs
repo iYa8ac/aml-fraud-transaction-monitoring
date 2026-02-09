@@ -16,6 +16,7 @@ namespace Jube.App.Controllers.Helper
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Case;
     using Code;
     using Data.Context;
     using Data.Repository;
@@ -115,10 +116,9 @@ namespace Jube.App.Controllers.Helper
                 return Ok(model);
             }
 
-            var sendHttpEndpoint = new SendHttpEndpoint();
             if (caseWorkflowMacro.HttpEndpointTypeId != null)
             {
-                await sendHttpEndpoint.SendAsync(caseWorkflowMacro.HttpEndpoint,
+                await SendHttpEndpoint.SendAsync(caseWorkflowMacro.HttpEndpoint,
                     caseWorkflowMacro.HttpEndpointTypeId.Value
                     , values);
             }

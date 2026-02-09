@@ -19,6 +19,7 @@ namespace Jube.App.Controllers.Repository
     using System.Threading;
     using System.Threading.Tasks;
     using AutoMapper;
+    using Case;
     using Code;
     using Data.Context;
     using Data.Poco;
@@ -175,10 +176,9 @@ namespace Jube.App.Controllers.Repository
                     return Ok(entry);
                 }
 
-                var sendHttpEndpoint = new SendHttpEndpoint();
                 if (caseWorkflowForm.HttpEndpointTypeId != null)
                 {
-                    await sendHttpEndpoint.SendAsync(caseWorkflowForm.HttpEndpoint,
+                    await SendHttpEndpoint.SendAsync(caseWorkflowForm.HttpEndpoint,
                         caseWorkflowForm.HttpEndpointTypeId.Value
                         , values);
                 }

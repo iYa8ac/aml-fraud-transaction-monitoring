@@ -55,6 +55,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jube.HealthCheck", "Jube.He
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jube.Sandbox", "Jube.Sandbox\Jube.Sandbox.csproj", "{28E3B7D8-799C-4367-BA9C-1AECF86939D4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jube.Case", "Jube.Case\Jube.Case.csproj", "{0F52BDA7-5117-48E9-8DB8-859221524B50}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -165,6 +167,10 @@ Global
 		{28E3B7D8-799C-4367-BA9C-1AECF86939D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{28E3B7D8-799C-4367-BA9C-1AECF86939D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{28E3B7D8-799C-4367-BA9C-1AECF86939D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F52BDA7-5117-48E9-8DB8-859221524B50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F52BDA7-5117-48E9-8DB8-859221524B50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F52BDA7-5117-48E9-8DB8-859221524B50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F52BDA7-5117-48E9-8DB8-859221524B50}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection

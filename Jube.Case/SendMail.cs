@@ -11,26 +11,16 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.App.Code
+namespace Jube.Case
 {
-    using System;
     using System.Net;
     using System.Net.Mail;
     using System.Web;
     using DynamicEnvironment;
     using log4net;
 
-    public class SendMail
+    public class SendMail(DynamicEnvironment dynamicEnvironment, ILog log)
     {
-        private readonly DynamicEnvironment dynamicEnvironment;
-        private readonly ILog log;
-
-        public SendMail(DynamicEnvironment dynamicEnvironment, ILog log)
-        {
-            this.dynamicEnvironment = dynamicEnvironment;
-            this.log = log;
-        }
-
         public void Send(string toEmail, string subject, string body)
         {
             try
