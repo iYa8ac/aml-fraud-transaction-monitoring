@@ -18,6 +18,7 @@ namespace Jube.App.Controllers.Repository
     using System.Threading;
     using System.Threading.Tasks;
     using AutoMapper;
+    using Case;
     using Code;
     using Data.Context;
     using Data.Poco;
@@ -141,10 +142,9 @@ namespace Jube.App.Controllers.Repository
                 return Ok(await repository.InsertAsync(mapper.Map<CaseNote>(model), token));
             }
 
-            var sendHttpEndpoint = new SendHttpEndpoint();
             if (caseWorkflowAction.HttpEndpointTypeId != null)
             {
-                await sendHttpEndpoint.SendAsync(caseWorkflowAction.HttpEndpoint,
+                await SendHttpEndpoint.SendAsync(caseWorkflowAction.HttpEndpoint,
                     caseWorkflowAction.HttpEndpointTypeId.Value
                     , values);
             }

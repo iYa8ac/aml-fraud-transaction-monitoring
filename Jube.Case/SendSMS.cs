@@ -11,27 +11,15 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.App.Code
+namespace Jube.Case
 {
-    using System;
-    using System.Net.Http;
-    using System.Threading;
-    using System.Threading.Tasks;
     using System.Web;
     using DynamicEnvironment;
     using log4net;
 
-    public class SendSms
+    public class SendSms(DynamicEnvironment dynamicEnvironment, ILog log)
     {
         private static readonly HttpClient HttpClient = new HttpClient();
-        private readonly DynamicEnvironment dynamicEnvironment;
-        private readonly ILog log;
-
-        public SendSms(DynamicEnvironment dynamicEnvironment, ILog log)
-        {
-            this.dynamicEnvironment = dynamicEnvironment;
-            this.log = log;
-        }
 
         public async Task SendAsync(string notificationDestination, string notificationBody, CancellationToken token = default)
         {

@@ -11,14 +11,13 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.App.Code
+namespace Jube.Case
 {
-    using System.Collections.Generic;
     using System.Text.RegularExpressions;
 
-    public class Tokenisation
+    public static class Tokenisation
     {
-        public List<string> ReturnTokens(string message)
+        public static List<string> ReturnTokens(string message)
         {
             var matches = Regex.Matches(message, @"\[@(.*?)\]");
             var returnList = new List<string>();

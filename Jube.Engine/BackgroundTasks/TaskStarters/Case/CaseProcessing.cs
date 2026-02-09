@@ -1,6 +1,7 @@
 namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Data.Context;
@@ -9,7 +10,9 @@ namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
     using Data.Repository;
     using DynamicEnvironment;
     using EntityAnalysisModelInvoke.Models.CaseManagement;
+    using Jube.Case;
     using log4net;
+    using Newtonsoft.Json.Linq;
 
     public static class CaseProcessing
     {
@@ -77,24 +80,73 @@ namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
 
                 var existing = await query.ExecuteAsync(model.CaseWorkflowGuid, model.CaseKey, model.CaseKeyValue, token).ConfigureAwait(false);
 
+                var repositoryCasesWorkflowsStatus =
+                    new CaseWorkflowStatusRepository(dbContext, createCase.TenantRegistryId);
+
+                CaseWorkflowStatus finalCasesWorkflowsStatus = null;
                 if (existing == null)
                 {
+                    finalCasesWorkflowsStatus =
+                        await repositoryCasesWorkflowsStatus.GetByGuidAsync(model.CaseWorkflowStatusGuid, token).ConfigureAwait(false);
+
                     await repositoryCase.InsertAsync(model, token).ConfigureAwait(false);
                 }
                 else
                 {
-                    var repositoryCasesWorkflowsStatus =
-                        new CaseWorkflowStatusRepository(dbContext, createCase.TenantRegistryId);
-
-                    var recordCasesWorkflowsStatus =
+                    var existingCasesWorkflowsStatus =
                         await repositoryCasesWorkflowsStatus.GetByGuidAsync(model.CaseWorkflowStatusGuid, token).ConfigureAwait(false);
 
-                    if (recordCasesWorkflowsStatus.Priority < existing.Priority)
+                    if (existingCasesWorkflowsStatus.Priority < existing.Priority)
                     {
+                        finalCasesWorkflowsStatus =
+                            await repositoryCasesWorkflowsStatus.GetByGuidAsync(model.CaseWorkflowStatusGuid, token).ConfigureAwait(false);
+
                         model.Id = existing.CaseId;
                         model.Locked = 0;
                         model.CaseWorkflowStatusGuid = createCase.CaseWorkflowStatusGuid;
                         await repositoryCase.UpdateCaseAsync(model, token).ConfigureAwait(false);
+                    }
+                }
+
+                var caseBytes = 0;
+                if (createCase.Json != null)
+                {
+                    if (finalCasesWorkflowsStatus != null)
+                    {
+                        caseBytes = createCase.Json.Length;
+                        var jObject = JObject.Parse(model.Json);
+
+                        var values = new Dictionary<string, string>();
+                        foreach (var (key, value) in jObject)
+                        {
+                            if (value != null)
+                            {
+                                values.Add(key, value.ToString());
+                            }
+                        }
+
+                        if (finalCasesWorkflowsStatus.EnableNotification == 1 ||
+                            finalCasesWorkflowsStatus.EnableHttpEndpoint == 1)
+                        {
+                            if (finalCasesWorkflowsStatus.EnableNotification == 1)
+                            {
+                                var notification = new Notification(log, dynamicEnvironment);
+                                await notification.SendAsync(finalCasesWorkflowsStatus.NotificationTypeId ?? 1,
+                                    finalCasesWorkflowsStatus.NotificationDestination,
+                                    finalCasesWorkflowsStatus.NotificationSubject,
+                                    finalCasesWorkflowsStatus.NotificationBody, values, token);
+                            }
+
+                            if (finalCasesWorkflowsStatus.EnableHttpEndpoint == 1)
+                            {
+                                if (finalCasesWorkflowsStatus.HttpEndpointTypeId != null)
+                                {
+                                    await SendHttpEndpoint.SendAsync(finalCasesWorkflowsStatus.HttpEndpoint,
+                                        finalCasesWorkflowsStatus.HttpEndpointTypeId.Value
+                                        , values);
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -105,7 +157,7 @@ namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
                         $"Case Workflow ID of {createCase.EntityAnalysisModelInstanceEntryGuid}, " +
                         $"Case Workflow Status ID of {createCase.CaseWorkflowStatusGuid}, " +
                         $"Case Key of {createCase.CaseKeyValue}, " +
-                        $"Case JSON Bytes {createCase.Json.Length}");
+                        $"Case JSON Bytes {caseBytes}");
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

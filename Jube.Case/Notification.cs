@@ -11,37 +11,23 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.App.Code
+namespace Jube.Case
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading;
-    using System.Threading.Tasks;
     using DynamicEnvironment;
     using log4net;
 
-    public class Notification
+    public class Notification(ILog log, DynamicEnvironment dynamicEnvironment)
     {
-        private readonly DynamicEnvironment dynamicEnvironment;
-        private readonly ILog log;
-
-        public Notification(ILog log, DynamicEnvironment dynamicEnvironment)
-        {
-            this.dynamicEnvironment = dynamicEnvironment;
-            this.log = log;
-        }
-
         public async Task SendAsync(int notificationType, string notificationDestination, string notificationSubject,
             string notificationBody, Dictionary<string, string> values, CancellationToken token = default
         )
         {
-            var notificationTokenization = new Tokenisation();
-
             var replacedNotificationDestination = notificationDestination;
             if (!String.IsNullOrEmpty(replacedNotificationDestination))
             {
                 var notificationDestinationTokens =
-                    notificationTokenization.ReturnTokens(replacedNotificationDestination);
+                    Tokenisation.ReturnTokens(replacedNotificationDestination);
+
                 foreach (var notificationToken in notificationDestinationTokens)
                 {
                     if (!values.TryGetValue(notificationToken, out var value))
@@ -59,7 +45,7 @@ namespace Jube.App.Code
             var replacedNotificationSubject = notificationSubject;
             if (!String.IsNullOrEmpty(replacedNotificationSubject))
             {
-                var notificationSubjectTokens = notificationTokenization.ReturnTokens(replacedNotificationSubject);
+                var notificationSubjectTokens = Tokenisation.ReturnTokens(replacedNotificationSubject);
                 foreach (var notificationToken in notificationSubjectTokens)
                 {
                     if (!values.TryGetValue(notificationToken, out var value))
@@ -76,7 +62,8 @@ namespace Jube.App.Code
             var replacedNotificationBody = notificationBody;
             if (!String.IsNullOrEmpty(replacedNotificationBody))
             {
-                var notificationBodyTokens = notificationTokenization.ReturnTokens(replacedNotificationBody);
+                var notificationBodyTokens = Tokenisation.ReturnTokens(replacedNotificationBody);
+
                 foreach (var notificationToken in notificationBodyTokens)
                 {
                     if (!values.TryGetValue(notificationToken, out var value))
