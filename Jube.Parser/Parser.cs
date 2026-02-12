@@ -36,6 +36,7 @@ namespace Jube.Parser
         public List<string> EntityAnalysisModelsLists;
         public List<string> EntityAnalysisModelsSanctions;
         public List<string> EntityAnalysisModelsTtlCounters;
+        public List<string> EntityAnalysisModelsActivationRules;
 
         public Parser(ILog log,
             List<string> ruleScriptTokens
@@ -118,7 +119,7 @@ namespace Jube.Parser
             {
                 this.ruleScriptTokens.Add("Contains");
             }
-
+            
             if (!this.ruleScriptTokens.Contains("Sanctions"))
             {
                 this.ruleScriptTokens.Add("Sanctions");
@@ -485,7 +486,7 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine(
-                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Long),Abstraction As PooledDictionary(Of String, Double),HttpAdaptation As Dictionary(Of String, Double),ExhaustiveAdaptation As PooledDictionary(Of String, Double),List as PooledDictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
+                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Long),Abstraction As PooledDictionary(Of String, Double),HttpAdaptation As Dictionary(Of String, Double),ExhaustiveAdaptation As PooledDictionary(Of String, Double),List as PooledDictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Activation as ICollection(Of String),Log as ILog) As Boolean");
 
             countLine += 1;
             sb.AppendLine("Dim Matched as Boolean");
@@ -987,7 +988,7 @@ namespace Jube.Parser
                                         var errorSpan = new ErrorSpan
                                         {
                                             Message =
-                                                $"Line {i + 1}: Dictionary does not exist for {elements[k]}.",
+                                                $"Line {i + 1}: List does not exist for {elements[k]}.",
                                             Line = i
                                         };
                                         parsedRule.ErrorSpans.Add(errorSpan);
@@ -996,6 +997,29 @@ namespace Jube.Parser
 
                                 replaceString = replaceString + "List(\"" + elements[k] + "\")";
                             }
+                            
+                            else if (String.Equals("Activation", firstString,
+                                         StringComparison.OrdinalIgnoreCase))
+                            {
+                                findString = firstString + "." + elements[k];
+
+                                if (EntityAnalysisModelsActivationRules!= null)
+                                {
+                                    if (EntityAnalysisModelsActivationRules.All(w => w != elements[k]))
+                                    {
+                                        var errorSpan = new ErrorSpan
+                                        {
+                                            Message =
+                                                $"Line {i + 1}: Activation Rule does not exist for {elements[k]}.",
+                                            Line = i
+                                        };
+                                        parsedRule.ErrorSpans.Add(errorSpan);
+                                    }
+                                }
+
+                                replaceString = replaceString + "Activation.Contains(\"" + elements[k] + "\")";
+                            }
+                            
                             else
                             {
                                 findString = firstString + "." + elements[k];

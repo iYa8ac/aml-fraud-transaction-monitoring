@@ -11,9 +11,9 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.Attributes
+namespace Jube.Engine.Attributes.Properties
 {
     using System;
 
-    public class Latitude : Attribute;
+    public class Longitude : Attribute;
 }

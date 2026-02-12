@@ -160,7 +160,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke
 
                     await context.ExecuteHttpAdaptationsAsync().ConfigureAwait(false);
 
-                    context.ExecuteActivations();
+                    await context.ExecuteActivationsAsync().ConfigureAwait(false);
                 }
 
                 await context.WaitWriteTasksAsync().ConfigureAwait(false);

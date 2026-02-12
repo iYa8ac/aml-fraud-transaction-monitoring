@@ -118,6 +118,8 @@ namespace Jube.App.Controllers.Helper
                 List<string> entityAnalysisModelAbstractionCalculations = null;
                 List<string> entityAnalysisModelsHttpAdaptations = null;
                 List<string> entityAnalysisModelsExhaustiveAdaptations = null;
+                List<string> entityAnalysisModelsActivationRules = null;
+                
                 if (parseRuleRequestDto.RuleParseType > 4)
                 {
                     entityAnalysisModelAbstractionCalculations
@@ -128,6 +130,11 @@ namespace Jube.App.Controllers.Helper
 
                     entityAnalysisModelsExhaustiveAdaptations
                         = await EntityAnalysisModelExhaustiveAdaptationsAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
+                }
+
+                if (parseRuleRequestDto.RuleParseType > 5)
+                {
+                    entityAnalysisModelsActivationRules = await EntityAnalysisModelActivationRulesAsync(parseRuleRequestDto.EntityAnalysisModelId, token).ConfigureAwait(false);
                 }
 
                 var parser = new Parser(log,
@@ -143,7 +150,8 @@ namespace Jube.App.Controllers.Helper
                     EntityAnalysisModelsLists = entityAnalysisModelsLists,
                     EntityAnalysisModelsDictionaries = entityAnalysisModelsDictionaries,
                     EntityAnalysisModelsHttpAdaptations = entityAnalysisModelsHttpAdaptations,
-                    EntityAnalysisModelsExhaustiveAdaptations = entityAnalysisModelsExhaustiveAdaptations
+                    EntityAnalysisModelsExhaustiveAdaptations = entityAnalysisModelsExhaustiveAdaptations,
+                    EntityAnalysisModelsActivationRules = entityAnalysisModelsActivationRules
                 };
 
                 var errorSpans = new List<ErrorSpan>();
@@ -308,6 +316,16 @@ namespace Jube.App.Controllers.Helper
 
             var entityAnalysisModelLists = await entityAnalysisModelListRepository
                 .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            return entityAnalysisModelLists.Select(s => s.Name).ToList();
+        }
+        
+        private async Task<List<string>> EntityAnalysisModelActivationRulesAsync(int entityAnalysisModelId, CancellationToken token = default)
+        {
+            var entityAnalysisModelActivationRuleRepository =
+                new EntityAnalysisModelActivationRuleRepository(dbContext, userName);
+
+            var entityAnalysisModelLists = await entityAnalysisModelActivationRuleRepository.GetByEntityAnalysisModelIdOrderByIdDescAsync(entityAnalysisModelId, token).ConfigureAwait(false);
 
             return entityAnalysisModelLists.Select(s => s.Name).ToList();
         }

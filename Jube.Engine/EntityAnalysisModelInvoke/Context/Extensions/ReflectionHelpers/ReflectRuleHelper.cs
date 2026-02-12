@@ -39,7 +39,9 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
                 payload.TtlCounter, payload.Abstraction,
                 payload.HttpAdaptation, payload.ExhaustiveAdaptation, entityAnalysisModel.Dependencies.EntityAnalysisModelLists,
                 payload.AbstractionCalculation,
-                payload.Sanction, entityInstanceEntryDictionaryKvPs, log);
+                payload.Sanction, entityInstanceEntryDictionaryKvPs,
+                payload.Activation.Keys,
+                log);
             return matched;
         }
 

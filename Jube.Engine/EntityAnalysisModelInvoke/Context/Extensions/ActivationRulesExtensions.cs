@@ -14,11 +14,12 @@
 namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
 {
     using System.Diagnostics;
+    using System.Threading.Tasks;
     using ActivationRules;
 
     public static class ActivationRulesExtensions
     {
-        public static Context ExecuteActivations(this Context context)
+        public static async Task<Context> ExecuteActivationsAsync(this Context context)
         {
             if (context.Log.IsInfoEnabled)
             {
@@ -27,7 +28,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
             }
 
             var (activationRuleCount, createCase, prevailingActivationRuleId)
-                = context.IterateAndProcess(context.EntityAnalysisModel.Services.CacheService, context.AvailableEntityAnalysisModels, context.EntityAnalysisModel.Services.RabbitMqChannel);
+                = await context.IterateAndProcessAsync(context.EntityAnalysisModel.Services.CacheService, context.AvailableEntityAnalysisModels, context.EntityAnalysisModel.Services.RabbitMqChannel).ConfigureAwait(false);
 
             context.ActivationRuleFinishResponseElevation(context.EntityAnalysisModelInstanceEntryPayload.ResponseElevation.Value);
             context.ActivationRuleResponseElevationAddToCounters();

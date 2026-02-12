@@ -2181,6 +2181,7 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(48)] public byte? EnableReprocessing { get; set; }
         [Column] [Nullable] [Key(49)] public byte? EnableSuppression { get; set; }
         [Column] [Nullable] [Key(50)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(51)] public double? Priority { get; set; }
     }
 
     [Table]
@@ -2262,6 +2263,7 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(52)] public DateTime? UpdatedDate { get; set; }
         [Column] [Nullable] [Key(53)] public string UpdatedUser { get; set; }
         [Column] [Nullable] [Key(54)] public int? ImportId { get; set; }
+        [Column] [Nullable] [Key(55)] public double? Priority { get; set; }
     }
 
     [Table]
@@ -2583,7 +2585,7 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(1)] public int? EntityAnalysisModelGatewayRuleId { get; set; }
         [Column] [Nullable] [Key(2)] public int? EntityAnalysisModelId { get; set; }
-        [Column] [Nullable] [Key(3)] public int? Priority { get; set; }
+        [Column] [Nullable] [Key(3)] public double? Priority { get; set; }
         [Column] [Nullable] [Key(4)] public string BuilderRuleScript { get; set; }
 
         [Column]
@@ -2622,7 +2624,7 @@ namespace Jube.Data.Poco
         public int Id { get; set; }
 
         [Column] [Nullable] [Key(1)] public int? EntityAnalysisModelId { get; set; }
-        [Column] [Nullable] [Key(2)] public int? Priority { get; set; }
+        [Column] [Nullable] [Key(2)] public double? Priority { get; set; }
         [Column] [Nullable] [Key(3)] public string BuilderRuleScript { get; set; }
 
         [Column]

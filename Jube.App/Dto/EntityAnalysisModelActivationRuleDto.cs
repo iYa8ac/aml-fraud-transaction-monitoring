@@ -67,5 +67,6 @@ namespace Jube.App.Dto
         public int Version { get; set; }
         public string DeletedUser { get; set; }
         public DateTime DeletedDate { get; set; }
+        public double Priority { get; set; }
     }
 }

@@ -22,7 +22,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Mod
     public class EntityAnalysisModels
     {
         public Dictionary<int, EntityAnalysisModel> ActiveEntityAnalysisModels { get; set; }
-        public List<EntityAnalysisModelInlineScript> InlineScripts { get; set; }
+        public List<EntityAnalysisModelInlineScript> EntityAnalysisModelInlineScripts { get; set; }
         public Guid EntityAnalysisInstanceGuid { get; set; }
         public Dictionary<int, SanctionEntry> SanctionsEntries { get; set; } = new Dictionary<int, SanctionEntry>();
         public Dictionary<string, List<string>> EntityAnalysisModelLists { get; } = new Dictionary<string, List<string>>();

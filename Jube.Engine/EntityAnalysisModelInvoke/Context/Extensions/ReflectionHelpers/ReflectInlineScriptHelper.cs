@@ -20,59 +20,54 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
 
     public static class ReflectInlineScriptHelper
     {
-        public static async Task ExecuteAsync(EntityAnalysisModelInlineScript.EntityAnalysisModelInlineScript entityAnalysisModelInlineScript, Context context)
+        public static async Task<bool> ExecuteAsync(EntityAnalysisModelInlineScript.EntityAnalysisModelInlineScript entityAnalysisModelInlineScript, Context context)
         {
-            var activatedObject = Activator.CreateInstance(entityAnalysisModelInlineScript.InlineScriptType);
+            var instance = entityAnalysisModelInlineScript.ActivatorDelegate();
 
-            object[] args = [context];
-            var result = entityAnalysisModelInlineScript.PreProcessingMethodInfo.Invoke(activatedObject, args);
-
-            if (result is Task task)
+            try
             {
-                try
+                if (!await entityAnalysisModelInlineScript.ExecuteAsyncDelegate(instance, context))
                 {
-                    await task;
-                }
-                catch (Exception ex)
-                {
-                    context.Log.Info($"Error executing Inline Script {entityAnalysisModelInlineScript.Id}:", ex);
+                    return false;
                 }
             }
+            catch (Exception ex)
+            {
+                context.Log.Info($"Error executing Inline Script {entityAnalysisModelInlineScript.Id}:", ex);
+                return true;
+            }
 
-            foreach (var entityAnalysisModelInlineScriptPropertyAttribute in entityAnalysisModelInlineScript.EntityAnalysisModelInlineScriptPropertyAttributes)
+            foreach (var prop in entityAnalysisModelInlineScript.EntityAnalysisModelInlineScriptPropertyAttributes)
             {
                 try
                 {
-                    if (activatedObject == null)
+                    if (instance == null)
                     {
                         continue;
                     }
 
-                    var property = entityAnalysisModelInlineScript.InlineScriptType.GetProperty(entityAnalysisModelInlineScriptPropertyAttribute.Key);
-                    var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+                    var value = prop.Value.GetValueDelegate(instance);
 
-                    if (propertyType != typeof(string)
-                        && propertyType != typeof(int)
-                        && propertyType != typeof(bool)
-                        && propertyType != typeof(DateTime)
-                        && propertyType != typeof(double))
+                    if (prop.Value.PropertyType != typeof(string)
+                        && prop.Value.PropertyType != typeof(int)
+                        && prop.Value.PropertyType != typeof(bool)
+                        && prop.Value.PropertyType != typeof(DateTime)
+                        && prop.Value.PropertyType != typeof(double))
                     {
                         continue;
                     }
-
-                    var value = property.GetValue(activatedObject);
 
                     switch (value)
                     {
                         case string s:
-                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, s);
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(prop.Key, s);
 
-                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
+                            if (prop.Value.ReportTable)
                             {
                                 context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
                                 {
                                     ProcessingTypeId = 1,
-                                    Key = property.Name,
+                                    Key = prop.Key,
                                     KeyValueString = value == null ? null : Convert.ToString(value),
                                     EntityAnalysisModelInstanceEntryGuid =
                                         context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
@@ -82,14 +77,14 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
                             break;
 
                         case int i:
-                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, i);
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(prop.Key, i);
 
-                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
+                            if (prop.Value.ReportTable)
                             {
                                 context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
                                 {
                                     ProcessingTypeId = 1,
-                                    Key = property.Name,
+                                    Key = prop.Key,
                                     KeyValueInteger = i,
                                     EntityAnalysisModelInstanceEntryGuid =
                                         context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
@@ -99,14 +94,14 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
                             break;
 
                         case byte b:
-                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, b);
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(prop.Key, b);
 
-                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
+                            if (prop.Value.ReportTable)
                             {
                                 context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
                                 {
                                     ProcessingTypeId = 1,
-                                    Key = property.Name,
+                                    Key = prop.Key,
                                     KeyValueBoolean = b,
                                     EntityAnalysisModelInstanceEntryGuid =
                                         context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
@@ -116,14 +111,14 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
                             break;
 
                         case double d:
-                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, d);
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(prop.Key, d);
 
-                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
+                            if (prop.Value.ReportTable)
                             {
                                 context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
                                 {
                                     ProcessingTypeId = 1,
-                                    Key = property.Name,
+                                    Key = prop.Key,
                                     KeyValueFloat = d,
                                     EntityAnalysisModelInstanceEntryGuid =
                                         context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
@@ -133,14 +128,14 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
                             break;
 
                         case DateTime dt:
-                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, dt);
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(prop.Key, dt);
 
-                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
+                            if (prop.Value.ReportTable)
                             {
                                 context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
                                 {
                                     ProcessingTypeId = 1,
-                                    Key = property.Name,
+                                    Key = prop.Key,
                                     KeyValueDate = dt,
                                     EntityAnalysisModelInstanceEntryGuid =
                                         context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
@@ -150,14 +145,14 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
                             break;
 
                         default:
-                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(entityAnalysisModelInlineScriptPropertyAttribute.Key, value.ToString());
+                            context.EntityAnalysisModelInstanceEntryPayload.Payload.TryAdd(prop.Key, value.ToString());
 
-                            if (entityAnalysisModelInlineScriptPropertyAttribute.Value.ReportTable)
+                            if (prop.Value.ReportTable)
                             {
                                 context.EntityAnalysisModelInstanceEntryPayload.ArchiveKeys.Add(new ArchiveKey
                                 {
                                     ProcessingTypeId = 1,
-                                    Key = property.Name,
+                                    Key = prop.Key,
                                     KeyValueString = value.ToString(),
                                     EntityAnalysisModelInstanceEntryGuid =
                                         context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
@@ -172,6 +167,8 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
                     context.Log.Error(ex.ToString());
                 }
             }
+
+            return true;
         }
     }
 }
