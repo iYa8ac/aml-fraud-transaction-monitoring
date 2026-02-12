@@ -11,9 +11,9 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.Attributes
+namespace Jube.Engine.Attributes.Properties
 {
     using System;
 
-    public class ReportTable : Attribute;
+    public class Latitude : Attribute;
 }

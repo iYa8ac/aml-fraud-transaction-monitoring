@@ -18,6 +18,6 @@ namespace Jube.Engine.Interfaces
 
     public interface IInlineScript
     {
-        Task ExecuteAsync(Context context);
+        Task<bool> ExecuteAsync(Context context);
     }
 }

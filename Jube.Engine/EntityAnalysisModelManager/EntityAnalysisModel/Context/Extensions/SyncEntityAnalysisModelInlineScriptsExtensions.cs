@@ -77,7 +77,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                     $"Entity Start: Inline Script ID ID {record.EntityAnalysisInlineScriptId} returned for model {key} is Active.");
                             }
 
-                            foreach (var inlineScript in context.EntityAnalysisModels.InlineScripts)
+                            foreach (var inlineScript in context.EntityAnalysisModels.EntityAnalysisModelInlineScripts)
                             {
                                 context.Services.CancellationToken.ThrowIfCancellationRequested();
 

@@ -74,6 +74,16 @@ namespace Jube.Data.Repository
                     && w.EntityAnalysisModelId == entityAnalysisModelId && (w.Deleted == 0 || w.Deleted == null))
                 .OrderBy(o => o.Id).ToListAsync(token);
         }
+        
+        public async Task<IEnumerable<EntityAnalysisModelActivationRule>> GetByEntityAnalysisModelIdOrderByPriorityDescAsync(
+            int entityAnalysisModelId, CancellationToken token = default)
+        {
+            return await dbContext.EntityAnalysisModelActivationRule
+                .Where(w =>
+                    (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
+                    && w.EntityAnalysisModelId == entityAnalysisModelId && (w.Deleted == 0 || w.Deleted == null))
+                .OrderBy(o => o.Priority).ToListAsync(token);
+        }
 
         public async Task<IEnumerable<EntityAnalysisModelActivationRule>> GetByEntityAnalysisModelIdInPriorityOrderAsync(
             int entityAnalysisModelId, CancellationToken token = default)
@@ -85,7 +95,8 @@ namespace Jube.Data.Repository
                     && (w.Deleted == 0 || w.Deleted == null))
                 .Where(s => s.CaseWorkflowStatus.CaseWorkflow.EntityAnalysisModel.Deleted == 0 ||
                             s.CaseWorkflowStatus.CaseWorkflow.EntityAnalysisModel.Deleted == null)
-                .OrderByDescending(o => o.EnableResponseElevation)
+                .OrderBy(o => o.Priority)
+                .ThenByDescending(o => o.EnableResponseElevation)
                 .ThenByDescending(o => o.ResponseElevation)
                 .ThenByDescending(o => o.EnableCaseWorkflow)
                 .ThenBy(o => o.CaseWorkflowStatus.Priority)

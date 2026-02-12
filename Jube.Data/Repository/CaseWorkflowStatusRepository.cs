@@ -81,6 +81,14 @@ namespace Jube.Data.Repository
                             && w.CaseWorkflowId == casesWorkflowId && (w.Deleted == 0 || w.Deleted == null))
                 .OrderBy(o => o.Id).ToListAsync(token);
         }
+        
+        public async Task<IEnumerable<CaseWorkflowStatus>> GetByCasesWorkflowIdOrderByPriorityAsync(int casesWorkflowId, CancellationToken token = default)
+        {
+            return await dbContext.CaseWorkflowStatus
+                .Where(w => w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                            && w.CaseWorkflowId == casesWorkflowId && (w.Deleted == 0 || w.Deleted == null))
+                .OrderBy(o => o.Priority).ToListAsync(token);
+        }
 
         public async Task<IEnumerable<CaseWorkflowStatus>> GetByCasesWorkflowGuidAsync(Guid casesWorkflowGuid, CancellationToken token = default)
         {

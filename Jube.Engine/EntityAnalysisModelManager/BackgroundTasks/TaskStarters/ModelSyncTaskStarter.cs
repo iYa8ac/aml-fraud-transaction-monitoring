@@ -92,7 +92,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                                 },
                                 EntityAnalysisModels =
                                 {
-                                    InlineScripts = context.EntityAnalysisModels.InlineScripts,
+                                    EntityAnalysisModelInlineScripts = context.EntityAnalysisModels.InlineScripts,
                                     ActiveEntityAnalysisModels = context.EntityAnalysisModels.ActiveEntityAnalysisModels,
                                     EntityAnalysisInstanceGuid = context.EntityAnalysisModels.EntityAnalysisInstanceGuid,
                                     SanctionsEntries = context.Caching.SanctionsEntries

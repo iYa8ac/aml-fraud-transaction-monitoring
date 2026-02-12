@@ -27,7 +27,10 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
             PooledDictionary<string, double> exhaustiveAdaptation,
             Dictionary<string, List<string>> list,
             PooledDictionary<string, double> calculation,
-            PooledDictionary<string, double> sanctions, PooledDictionary<string, double> kvp, ILog log);
+            PooledDictionary<string, double> sanctions, 
+            PooledDictionary<string, double> kvp,
+            ICollection<string> activation, 
+            ILog log);
 
         public int Id { get; init; }
         public bool Visible { get; set; }
@@ -64,5 +67,6 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
         public string CaseKey { get; set; }
         public bool EnableResponseElevation { get; set; }
         public string ResponseElevationKey { get; set; }
+        public Guid Guid { get; set; }
     }
 }

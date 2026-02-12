@@ -15,15 +15,11 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
 {
     using System;
 
-    public class EntityAnalysisModelInlineScriptPropertyAttribute
+    public class EntityAnalysisModelInlineScriptEvent
     {
+        public EntityAnalysisModelInlineScriptEventTypeEnum EntityAnalysisModelInlineScriptEventType { get; set; }
+        public Guid Guid { get; set; }
         public string Name { get; set; }
-        public bool ResponsePayload { get; set; }
-        public bool ReportTable { get; set; }
-        public bool Latitude { get; set; }
-        public bool Longitude { get; set; }
-        public DistinctSearchKey SearchKey { get; set; }
-        public Type PropertyType { get; set; }
-        public Func<object, object> GetValueDelegate { get; set; }
+        public int Priority { get; set; }
     }
 }

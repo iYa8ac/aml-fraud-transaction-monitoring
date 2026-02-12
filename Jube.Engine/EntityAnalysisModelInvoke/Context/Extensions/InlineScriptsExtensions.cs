@@ -15,7 +15,9 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
 {
     using System;
     using System.Diagnostics;
+    using System.Linq;
     using System.Threading.Tasks;
+    using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript;
     using ReflectionHelpers;
 
     public static class InlineScriptsExtensions
@@ -47,10 +49,9 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
 
         private static async Task IterateAndProcessAsync(Context context)
         {
-            var inlineScriptCount = context.EntityAnalysisModel.Collections.EntityAnalysisModelInlineScripts.Count;
-            for (var i = 0; i < inlineScriptCount; i++)
+            foreach (var inlineScript in context.EntityAnalysisModel.Collections.EntityAnalysisModelInlineScripts.Where(s => s.EntityAnalysisModelInlineScriptEvents
+                         .Any(e => e.EntityAnalysisModelInlineScriptEventType == EntityAnalysisModelInlineScriptEventTypeEnum.Payload)))
             {
-                var inlineScript = context.EntityAnalysisModel.Collections.EntityAnalysisModelInlineScripts[i];
                 try
                 {
                     if (context.Log.IsInfoEnabled)

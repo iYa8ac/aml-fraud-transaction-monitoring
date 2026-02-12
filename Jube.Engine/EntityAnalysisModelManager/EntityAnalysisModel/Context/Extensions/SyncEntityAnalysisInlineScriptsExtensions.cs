@@ -14,11 +14,14 @@
 namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Extensions
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Linq.Expressions;
     using System.Reflection;
     using System.Threading.Tasks;
-    using Attributes;
+    using Attributes.Events;
+    using Attributes.Properties;
     using Data.Repository;
     using Interfaces;
     using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
@@ -55,7 +58,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                             $"Entity Start: Found an inline script with the id of {record.Id} and will proceed to check if already have this inline script available.");
                     }
 
-                    var inlineScript = context.EntityAnalysisModels.InlineScripts.Find(x => x.Id == record.Id);
+                    var inlineScript = context.EntityAnalysisModels.EntityAnalysisModelInlineScripts.Find(x => x.Id == record.Id);
                     if (inlineScript == null)
                     {
                         inlineScript = new EntityAnalysisModelInlineScript();
@@ -118,49 +121,12 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                         context.Services.Log.Debug($"Entity Start: Inline Script {record.Id} has name of {inlineScript.Name}.");
                     }
 
-                    var dependencyArray = AppDomain.CurrentDomain.GetAssemblies()
-                        .Where(a => !a.IsDynamic && !String.IsNullOrEmpty(a.Location))
-                        .Select(a => a.Location)
-                        .ToArray();
+                    var dependencyArray = BuildDependencyArray(context, inlineScript.Dependencies);
 
                     if (context.Services.Log.IsDebugEnabled)
                     {
                         context.Services.Log.Debug(
-                            $"Entity Start: Inline Script {record.Id} is being checked for dll dependencies.");
-                    }
-
-                    if (!String.IsNullOrEmpty(record.Dependency))
-                    {
-                        if (context.Services.Log.IsDebugEnabled)
-                        {
-                            context.Services.Log.Debug(
-                                $"Entity Start: Inline Script {record.Id} has dll dependency specification of {record.Dependency}.");
-                        }
-
-                        inlineScript.Dependencies = record.Dependency;
-
-                        foreach (var file in inlineScript.Dependencies.Split(",".ToCharArray()))
-                        {
-                            Array.Resize(ref dependencyArray, dependencyArray.Length + 1);
-                            if (File.Exists(Path.Combine(context.Paths.BinaryPath, file)))
-                            {
-                                dependencyArray[^1] = Path.Combine(context.Paths.BinaryPath, file);
-                                if (context.Services.Log.IsDebugEnabled)
-                                {
-                                    context.Services.Log.Debug(
-                                        $"Entity Start: Added Inline Script Dependency at binary level {dependencyArray[^1]} for inline script {record.Id}.");
-                                }
-                            }
-                            else
-                            {
-                                dependencyArray[^1] = Path.Combine(context.Paths.FrameworkPath, file);
-                                if (context.Services.Log.IsDebugEnabled)
-                                {
-                                    context.Services.Log.Debug(
-                                        $"Entity Start: Added Inline Script Dependency at framework level {dependencyArray[^1]} for inline script {record.Id}.");
-                                }
-                            }
-                        }
+                            $"Entity Start: Inline Script {record.Id} is being checked for dll dependencies.  Has created {dependencyArray.Length} dependencies.");
                     }
 
                     var inlineScriptHash = HashHelper.GetHash(inlineScript.InlineScriptCode);
@@ -180,11 +146,8 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                         }
 
                         inlineScript.InlineScriptCompile = value;
-                        inlineScript.InlineScriptType =
-                            inlineScript.InlineScriptCompile.GetType(inlineScript.ClassName);
-                        inlineScript.PreProcessingMethodInfo =
-                            inlineScript.InlineScriptType.GetMethod("ExecuteAsync",
-                                [typeof(EntityAnalysisModelInvoke.Context.Context)]);
+                        SetupInlineScriptDelegates(inlineScript);
+                        SetupEvents(inlineScript);
 
                         if (context.Services.Log.IsDebugEnabled)
                         {
@@ -244,19 +207,10 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 continue;
                             }
 
-                            inlineScript.PreProcessingMethodInfo =
-                                inlineScript.InlineScriptType.GetMethod("ExecuteAsync",
-                                    [typeof(EntityAnalysisModelInvoke.Context.Context)]);
+                            SetupInlineScriptDelegates(inlineScript);
+                            SetupEvents(inlineScript);
 
-                            if (inlineScript.PreProcessingMethodInfo == null)
-                            {
-                                context.Services.Log.Error(
-                                    $"Entity Start: Could not compile inline script: {inlineScript.Id} did not find method entry point for ExecuteAsync.");
-
-                                continue;
-                            }
-
-                            context.EntityAnalysisModels.InlineScripts.Add(inlineScript);
+                            context.EntityAnalysisModels.EntityAnalysisModelInlineScripts.Add(inlineScript);
                             context.Caching.HashCacheAssembly.Add(inlineScriptHash, compile.CompiledAssembly);
                             compiled = true;
 
@@ -296,20 +250,9 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 ReportTable = p.GetCustomAttribute<ReportTable>() != null,
                                 Latitude = p.GetCustomAttribute<Latitude>() != null,
                                 Longitude = p.GetCustomAttribute<Longitude>() != null,
-                                ResponsePayload = p.GetCustomAttribute<ResponsePayload>() != null
-                            };
-
-                            var propertyType = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType;
-
-                            entityAnalysisModelInlineScriptProperty.DataTypeId = propertyType switch
-                            {
-                                not null when propertyType == typeof(string) => 1,
-                                not null when propertyType == typeof(int) => 2,
-                                not null when propertyType == typeof(byte) => 3,
-                                not null when propertyType == typeof(double) => 4,
-                                not null when propertyType == typeof(DateTime) => 5,
-                                not null when propertyType == typeof(bool) => 3,
-                                _ => entityAnalysisModelInlineScriptProperty.DataTypeId
+                                ResponsePayload = p.GetCustomAttribute<ResponsePayload>() != null,
+                                GetValueDelegate = CompileGetValueDelegate(p),
+                                PropertyType = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType
                             };
 
                             if (context.Services.Log.IsDebugEnabled)
@@ -364,6 +307,135 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
             }
 
             return context;
+        }
+        
+        private static void SetupEvents(EntityAnalysisModelInlineScript inlineScript)
+        {
+
+            var shadowEntityAnalysisModelInlineScriptEventsToBeSorted = new List<EntityAnalysisModelInlineScriptEvent>();
+            foreach (var attribute in inlineScript.PreProcessingMethodInfo.GetCustomAttributes())
+            {
+                var entityAnalysisModelInlineScriptEvent = new EntityAnalysisModelInlineScriptEvent();
+
+                switch (attribute)
+                {
+                    case ActivationRuleOverrideEvent activationRuleOverrideEvent:
+                        entityAnalysisModelInlineScriptEvent.EntityAnalysisModelInlineScriptEventType = EntityAnalysisModelInlineScriptEventTypeEnum.AbstractionRuleOverride;
+
+                        if (activationRuleOverrideEvent.Guid != null)
+                        {
+                            entityAnalysisModelInlineScriptEvent.Guid = Guid.Parse(activationRuleOverrideEvent.Guid);
+                        }
+
+                        entityAnalysisModelInlineScriptEvent.Priority = activationRuleOverrideEvent.Priority;
+                        entityAnalysisModelInlineScriptEvent.Name = activationRuleOverrideEvent.Name;
+
+                        shadowEntityAnalysisModelInlineScriptEventsToBeSorted.Add(entityAnalysisModelInlineScriptEvent);
+                        break;
+
+                    case PayloadEvent payloadEvent:
+                        entityAnalysisModelInlineScriptEvent.EntityAnalysisModelInlineScriptEventType = EntityAnalysisModelInlineScriptEventTypeEnum.Payload;
+
+                        if (payloadEvent.Guid != null)
+                        {
+                            entityAnalysisModelInlineScriptEvent.Guid = Guid.Parse(payloadEvent.Guid);
+                        }
+
+                        entityAnalysisModelInlineScriptEvent.Priority = payloadEvent.Priority;
+                        entityAnalysisModelInlineScriptEvent.Name = payloadEvent.Name;
+
+                        shadowEntityAnalysisModelInlineScriptEventsToBeSorted.Add(entityAnalysisModelInlineScriptEvent);
+                        break;
+                }
+            }
+
+            inlineScript.EntityAnalysisModelInlineScriptEvents = shadowEntityAnalysisModelInlineScriptEventsToBeSorted.OrderBy(o => o.Priority).ToList();
+        }
+        
+        private static Func<object> CompileActivatorDelegate(EntityAnalysisModelInlineScript inlineScript)
+        {
+
+            return Expression.Lambda<Func<object>>(
+                Expression.Convert(
+                    Expression.New(inlineScript.InlineScriptType),
+                    typeof(object)
+                )
+            ).Compile();
+        }
+
+        private static Func<object, Jube.Engine.EntityAnalysisModelInvoke.Context.Context, Task<bool>> CompileMethodDelegate(Type type, MethodInfo methodInfo)
+        {
+            var instanceParam = Expression.Parameter(typeof(object), "instance");
+            var contextParam = Expression.Parameter(typeof(Jube.Engine.EntityAnalysisModelInvoke.Context.Context), "context");
+            var castInstance = Expression.Convert(instanceParam, type);
+            var methodCall = Expression.Call(castInstance, methodInfo, contextParam);
+
+            return Expression.Lambda<Func<object, Jube.Engine.EntityAnalysisModelInvoke.Context.Context, Task<bool>>>(
+                methodCall,
+                instanceParam,
+                contextParam
+            ).Compile();
+        }
+
+        private static Func<object, object> CompileGetValueDelegate(PropertyInfo p)
+        {
+            if (p.DeclaringType == null)
+            {
+                throw new ArgumentException($"Property '{p.Name}' has no DeclaringType.");
+            }
+
+            var instParam = Expression.Parameter(typeof(object), "instance");
+            var castInstance = Expression.Convert(instParam, p.DeclaringType);
+            var propertyAccess = Expression.Property(castInstance, p);
+            var castResult = Expression.Convert(propertyAccess, typeof(object));
+
+            return Expression.Lambda<Func<object, object>>(castResult, instParam).Compile();
+        }
+
+        private static void SetupInlineScriptDelegates(EntityAnalysisModelInlineScript inlineScript)
+        {
+            inlineScript.InlineScriptType =
+                inlineScript.InlineScriptCompile.GetType(inlineScript.ClassName);
+
+            if (inlineScript.InlineScriptType == null)
+            {
+                return;
+            }
+
+            inlineScript.PreProcessingMethodInfo =
+                inlineScript.InlineScriptType.GetMethod("ExecuteAsync",
+                    [typeof(EntityAnalysisModelInvoke.Context.Context)]);
+
+            inlineScript.ActivatorDelegate = CompileActivatorDelegate(inlineScript);
+            inlineScript.ExecuteAsyncDelegate = CompileMethodDelegate(
+                inlineScript.InlineScriptType,
+                inlineScript.PreProcessingMethodInfo);
+        }
+
+        private static string[] BuildDependencyArray(Context context, string dependencies)
+        {
+            var baseArray = AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic && !String.IsNullOrEmpty(a.Location))
+                .Select(a => a.Location)
+                .ToArray();
+
+            if (String.IsNullOrEmpty(dependencies))
+            {
+                return baseArray;
+            }
+
+            var additionalDeps = dependencies.Split(",".ToCharArray())
+                .Select(file => ResolveDependencyPath(context, file))
+                .ToArray();
+
+            return baseArray.Concat(additionalDeps).ToArray();
+        }
+
+        private static string ResolveDependencyPath(Context context, string file)
+        {
+            var binaryPath = Path.Combine(context.Paths.BinaryPath, file);
+            return File.Exists(binaryPath) ? binaryPath
+                : Path.Combine(context.Paths.FrameworkPath, file);
         }
     }
 }

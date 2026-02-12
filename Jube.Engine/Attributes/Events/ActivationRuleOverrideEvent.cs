@@ -11,19 +11,14 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript
+namespace Jube.Engine.Attributes.Events
 {
     using System;
 
-    public class EntityAnalysisModelInlineScriptPropertyAttribute
+    public class ActivationRuleOverrideEvent : Attribute
     {
-        public string Name { get; set; }
-        public bool ResponsePayload { get; set; }
-        public bool ReportTable { get; set; }
-        public bool Latitude { get; set; }
-        public bool Longitude { get; set; }
-        public DistinctSearchKey SearchKey { get; set; }
-        public Type PropertyType { get; set; }
-        public Func<object, object> GetValueDelegate { get; set; }
+        public string Guid;
+        public string Name;
+        public int Priority;
     }
 }

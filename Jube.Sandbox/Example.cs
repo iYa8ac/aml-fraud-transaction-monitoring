@@ -12,6 +12,8 @@ using Newtonsoft.Json.Linq;
 
 //The following are Jube libraries that contain the context and Inline Script attributes.
 using Jube.Engine.Attributes;
+using Jube.Engine.Attributes.Events;
+using Jube.Engine.Attributes.Properties;
 using Jube.Engine.EntityAnalysisModelInvoke.Context;
 using Jube.Engine.Interfaces;
 
@@ -33,8 +35,10 @@ public class Example : IInlineScript//Class entry point is available in table co
         SearchKeyCacheTtlInterval = "h",
         SearchKeyCacheTtlValue = 1)]                     //SearchKey ensures that this is exposed in for aggregation in both the background engine.
     public string UserAgent { get; set; } = string.Empty;//Public properties are available for processing, being analogous,  when taken together with attributes, to a Request XPath entry
-
-    public async Task ExecuteAsync(Context context)//Method entry point.  The Context object gives access to all resources that would otherwise be available during invocation.
+    
+    [ActivationRuleOverrideEvent(Guid="bc81ff60-3254-4f1a-9003-ecae5e114142", Priority = 1)]
+    [PayloadEvent]
+    public async Task<bool> ExecuteAsync(Context context)//Method entry point.  The Context object gives access to all resources that would otherwise be available during invocation.
     {
         //Example HTTP Call with the fetching of data from the context.
         using var client = new HttpClient();
@@ -51,5 +55,7 @@ public class Example : IInlineScript//Class entry point is available in table co
  #pragma warning restore CS8600// Converting null literal or possible null value to non-nullable type.
 
         UserAgent = userAgent;
+
+        return true; //Behavior depends upon the event,  but in all cases properties will only be extracted to payload on return true;
     }
 }

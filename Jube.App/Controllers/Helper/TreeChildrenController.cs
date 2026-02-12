@@ -112,7 +112,7 @@ namespace Jube.App.Controllers.Helper
                 }
 
                 var repository = new VisualisationRegistryDatasourceRepository(dbContext, userName);
-                return Ok((await repository.GetByVisualisationRegistryIdOrderByIdAsync(id, token))
+                return Ok((await repository.GetByVisualisationRegistryIdOrderByPriorityAsync(id, token))
                     .Select(entry => new VisualisationRegistryTreeChildDto
                     {
                         Color = entry.Active == 1 ? "green" : "red",
@@ -302,7 +302,7 @@ namespace Jube.App.Controllers.Helper
                 }
 
                 var repository = new EntityAnalysisModelGatewayRuleRepository(dbContext, userName);
-                var entityAnalysisModelGatewayRules = await repository.GetByEntityAnalysisModelIdOrderByIdAsync(id, token).ConfigureAwait(false);
+                var entityAnalysisModelGatewayRules = await repository.GetByEntityAnalysisModelIdOrderByPriorityAsync(id, token).ConfigureAwait(false);
 
                 return Ok(entityAnalysisModelGatewayRules.Select(entry => new EntityAnalysisModelTreeChildDto
                 {
@@ -525,7 +525,7 @@ namespace Jube.App.Controllers.Helper
                 }
 
                 var repository = new EntityAnalysisModelActivationRuleRepository(dbContext, userName);
-                return Ok((await repository.GetByEntityAnalysisModelIdOrderByIdDescAsync(id, token))
+                return Ok((await repository.GetByEntityAnalysisModelIdOrderByPriorityDescAsync(id, token))
                     .Select(entry => new EntityAnalysisModelTreeChildDto
                     {
                         Color = entry.Active == 1 ? "green" : "red",
@@ -540,8 +540,7 @@ namespace Jube.App.Controllers.Helper
                 return StatusCode(500);
             }
         }
-
-
+        
         [HttpGet]
         [Route("TTLCounter")]
         public async Task<ActionResult<List<EntityAnalysisModelTreeChildDto>>> GetEntityAnalysisModelTtlCountersAsync(int id, CancellationToken token = default)
@@ -702,7 +701,7 @@ namespace Jube.App.Controllers.Helper
 
         [HttpGet]
         [Route("CaseWorkflowXPath")]
-        public async Task<ActionResult<List<CaseWorkflowStatusDto>>> GetCaseWorkflowXPathAsync(int key, CancellationToken token = default)
+        public async Task<ActionResult<List<CaseWorkflowXPathDto>>> GetCaseWorkflowXPathAsync(int key, CancellationToken token = default)
         {
             try
             {
@@ -733,7 +732,7 @@ namespace Jube.App.Controllers.Helper
 
         [HttpGet]
         [Route("CaseWorkflowForm")]
-        public async Task<ActionResult<List<CaseWorkflowStatusDto>>> GetCaseWorkflowFormAsync(int key, CancellationToken token = default)
+        public async Task<ActionResult<List<CaseWorkflowFormDto>>> GetCaseWorkflowFormAsync(int key, CancellationToken token = default)
         {
             try
             {
@@ -857,7 +856,7 @@ namespace Jube.App.Controllers.Helper
 
         [HttpGet]
         [Route("CaseWorkflowDisplay")]
-        public async Task<ActionResult<List<CaseWorkflowStatusDto>>> GetCaseWorkflowDisplayAsync(int key, CancellationToken token = default)
+        public async Task<ActionResult<List<CaseWorkflowDisplayDto>>> GetCaseWorkflowDisplayAsync(int key, CancellationToken token = default)
         {
             try
             {
@@ -901,7 +900,7 @@ namespace Jube.App.Controllers.Helper
                 }
 
                 var repository = new CaseWorkflowStatusRepository(dbContext, userName);
-                return Ok((await repository.GetByCasesWorkflowIdOrderByIdAsync(key, token))
+                return Ok((await repository.GetByCasesWorkflowIdOrderByPriorityAsync(key, token))
                     .Select(entry => new CasesWorkflowTreeChildDto
                     {
                         Color = entry.Active == 1 ? "green" : "red",

@@ -11,9 +11,21 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.Attributes
+namespace Jube.Engine.Attributes.Properties
 {
     using System;
 
-    public class ResponsePayload : Attribute;
+    public class SearchKey : Attribute
+    {
+        public bool SearchKeyCache { get; set; }
+        public string SearchKeyCacheInterval { get; set; }
+        public int SearchKeyCacheValue { get; set; }
+        public string SearchKeyCacheTtlInterval { get; set; }
+        public int SearchKeyCacheTtlValue { get; set; }
+        public int SearchKeyCacheFetchLimit { get; set; }
+        public bool SearchKeyCacheSample { get; set; }
+        public string SearchKeyTtlInterval { get; set; }
+        public int SearchKeyTtlIntervalValue { get; set; }
+        public int SearchKeyFetchLimit { get; set; }
+    }
 }

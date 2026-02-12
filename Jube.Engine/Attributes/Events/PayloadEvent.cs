@@ -11,9 +11,14 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.Attributes
+namespace Jube.Engine.Attributes.Events
 {
     using System;
 
-    public class Longitude : Attribute;
+    public class PayloadEvent : Attribute
+    {
+        public string Guid;
+        public string Name;
+        public int Priority;
+    }
 }

@@ -19,11 +19,11 @@ Inline Scripts once registered in the database are available for all models, how
 for the payload to be populated in the same manner as Request XPath (i.e. it is available for the rules in the Payload
 collection).
 
-The system wide Inline Script (which can be added only through direct entry to the database table
+The system-wide Inline Script (which can be added only through direct entry to the database table
 EntityAnalysisInlineScript as follows) is as per the following specification, and is intended to showcase the following
 functionality:
 
-* The required signatures for the invocation method, implementring IInlineScript required interface.
+* The required signatures for the invocation method, implementing IInlineScript required interface.
 * The exposure of public properties to make data available to context payload and processing.
 * The availability of attributes to allow for similar functionality to that available in Request XPath on public
   properties.
@@ -33,7 +33,7 @@ functionality:
 select * from EntityAnalysisInlineScript
 ```
 
-The EntityAnalysisInlineScript table in the database contais the following fields:
+The EntityAnalysisInlineScript table in the database contains the following fields:
 
 | Field      | Example               | Description                                                                                                                                 
 |------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
@@ -55,33 +55,42 @@ Imports System.Threading
 Imports System.Threading.Tasks
 Imports Newtonsoft.Json.Linq
 Imports Jube.Engine.Attributes
+Imports Jube.Engine.Attributes.Events
+Imports Jube.Engine.Attributes.Properties
 Imports Jube.Engine.EntityAnalysisModelInvoke.Context
 Imports Jube.Engine.Interfaces
 
 Public Class IssueOTP
 Implements IInlineScript
-	Public Property OTP As String
+    Public Property OTP As String
 
-	Public Async Function ExecuteAsync(context As Context) As Task Implements IInlineScript.ExecuteAsync
+    <PayloadEvent>
+    Public Async Function ExecuteAsync(context As Context) As Task(Of Boolean) Implements IInlineScript.ExecuteAsync
         OTP = RandomDigits(6)
+        Return True
     End Function
-	
-	Private Function RandomDigits(ByVal length As Integer) As String
-	    Dim random = New Random()
-	    Dim s As String = String.Empty
+    
+    Private Function RandomDigits(ByVal length As Integer) As String
+        Dim random = New Random()
+        Dim s As String = String.Empty
 
-	    For i As Integer = 0 To length - 1
-		s = String.Concat(s, random.[Next](10).ToString())
-	    Next
+        For i As Integer = 0 To length - 1
+        s = String.Concat(s, random.[Next](10).ToString())
+        Next
 
-	    Return s
-	End Function	
+        Return s
+    End Function	
 End Class
 ```
+
+# Interface
 
 The Jube.Sandbox project meanwhile contains the following code C# (which is to say LanguageId = 2):
 
 ```csharp
+// ReSharper disable RedundantUsingDirective
+// ReSharper disable CheckNamespace
+
 //The following are the minimum .Net libraries to make this work, however,  if using the Jube.Sandbox,  this will be shown,  as the project file is set to not default any assemblies and will be a like for like compile.
 using System;
 using System.Net.Http;
@@ -93,10 +102,12 @@ using Newtonsoft.Json.Linq;
 
 //The following are Jube libraries that contain the context and Inline Script attributes.
 using Jube.Engine.Attributes;
+using Jube.Engine.Attributes.Events;
+using Jube.Engine.Attributes.Properties;
 using Jube.Engine.EntityAnalysisModelInvoke.Context;
 using Jube.Engine.Interfaces;
 
-public class Example : IInlineScript //Class entry point is the first implementation of IInlineScript found in reflection
+public class Example : IInlineScript//Class entry point is available in table configuration.
 {
     //Attributes overlap with the same options available in Request XPath
     [ReportTable]    //ReportTable is evaluated on recall.
@@ -112,29 +123,38 @@ public class Example : IInlineScript //Class entry point is the first implementa
         SearchKeyCacheSample = true,
         SearchKeyCacheFetchLimit = 100,
         SearchKeyCacheTtlInterval = "h",
-        SearchKeyCacheTtlValue = 1)]      //SearchKey ensures that this is exposed in for aggregation in both the background engine.
-    public string? UserAgent { get; set; }//Public properties are available for processing, being analogous,  when taken together with attributes, to a Request XPath entry
-
-    public async Task ExecuteAsync(Context context)//Method entry point.  The Context object gives access to all resources that would otherwise be available during invocation.
+        SearchKeyCacheTtlValue = 1)]                     //SearchKey ensures that this is exposed in for aggregation in both the background engine.
+    public string UserAgent { get; set; } = string.Empty;//Public properties are available for processing, being analogous,  when taken together with attributes, to a Request XPath entry
+    
+    [ActivationRuleOverrideEvent(Guid="bc81ff60-3254-4f1a-9003-ecae5e114142", Priority = 1)]
+    [PayloadEvent]
+    public async Task<bool> ExecuteAsync(Context context)//Method entry point.  The Context object gives access to all resources that would otherwise be available during invocation.
     {
         //Example HTTP Call with the fetching of data from the context.
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
         client.DefaultRequestHeaders.Add("IP", context.EntityAnalysisModelInstanceEntryPayload.Payload["IP"]);//Here we are looking at the context, and while we are only extracting data here,  full access to all application resources are available in this context,  such as logging.
-        var response = await client.GetStringAsync("https://postman-echo.com/get");                           //Get the data from remote using the standard HTTP client.
+
+        var response = await client.GetStringAsync("https://postman-echo.com/get");//Get the data from remote using the standard HTTP client.
 
         //Example Parse and transpose to payload.
         var jObject = JObject.Parse(response);//The response stream is processed using Newtonsoft
+
+ #pragma warning disable CS8600// Converting null literal or possible null value to non-nullable type.
         var userAgent = (string)jObject["headers"]?["user-agent"] ?? "Unknown";
-        UserAgent = userAgent;//Set the property.  The data is now read from the property using reflection.
+ #pragma warning restore CS8600// Converting null literal or possible null value to non-nullable type.
+
+        UserAgent = userAgent;
+
+        return true; return true; //Behavior depends upon the event,  but in all cases properties will only be extracted to payload on return true;
     }
 }
 ```
 
 The Jube.Sandbox code, which is a project under the Jube solution, will provide the basis for further explanation as
-follows. C# is the recomended Inline Script language.
+follows. C# is the suggested Inline Script language.
 
-The Jube.Sandbox is a project in the Jube solution and is configured to diasslow implicit usings, and hence represents a
+The Jube.Sandbox is a project in the Jube solution and is configured to disallow implicit usings, and hence represents a
 tight representation of the codes runtime environment. The Jube.Sandbox has a program and main application entry point
 which allows for the creation of mock context:
 
@@ -159,7 +179,7 @@ var exampleInlineScript = new Example();
 await exampleInlineScript.ExecuteAsync(context);
 ```
 
-Therafter invoking the script set out above.
+Thereafter, invoking the script set out above.
 
 An InlineScript is a complete .NET class written in VB.net or C#, and starts out
 with all of the required using statements at the top of the class:
@@ -169,8 +189,14 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+
+//All assemblies are passed on the basis of what the Jube.App context is using, so nearly all libraries are supported.
 using Newtonsoft.Json.Linq;
+
+//The following are Jube libraries that contain the context and Inline Script attributes.
 using Jube.Engine.Attributes;
+using Jube.Engine.Attributes.Events;
+using Jube.Engine.Attributes.Properties;
 using Jube.Engine.EntityAnalysisModelInvoke.Context;
 using Jube.Engine.Interfaces;
 ```
@@ -184,26 +210,28 @@ public class Example : IInlineScript
 }
 ```
 
-During syncronisation the IInlineScript interface implementation is inspected and the class taken to be the application
+During synchronisation the IInlineScript interface implementation is inspected and the class taken to be the application
 entry point.
 
 The class at a minimum must contain one method conforming to the following signature, and otherwise enforced as per
 the IInlineScript interface:
 
 ```vb
-public async Task ExecuteAsync(Context context)
+public async Task<bool> ExecuteAsync(Context context)
 {
 }
 ```
 
-The ExecuteAsync() method is called on each and every invocation, taking the invocation context as a parameter.
+The ExecuteAsync() method is called on each and every invocation, taking the invocation context as a parameter.  
+A return of true or false is required which has different behavior depending upon the event.  
+In all cases only upon true being returned will properties be inspected for inclusion in the payload.
 
 The invocation context is a reference, hence updates to the context will be available in subsequent invocation pipeline
 processing, the same process calling the class upstream. To return values from the ExecuteAsync() method, simply set the
 value of a public property, as can be seen in the setting of UserAgent string as below:
 
 ```csharp
-    public async Task ExecuteAsync(Context context)
+    public async Task<bool> ExecuteAsync(Context context)
     {
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
@@ -214,7 +242,11 @@ value of a public property, as can be seen in the setting of UserAgent string as
         var jObject = JObject.Parse(response);
         var userAgent = (string)jObject["headers"]?["user-agent"] ?? "Unknown";
         UserAgent = userAgent;
+        
+        return true; //Behavior depends upon the event,  but in all cases properties will only be extracted to payload on return true;
 ```
+
+# Payload Property Attributes
 
 Payload is exposed as a public property in the class with
 certain attribute decoration to emulate configuration available in Request XPath (keeping in mind that Inline Scripts
@@ -257,7 +289,8 @@ given that attributes are intended to emulate that functionality:
 * SearchKey.
 
 The existence of the ResponsePayload or ReportTable attribute is boolean inference, the existence of which will
-be taken to be true (inserting records into the ArchiveKey table), the absence is false. The SearchKey has more parameters
+be taken to be true (inserting records into the ArchiveKey table), the absence is false. The SearchKey has more
+parameters
 available in the attribute:
 
 | Value                     | Example |
@@ -273,8 +306,67 @@ available in the attribute:
 | SearchKeyCacheTtlInterval | h       |
 | SearchKeyCacheTtlValue    | 1       |
 
-For each public property post invocation of the Inline Script, the public property value will be added to the context (in the same manner as Request XPath would be), 
+For each public property post invocation of the Inline Script, the public property value will be added to the context (
+in the same manner as Request XPath would be),
 and it does not need to be added manually (although it can be if for any reason the value needs to be silent).
+
+# Event Attributes
+
+Decorating the ExecuteAsync method with attributes specifies the event in the invocation pipeline for which the Inline
+Script should be executed.
+
+An event attributes shares the following common parameters which are used for matching given the event context (e.g.,
+ActivationRuleOverride):
+
+| Value    | Example                              | Description                                                                                                                                                                                                                                                                                                  |
+|----------|--------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Guid     | 0d551553-5a17-4d13-9836-b4695801be03 | On searching for Inline Scripts on events the Guid implies that it should only be executed if the event context (e.g., an Activation Rule Guid) matches.                                                                                                                                                     |
+| Name     | Test                                 | On searching for Inline Scripts on events the Name implies that it should only be executed if the event context (e.g., an Activation Rule Name) matches.  While readable, this is a less durable approach and should only be used in the case an entity is locked and the Name is assured to be non-volatile |
+| Priority | 0                                    | If there are more Inline Scrits available for a given event,  the order in which they are to be processed                                                                                                                                                                                                    |
+
+```csharp
+    [ActivationRuleOverrideEvent(Guid="bc81ff60-3254-4f1a-9003-ecae5e114142", Priority = 1)]
+    [PayloadEvent]
+    public async Task<bool> ExecuteAsync(Context context)//Method entry point.  The Context object gives access to all resources that would otherwise be available during invocation.
+    {
+        //Example HTTP Call with the fetching of data from the context.
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
+        client.DefaultRequestHeaders.Add("IP", context.EntityAnalysisModelInstanceEntryPayload.Payload["IP"]);//Here we are looking at the context, and while we are only extracting data here,  full access to all application resources are available in this context,  such as logging.
+
+        var response = await client.GetStringAsync("https://postman-echo.com/get");//Get the data from remote using the standard HTTP client.
+
+        //Example Parse and transpose to payload.
+        var jObject = JObject.Parse(response);//The response stream is processed using Newtonsoft
+
+ #pragma warning disable CS8600// Converting null literal or possible null value to non-nullable type.
+        var userAgent = (string)jObject["headers"]?["user-agent"] ?? "Unknown";
+ #pragma warning restore CS8600// Converting null literal or possible null value to non-nullable type.
+
+        UserAgent = userAgent;
+
+        return true; //Behavior depends upon the event,  but in all cases properties will only be extracted to payload on return true;
+    }
+```
+
+In the absence of the properties being provided, as is the case of PayloadEvent above, it implies broad coverage, for
+example, for all Activation Rules in the case of ActivationRuleOverride.
+
+True return values will have special behavior in the invocation depending on the invocation event,  however, property extraction with only take place given return True in all instances.
+
+Event coverage during invocation is described in the following table:
+
+| Event                       | Location                                                | Event Context                                          | True Behaviour                                                               |
+|-----------------------------|---------------------------------------------------------|--------------------------------------------------------|------------------------------------------------------------------------------|
+| PayloadEvent                | After Request XPath Processing                          | Parent entity Guid and Name (i.e. EntityAnalysisModel) | None except default Property extraction.                                     |
+| ActivationRuleOverrideEvent | After Activation Rule Matching for each Activation Rule | Guid or Name                                           | Overides any match status from Activation Rule processing for that instance. |
+
+The intention is that Inline Scripts be available in a plethora of invocation stages allowing for extensibility across
+the whole pipeline without needing to modify the core.
+
+At the time of writing Inline Script event coverage is a work in progress.
+
+# Deployment
 
 In the event that the Inline Script fails to compile, a log entry will be written out with the compile errors at the
 ERROR level. It is advisable to compile the class as part of a separate project before promoting in the database, and

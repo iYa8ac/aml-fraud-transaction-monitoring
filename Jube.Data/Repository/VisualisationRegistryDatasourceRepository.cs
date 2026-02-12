@@ -72,6 +72,16 @@ namespace Jube.Data.Repository
                             (w.Deleted == 0 || w.Deleted == null))
                 .OrderBy(o => o.Id).ToListAsync(token);
         }
+        
+        public async Task<IEnumerable<VisualisationRegistryDatasource>> GetByVisualisationRegistryIdOrderByPriorityAsync(
+            int visualisationRegistryId, CancellationToken token = default)
+        {
+            return await dbContext.VisualisationRegistryDatasource
+                .Where(w => w.VisualisationRegistry.TenantRegistryId == tenantRegistryId
+                            && w.VisualisationRegistryId == visualisationRegistryId &&
+                            (w.Deleted == 0 || w.Deleted == null))
+                .OrderBy(o => o.Priority).ToListAsync(token);
+        }
 
         public async Task<IEnumerable<VisualisationRegistryDatasource>> GetByVisualisationRegistryIdActiveOnlyAsync(
             int visualisationRegistryId, CancellationToken token = default)

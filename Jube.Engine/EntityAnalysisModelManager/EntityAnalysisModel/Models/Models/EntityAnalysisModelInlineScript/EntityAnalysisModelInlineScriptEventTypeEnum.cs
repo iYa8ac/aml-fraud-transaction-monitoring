@@ -13,17 +13,9 @@
 
 namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript
 {
-    using System;
-
-    public class EntityAnalysisModelInlineScriptPropertyAttribute
+    public enum EntityAnalysisModelInlineScriptEventTypeEnum
     {
-        public string Name { get; set; }
-        public bool ResponsePayload { get; set; }
-        public bool ReportTable { get; set; }
-        public bool Latitude { get; set; }
-        public bool Longitude { get; set; }
-        public DistinctSearchKey SearchKey { get; set; }
-        public Type PropertyType { get; set; }
-        public Func<object, object> GetValueDelegate { get; set; }
+        Payload = 1,
+        AbstractionRuleOverride = 2
     }
 }

@@ -315,7 +315,8 @@ function GetData() {
         visible: visible.prop("checked"),
         enableReprocessing: enableReprocessing.prop("checked"),
         enableSuppression: enableSuppression.prop("checked"),
-        enableBypass: enableBypass.prop("checked")
+        enableBypass: enableBypass.prop("checked"),
+        priority: priority.data("kendoNumericTextBox").value()
     };
 
     if (data.enableCaseWorkflow) {
@@ -412,7 +413,9 @@ function Ready() {
                 };
 
                 initBuilderCoder(5, parentKey, builderCoderData);
-
+                
+                priority.data("kendoNumericTextBox").value(data.priority);
+                
                 responseElevation.data("kendoNumericTextBox").value(data.responseElevation);
 
                 if (data.enableCaseWorkflow) {

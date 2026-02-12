@@ -283,62 +283,62 @@ namespace Jube.Data.Query
                 );
             }
 
+            var entityAnalysisModelActivationRuleRepository =
+                new EntityAnalysisModelActivationRuleRepository(dbContext, tenantRegistryId);
+
+            getModelFieldByParserTypeIdDtoList.AddRange((await entityAnalysisModelActivationRuleRepository
+                .GetByEntityAnalysisModelIdOrderByIdDescAsync(entityAnalysisModelId, token)).Select(s =>
+                new Dto
+                {
+                    Name = $"Activation.{s.Name}",
+                    Value = $"Activation.{s.Name}",
+                    ValueJsonPath = $"activation.{s.Name}",
+                    ValueSqlPath = $"(\"Json\"-> 'activation' ->> '{s.Name}')::boolean",
+                    DataTypeId = 5,
+                    JQueryBuilderDataType = "boolean",
+                    Group = "Activation"
+                }));
+
+            var entityAnalysisModelTagRepository =
+                new EntityAnalysisModelTagRepository(dbContext, tenantRegistryId);
+
+            var entityAnalysisModelTags = await entityAnalysisModelTagRepository
+                .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+
+            getModelFieldByParserTypeIdDtoList.AddRange(entityAnalysisModelTags.Select(s =>
+                new Dto
+                {
+                    Name = $"Tag.{s.Name}",
+                    Value = $"Tag.{s.Name}",
+                    ValueJsonPath = $"tag.{s.Name}",
+                    ValueSqlPath = $"(\"Json\"-> 'tag' ->> '{s.Name}')::double precision",
+                    DataTypeId = 7,
+                    JQueryBuilderDataType = "double",
+                    Group = "Tag"
+                }));
+
             if (reporting)
             {
-                var entityAnalysisModelActivationRuleRepository =
-                    new EntityAnalysisModelActivationRuleRepository(dbContext, tenantRegistryId);
-
-                getModelFieldByParserTypeIdDtoList.AddRange((await entityAnalysisModelActivationRuleRepository
-                    .GetByEntityAnalysisModelIdOrderByIdDescAsync(entityAnalysisModelId, token)).Select(s =>
-                    new Dto
-                    {
-                        Name = $"Activation.{s.Name}",
-                        Value = $"Activation.{s.Name}",
-                        ValueJsonPath = $"activation.{s.Name}",
-                        ValueSqlPath = $"(\"Json\"-> 'abstraction' ->> '{s.Name}')::double precision",
-                        DataTypeId = 3,
-                        JQueryBuilderDataType = "double",
-                        Group = "Activation"
-                    }));
-
-                var entityAnalysisModelTagRepository =
-                    new EntityAnalysisModelTagRepository(dbContext, tenantRegistryId);
-
-                var entityAnalysisModelTags = await entityAnalysisModelTagRepository
-                    .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
-
-                getModelFieldByParserTypeIdDtoList.AddRange(entityAnalysisModelTags.Select(s =>
-                    new Dto
-                    {
-                        Name = $"Tag.{s.Name}",
-                        Value = $"Tag.{s.Name}",
-                        ValueJsonPath = $"tag.{s.Name}",
-                        ValueSqlPath = $"(\"Json\"-> 'tag' ->> '{s.Name}')::double precision",
-                        DataTypeId = 7,
-                        JQueryBuilderDataType = "double",
-                        Group = "Tag"
-                    }));
+                return getModelFieldByParserTypeIdDtoList;
             }
-            else
-            {
-                var entityAnalysisModelListRepository =
-                    new EntityAnalysisModelListRepository(dbContext, tenantRegistryId);
+            
+            var entityAnalysisModelListRepository =
+                new EntityAnalysisModelListRepository(dbContext, tenantRegistryId);
 
-                var entityAnalysisModelLists = await entityAnalysisModelListRepository
-                    .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+            var entityAnalysisModelLists = await entityAnalysisModelListRepository
+                .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
 
-                getModelFieldByParserTypeIdDtoList.AddRange(entityAnalysisModelLists.Select(s =>
-                    new Dto
-                    {
-                        Name = $"List.{s.Name}",
-                        Value = $"List.{s.Name}",
-                        DataTypeId = 3,
-                        JQueryBuilderDataType = "list",
-                        Group = "Reference",
-                        ValueJsonPath = $"$.list.{s.Name}",
-                        ValueSqlPath = $"(\"Json\"-> 'list' ->> '{s.Name}')"
-                    }));
-            }
+            getModelFieldByParserTypeIdDtoList.AddRange(entityAnalysisModelLists.Select(s =>
+                new Dto
+                {
+                    Name = $"List.{s.Name}",
+                    Value = $"List.{s.Name}",
+                    DataTypeId = 3,
+                    JQueryBuilderDataType = "list",
+                    Group = "Reference",
+                    ValueJsonPath = $"$.list.{s.Name}",
+                    ValueSqlPath = $"(\"Json\"-> 'list' ->> '{s.Name}')"
+                }));
 
             return getModelFieldByParserTypeIdDtoList;
         }

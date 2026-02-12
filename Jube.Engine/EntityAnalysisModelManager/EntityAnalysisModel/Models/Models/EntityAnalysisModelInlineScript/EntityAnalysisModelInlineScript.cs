@@ -16,7 +16,9 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
     using System;
     using System.Collections.Generic;
     using System.Reflection;
-
+    using System.Threading.Tasks;
+    using EntityAnalysisModelInvoke.Context;
+    
     // ReSharper disable once ClassNeverInstantiated.Global
     public class EntityAnalysisModelInlineScript
     {
@@ -29,9 +31,12 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
         public Type InlineScriptType { get; set; }
         public MethodInfo PreProcessingMethodInfo { get; set; }
         public Dictionary<string, EntityAnalysisModelInlineScriptPropertyAttribute> EntityAnalysisModelInlineScriptPropertyAttributes { get; } = [];
+        public List<EntityAnalysisModelInlineScriptEvent> EntityAnalysisModelInlineScriptEvents { get; set; } = [];
         // ReSharper disable once CollectionNeverUpdated.Global
         public List<DistinctSearchKey> GroupingKeys { get; } = [];
         public DateTime? CreatedDate { get; set; }
         public byte LanguageId { get; set; }
+        public Func<object> ActivatorDelegate { get; set; }
+        public Func<object, Context, Task<bool>> ExecuteAsyncDelegate { get; set; }
     }
 }

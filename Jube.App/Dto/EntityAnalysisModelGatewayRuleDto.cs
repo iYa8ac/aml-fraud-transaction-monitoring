@@ -19,7 +19,7 @@ namespace Jube.App.Dto
     public class EntityAnalysisModelGatewayRuleDto : IUpdated
     {
         public int EntityAnalysisModelId { get; set; }
-        public int Priority { get; set; }
+        public double Priority { get; set; }
         public string BuilderRuleScript { get; set; }
         public string Json { get; set; }
         public string Name { get; set; }
