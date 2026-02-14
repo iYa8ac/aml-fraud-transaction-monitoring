@@ -38,7 +38,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ar
         {
             try
             {
-                var json = BuildJsonResponses.BuildJson(payload, jsonSerializer);
+                var json = BuildJsonResponses.BuildFullJson(payload, jsonSerializer);
                 var jsonString = Encoding.UTF8.GetString(json.ToArray());
 
                 if (payload.CreateCase != null)

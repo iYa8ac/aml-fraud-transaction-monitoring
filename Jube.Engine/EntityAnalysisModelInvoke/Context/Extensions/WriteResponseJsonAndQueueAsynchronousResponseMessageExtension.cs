@@ -23,8 +23,27 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
     {
         public static async Task WriteResponseJsonAndQueueAsynchronousResponseMessageAsync(this Context context, IModel rabbitMqChannel)
         {
-            context.JsonResult = BuildJsonResponses.BuildJson(context.EntityAnalysisModelInstanceEntryPayload, context.EntityAnalysisModel.JsonSerializationHelper.ArchiveJsonSerializer);
-
+            if (context.Environment.AppSettings("PartialResponseMessageSerialisation").Equals("True",StringComparison.CurrentCultureIgnoreCase))
+            {
+                if (context.Log.IsInfoEnabled)
+                {
+                    context.Log.Info(
+                        $"HTTP Handler Entity: GUID payload {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} model id is {context.EntityAnalysisModel.Instance.Id} has partial serialised response environment variable.");
+                }
+                    
+                context.JsonResult = BuildJsonResponses.BuildPartialResponsePayloadJson(context);
+            }
+            else
+            {
+                if (context.Log.IsInfoEnabled)
+                {
+                    context.Log.Info(
+                        $"HTTP Handler Entity: GUID payload {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} model id is {context.EntityAnalysisModel.Instance.Id} has partial serialised response environment variable false and will serialise full response.");
+                }
+                    
+                context.JsonResult = BuildJsonResponses.BuildFullJson(context.EntityAnalysisModelInstanceEntryPayload, context.EntityAnalysisModel.JsonSerializationHelper.ArchiveJsonSerializer);
+            }
+            
             if (context.Environment.AppSettings("AMQP").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 PublishToAmqp(context, rabbitMqChannel);

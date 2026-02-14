@@ -48,7 +48,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
 
         private static async Task IterateAndProcessAsync(Context context)
         {
-            foreach (var (adaptationKey, modelAdaptation) in context.EntityAnalysisModel.Dependencies.EntityAnalysisModelAdaptations)
+            foreach (var (adaptationKey, modelAdaptation) in context.EntityAnalysisModel.Collections.EntityAnalysisModelAdaptations)
             {
                 try
                 {

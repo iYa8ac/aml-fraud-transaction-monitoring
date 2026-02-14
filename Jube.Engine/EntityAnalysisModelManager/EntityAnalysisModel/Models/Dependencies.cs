@@ -21,7 +21,6 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models
 
     public class Dependencies
     {
-        public Dictionary<int, EntityAnalysisModelHttpAdaptation> EntityAnalysisModelAdaptations { get; set; } = new Dictionary<int, EntityAnalysisModelHttpAdaptation>();
         public Dictionary<string, List<string>> EntityAnalysisModelLists { get; set; } = new Dictionary<string, List<string>>();
         public Dictionary<int, EntityAnalysisModelDictionary> KvpDictionaries { get; set; } = new Dictionary<int, EntityAnalysisModelDictionary>();
         public Dictionary<string, List<string>> EntityAnalysisModelSuppressionModels { get; set; }

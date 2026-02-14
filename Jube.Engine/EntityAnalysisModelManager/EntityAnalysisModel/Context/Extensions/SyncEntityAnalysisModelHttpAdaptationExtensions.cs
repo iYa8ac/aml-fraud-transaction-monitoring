@@ -202,7 +202,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                             $"Model {key} and Adaptations Model  {key} has completed creating the adaptations into a shadow list of adaptations and it will now be allocated the fields in the order that they appeared in model training.");
                     }
 
-                    value.Dependencies.EntityAnalysisModelAdaptations = shadowEntityAnalysisModelAdaptations;
+                    value.Collections.EntityAnalysisModelAdaptations = shadowEntityAnalysisModelAdaptations;
 
                     if (context.Services.Log.IsDebugEnabled)
                     {

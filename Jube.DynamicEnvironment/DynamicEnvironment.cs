@@ -301,6 +301,9 @@ namespace Jube.DynamicEnvironment
                 },
                 {
                     "CaseCreationThreads", "4"
+                },
+                {
+                    "PartialResponseMessageSerialisation", "True"
                 }
             };
 
