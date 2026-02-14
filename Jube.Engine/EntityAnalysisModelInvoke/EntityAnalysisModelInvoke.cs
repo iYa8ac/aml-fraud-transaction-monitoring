@@ -112,7 +112,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke
                 EntityAnalysisModelInstanceEntryGuid = context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
             };
 
-            context.JsonResult = BuildJsonResponses.BuildJson(asyncInvocationCallbackToken, context.EntityAnalysisModel.JsonSerializationHelper.ArchiveJsonSerializer);
+            context.JsonResult = BuildJsonResponses.BuildFullJson(asyncInvocationCallbackToken, context.EntityAnalysisModel.JsonSerializationHelper.ArchiveJsonSerializer);
         }
 
         public static async Task InvokeAsync(Context.Context context)

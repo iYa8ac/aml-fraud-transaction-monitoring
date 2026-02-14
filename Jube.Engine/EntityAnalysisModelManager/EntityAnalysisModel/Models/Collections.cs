@@ -25,6 +25,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models
         public List<EntityAnalysisModelSanction> EntityAnalysisModelSanctions { get; set; } = [];
         public List<EntityAnalysisModelActivationRule> ModelActivationRules { get; set; } = [];
         public List<EntityModelGatewayRule> ModelGatewayRules { get; set; } = [];
+        public Dictionary<int, EntityAnalysisModelHttpAdaptation> EntityAnalysisModelAdaptations { get; set; } = new Dictionary<int, EntityAnalysisModelHttpAdaptation>();
         public List<ExhaustiveSearchInstance> ExhaustiveModels { get; set; } = [];
         public List<EntityAnalysisModelRequestXPath> EntityAnalysisModelRequestXPaths { get; set; } = [];
         public List<EntityAnalysisModelAbstractionCalculation> EntityAnalysisModelAbstractionCalculations { get; set; } = [];

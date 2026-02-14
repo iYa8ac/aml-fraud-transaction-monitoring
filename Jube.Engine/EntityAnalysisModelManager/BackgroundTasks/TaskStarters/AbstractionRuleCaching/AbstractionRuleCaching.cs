@@ -122,7 +122,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
                                 TtlCounter = new PooledDictionary<string, long>(entityAnalysisModel.Collections.ModelTtlCounters.Count),
                                 Sanction = new PooledDictionary<string, double>(entityAnalysisModel.Collections.EntityAnalysisModelSanctions.Count),
                                 AbstractionCalculation = new PooledDictionary<string, double>(entityAnalysisModel.Collections.EntityAnalysisModelAbstractionCalculations.Count),
-                                HttpAdaptation = new PooledDictionary<string, double>(entityAnalysisModel.Dependencies.EntityAnalysisModelAdaptations.Count),
+                                HttpAdaptation = new PooledDictionary<string, double>(entityAnalysisModel.Collections.EntityAnalysisModelAdaptations.Count),
                                 ExhaustiveAdaptation = new PooledDictionary<string, double>(entityAnalysisModel.Collections.ExhaustiveModels.Count),
                                 InvokeTaskPerformance = new InvokeTaskPerformance
                                 {

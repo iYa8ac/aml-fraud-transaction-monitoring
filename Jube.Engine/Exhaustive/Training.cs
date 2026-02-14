@@ -1427,7 +1427,7 @@ namespace Jube.Engine.Exhaustive
                             EntityAnalysisModelInstanceEntryGuid = Guid.NewGuid()
                         };
 
-                        var sr = new StreamReader(BuildJsonResponses.BuildJson(row, jsonSerializationHelper.ArchiveJsonSerializer));
+                        var sr = new StreamReader(BuildJsonResponses.BuildFullJson(row, jsonSerializationHelper.ArchiveJsonSerializer));
                         model.Json = await sr.ReadToEndAsync(token).ConfigureAwait(false);
 
                         await repository.InsertAsync(model, token).ConfigureAwait(false);

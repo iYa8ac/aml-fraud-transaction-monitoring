@@ -39,7 +39,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction.Helpers
                 Sanction = new PooledDictionary<string, double>(model.Collections.EntityAnalysisModelSanctions.Count),
                 AbstractionCalculation =
                     new PooledDictionary<string, double>(model.Collections.EntityAnalysisModelAbstractionCalculations.Count),
-                HttpAdaptation = new PooledDictionary<string, double>(model.Dependencies.EntityAnalysisModelAdaptations.Count),
+                HttpAdaptation = new PooledDictionary<string, double>(model.Collections.EntityAnalysisModelAdaptations.Count),
                 ExhaustiveAdaptation = new PooledDictionary<string, double>(model.Collections.ExhaustiveModels.Count),
                 InvokeTaskPerformance = new InvokeTaskPerformance
                 {
