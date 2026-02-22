@@ -30,6 +30,10 @@ namespace Jube.Dictionary
         private TKey[] keys;
         private TValue[] values;
 
+        public PooledDictionary() : this(null)
+        {
+        }
+
         public PooledDictionary(int? initialCapacity = null)
         {
             if (initialCapacity.HasValue)

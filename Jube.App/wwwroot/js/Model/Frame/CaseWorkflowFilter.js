@@ -24,7 +24,8 @@ if (typeof id === "undefined") {
         function (data) {
             const casesFilterBuilder = {
                 filterJson: JSON.parse(data.filterJson),
-                selectJson: JSON.parse(data.selectJson)
+                selectJson: JSON.parse(data.selectJson),
+                filterTokens: JSON.parse(data.filterTokens),
             };
 
             initCaseFilterBuilder(false, parentKey, casesFilterBuilder);
@@ -48,7 +49,7 @@ function GetData() {
         selectJson: builderResult.selectJson,
         filterJson: builderResult.filterJson,
         filterSql: builderResult.filterSql,
-        filterTokens: builderResult.filterTokens
+        filterTokens: JSON.stringify(builderResult.params, null, 2)
     };
 }
 

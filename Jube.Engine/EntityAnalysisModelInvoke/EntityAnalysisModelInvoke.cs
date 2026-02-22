@@ -23,11 +23,11 @@ namespace Jube.Engine.EntityAnalysisModelInvoke
     using Exceptions;
     using Extraction;
     using Models.Payload.AsyncInvocationCallbackToken;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using TaskCancellation.TaskHelper;
     using EntityAnalysisModel=EntityAnalysisModelManager.EntityAnalysisModel.EntityAnalysisModel;
 
-    public class EntityAnalysisModelInvoke
+    public static class EntityAnalysisModelInvoke
     {
         public static async Task<Context.Context> InvokeAsync(EntityAnalysisModel entityAnalysisModel,
             MemoryStream inputStream, int? maxBytes = null,

@@ -49,7 +49,6 @@
         <Folder Include="Extensions\System.String\zzzRegexPattern\"/>
         <Folder Include="Extensions\System.String\_CoreObject\"/>
         <Folder Include="Extensions\System.String\_ExtractValueType\"/>
-        <Folder Include="Serialization\" />
     </ItemGroup>
 
     <ItemGroup>

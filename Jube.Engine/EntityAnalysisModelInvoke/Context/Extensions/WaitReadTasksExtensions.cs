@@ -16,7 +16,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
     using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
-    using Models.Payload.EntityAnalysisModelInstanceEntry.TasksPerformance;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload.TasksPerformance;
     using TaskCancellation.TaskHelper;
 
     public static class WaitReadTasksExtensions

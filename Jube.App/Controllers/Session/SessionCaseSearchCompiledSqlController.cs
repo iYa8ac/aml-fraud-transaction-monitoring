@@ -116,10 +116,10 @@ namespace Jube.App.Controllers.Session
                 var sw = new StopWatch();
                 sw.Start();
 
-                var value = await postgres.ExecuteByOrderedParametersAsync(modelCompiled.SelectSqlSearch 
-                    + " "
-                    + modelCompiled.WhereSql
-                    + " " + modelCompiled.OrderSql + " limit 100", tokens, token).ConfigureAwait(false);
+                var value = await postgres.ExecuteByOrderedParametersAsync(modelCompiled.SelectSqlSearch
+                                                                           + " "
+                                                                           + modelCompiled.WhereSql
+                                                                           + " " + modelCompiled.OrderSql + " limit 100", tokens, token).ConfigureAwait(false);
 
                 sw.Stop();
 
@@ -146,7 +146,7 @@ namespace Jube.App.Controllers.Session
 
         private async Task<SessionCaseSearchCompiledSql> CheckRebuildAsync(SessionCaseSearchCompiledSql modelCompiled, CancellationToken token = default)
         {
-            if (modelCompiled.Rebuild == 1 && modelCompiled.RebuildDate != null)
+            if (modelCompiled.Rebuild == 1 && (modelCompiled.RebuildDate != null || modelCompiled.RebuildDate == default(DateTime)))
             {
                 return await CompileSql.CompileAsync(dbContext, modelCompiled, userName, token).ConfigureAwait(false);
             }

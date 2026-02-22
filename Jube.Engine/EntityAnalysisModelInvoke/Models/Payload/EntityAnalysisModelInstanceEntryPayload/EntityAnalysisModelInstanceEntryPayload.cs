@@ -11,11 +11,10 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry
+namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload
 {
     using System;
     using System.Collections.Generic;
-    using Cache.Redis.Serialization.DictionaryNoBoxing.Newtonsoft;
     using CaseManagement;
     using Data.Poco;
     using Dictionary;
@@ -24,7 +23,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
 
     public class EntityAnalysisModelInstanceEntryPayload
     {
-        [JsonProperty(Order = 1)] [JsonConverter(typeof(DictionaryNoBoxingValueOnlyNewtonsoftConverter))] public DictionaryNoBoxing Payload { get; set; }
+        [JsonProperty(Order = 1)] public DictionaryNoBoxing Payload { get; set; }
         [JsonProperty(Order = 2)] public ResponseElevation ResponseElevation { get; set; } = new ResponseElevation();
         [JsonProperty(Order = 3)] public string EntityAnalysisModelInstanceName { get; set; }
         [JsonProperty(Order = 4)] public double R { get; set; }

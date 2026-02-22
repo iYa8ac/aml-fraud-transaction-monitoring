@@ -34,7 +34,7 @@ namespace Jube.Engine.Exhaustive
     using Data.Repository.Interface;
     using Dictionary;
     using DynamicEnvironment;
-    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using Helpers;
     using log4net;
     using Utilities;

@@ -14,12 +14,9 @@
 namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
 {
     using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Threading.Tasks;
     using Context;
     using Data.Context;
-    using Data.Poco;
     using Data.Repository;
 
     public class PersistToActivationWatcherPollingTaskStarter(Context context)

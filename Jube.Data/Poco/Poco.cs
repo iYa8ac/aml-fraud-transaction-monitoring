@@ -955,13 +955,12 @@ namespace Jube.Data.Poco
         [Key(0)]
         public int Id { get; set; }
 
-        [Column] [Nullable] [Key(1)] public string Payload { get; set; }
-        [Column] [Nullable] [Key(2)] public DateTime? CreatedDate { get; set; }
-        [Column] [Nullable] [Key(3)] public string CreatedUser { get; set; }
-        [Column] [Nullable] [Key(4)] public string CaseKey { get; set; }
-        [Column] [Nullable] [Key(5)] public int? CaseId { get; set; }
-        [Column] [Nullable] [Key(6)] public int? CaseWorkflowFormId { get; set; }
-        [Column] [Nullable] [Key(7)] public string CaseKeyValue { get; set; }
+        [Column] [Nullable] [Key(1)] public DateTime? CreatedDate { get; set; }
+        [Column] [Nullable] [Key(2)] public string CreatedUser { get; set; }
+        [Column] [Nullable] [Key(3)] public string CaseKey { get; set; }
+        [Column] [Nullable] [Key(4)] public int? CaseId { get; set; }
+        [Column] [Nullable] [Key(5)] public int? CaseWorkflowFormId { get; set; }
+        [Column] [Nullable] [Key(6)] public string CaseKeyValue { get; set; }
 
         [Association(ThisKey = "CaseId", OtherKey = "Id", CanBeNull = true,
             Relationship = Relationship.ManyToOne)]

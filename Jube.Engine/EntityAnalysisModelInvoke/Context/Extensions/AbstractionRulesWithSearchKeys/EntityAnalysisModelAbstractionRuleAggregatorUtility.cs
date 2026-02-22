@@ -21,7 +21,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.AbstractionRu
     using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
     using Helpers;
     using log4net;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
 
     public static class EntityAnalysisModelAbstractionRuleAggregatorUtility
     {

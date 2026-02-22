@@ -11,11 +11,12 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload
+namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload.TasksPerformance
 {
-    // ReSharper disable once ClassNeverInstantiated.Global
-    public class EntityModelActivationRulePayload
+
+    public class InvokeTaskPerformance
     {
-        public bool Visible { get; set; }
+        public InvokeTasksPerformance ComputeTimes { get; init; }
+        public long? Memory { get; set; }
     }
 }

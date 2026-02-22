@@ -1101,7 +1101,7 @@ namespace Jube.Service.Authentication
                        "The transaction amount is:" + Environment.NewLine +
                        "<br/>" + Environment.NewLine +
                        "<br/>" + Environment.NewLine +
-                       "<div style='font-size:30px'>[@CurrencyAmount@]</div>" + Environment.NewLine +
+                       "<div style='font-size:30px'>[@Payload.AccountId@]</div>" + Environment.NewLine +
                        "<br/>" + Environment.NewLine +
                        "The tokens are taken from the Cases Workflows XPath and can be laid out in HTML."
             }, token);

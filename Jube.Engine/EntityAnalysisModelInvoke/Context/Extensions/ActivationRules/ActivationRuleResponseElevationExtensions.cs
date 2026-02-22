@@ -15,7 +15,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
 {
     using System;
     using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
-    using Models;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
 
     public static class ActivationRuleResponseElevationExtensions
     {

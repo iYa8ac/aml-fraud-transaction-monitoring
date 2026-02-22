@@ -23,6 +23,7 @@ namespace Jube.Engine.BackgroundTasks.Context
         public JsonSerializationHelper JsonSerializationHelper
         {
             get;
+            set;
         } = new JsonSerializationHelper();
 
         public Services Services

@@ -21,7 +21,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
     using Data.Poco;
     using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models.EntityAnalysisModelInlineScript;
     using Models.CaseManagement;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using RabbitMQ.Client;
     using ReflectionHelpers;
     using EntityAnalysisModel=EntityAnalysisModelManager.EntityAnalysisModel.EntityAnalysisModel;
@@ -117,7 +117,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
                         context.Log.Info(
                             $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id}  has finished testing the activation rule and it has a matched status of {matched}.");
                     }
-                    
+
                     if (context.Log.IsInfoEnabled)
                     {
                         context.Log.Info(

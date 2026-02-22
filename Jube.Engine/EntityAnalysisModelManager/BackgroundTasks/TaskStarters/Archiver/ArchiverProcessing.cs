@@ -21,15 +21,15 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ar
     using Data.Poco;
     using DynamicEnvironment;
     using EntityAnalysisModelInvoke.Models.CaseManagement;
-    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using Jube.Engine.BackgroundTasks.TaskStarters.Case;
+    using Jube.Engine.Helpers;
     using log4net;
-    using Newtonsoft.Json;
 
     public static class ArchiverProcessing
     {
         public static async Task CaseCreationAndArchiveStorageAsync(EntityAnalysisModelInstanceEntryPayload payload,
-            JsonSerializer jsonSerializer,
+            JsonSerializationHelper jsonSerializationHelper,
             ArchiveBuffer bulkInsertMessageBuffer,
             ConcurrentQueue<CreateCase> pendingCases,
             DynamicEnvironment dynamicEnvironment,
@@ -38,15 +38,14 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ar
         {
             try
             {
-                var json = BuildJsonResponses.BuildFullJson(payload, jsonSerializer);
+                var json = BuildJsonResponses.BuildFullJson(payload, jsonSerializationHelper.ArchiveJsonSerializer);
                 var jsonString = Encoding.UTF8.GetString(json.ToArray());
 
                 if (payload.CreateCase != null)
                 {
                     if (payload.EntityAnalysisModelReprocessingRuleInstanceId.HasValue)
                     {
-                        await CaseProcessing.CreateAsync(dynamicEnvironment,
-                            payload.CreateCase, log, token);
+                        await CaseProcessing.CreateAsync(dynamicEnvironment, payload.CreateCase, log, jsonSerializationHelper, payload, token);
                         // ReSharper disable once RedundantAssignment
                         payload.CreateCase = null;
                     }

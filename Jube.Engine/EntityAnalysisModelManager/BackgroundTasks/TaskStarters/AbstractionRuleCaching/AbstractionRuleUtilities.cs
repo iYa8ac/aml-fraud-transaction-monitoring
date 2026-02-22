@@ -20,7 +20,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
     using EntityAnalysisModel;
     using EntityAnalysisModel.Models.Models;
     using EntityAnalysisModelInvoke.Context.Extensions.AbstractionRulesWithSearchKeys;
-    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using log4net;
     using Microsoft.VisualBasic;
 

@@ -13,14 +13,14 @@
 
 namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction.Extensions
 {
-    using System;
-    using System.Collections.Generic;
-    using Data.Poco;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
-    using Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
 
     namespace YourNamespace.Extensions
     {
+        using System;
+        using System.Collections.Generic;
+        using Data.Poco;
+        using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
+        using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
 
         public static class ArchiveKeyExtensions
         {

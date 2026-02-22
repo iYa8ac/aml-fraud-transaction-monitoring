@@ -22,7 +22,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction
     using DynamicEnvironment;
     using Helpers;
     using log4net;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using EntityAnalysisModel=EntityAnalysisModelManager.EntityAnalysisModel.EntityAnalysisModel;
 
     public class EntityAnalysisModelDictionaryNoBoxingExtractor(

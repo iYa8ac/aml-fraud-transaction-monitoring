@@ -29,6 +29,7 @@ namespace Jube.App
     using Code.WatcherDispatch;
     using DynamicEnvironment;
     using Engine;
+    using Engine.Helpers;
     using FluentMigrator.Runner;
     using log4net;
     using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -63,17 +64,17 @@ namespace Jube.App
         {
             var cancellationTokenProvider = AddSingletonForCancellationToken(services);
             var taskCoordinator = AddSingletonForTaskCoordinator(services, cancellationTokenProvider);
-            var contractResolver = AddSingletonForDefaultContractResolver(services);
+            var contractResolver = AddSingletonForJsonSerializationHelper(services);
 
             var dynamicEnvironment = AddSingletonForDynamicEnvironmentAndLogging(services, out var log);
             ConfigureThreadPool(dynamicEnvironment, log);
             ValidateConnectionToPostgres(dynamicEnvironment.AppSettings("ConnectionString"), log);
 
             var callbacks = AddSingletonForCallbacks(services);
-            
+
             var cacheService = AddSingletonForCacheService(services, callbacks, Int32.Parse(dynamicEnvironment.AppSettings("CallbackTimeout") ?? "10000"),
                 taskCoordinator, dynamicEnvironment, log);
-            
+
             var rabbitMqConnection = AddSingletonForRabbitMqConnection(services, dynamicEnvironment, log);
 
             AddSingletonForEngine(services, dynamicEnvironment, log, rabbitMqConnection, cacheService, contractResolver, taskCoordinator);
@@ -254,14 +255,14 @@ namespace Jube.App
 
         private static void AddSingletonForEngine(IServiceCollection services
             , DynamicEnvironment dynamicEnvironment, ILog log, IConnection rabbitMqConnection,
-            CacheService cacheService, DefaultContractResolver contractResolver, ITaskCoordinator taskCoordinator)
+            CacheService cacheService, JsonSerializationHelper jsonSerializationHelper, ITaskCoordinator taskCoordinator)
         {
             if (!dynamicEnvironment.AppSettings("EnableEngine").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            var engine = new Engine(dynamicEnvironment, log, rabbitMqConnection, cacheService, contractResolver, taskCoordinator);
+            var engine = new Engine(dynamicEnvironment, log, rabbitMqConnection, cacheService, jsonSerializationHelper, taskCoordinator);
 
             services.AddSingleton(engine);
         }
@@ -334,15 +335,12 @@ namespace Jube.App
             return dynamicEnvironment;
         }
 
-        private static DefaultContractResolver AddSingletonForDefaultContractResolver(IServiceCollection services)
+        private static JsonSerializationHelper AddSingletonForJsonSerializationHelper(IServiceCollection services)
         {
 
-            var contractResolver = new DefaultContractResolver
-            {
-                NamingStrategy = new CamelCaseNamingStrategy()
-            };
-            services.AddSingleton(contractResolver);
-            return contractResolver;
+            var jsonSerializationHelper = new JsonSerializationHelper();
+            services.AddSingleton(jsonSerializationHelper);
+            return jsonSerializationHelper;
         }
 
         private static void ValidateConnectionToPostgres(string connectionString, ILog log)
@@ -503,10 +501,10 @@ namespace Jube.App
                 }
 
                 app.UseRouting();
-                
+
                 var lifetime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
                 app.UseWhen(context => context.Request.Path.StartsWithSegments("/api") &&
-                            lifetime.ApplicationStopping.IsCancellationRequested, 
+                                       lifetime.ApplicationStopping.IsCancellationRequested,
                     branch => branch.UseConditionalConnectionCloseWhenStopping());
 
                 app.UseWhen(context => context.Request.Path.StartsWithSegments("/Account/Login"), appBuilder =>
@@ -666,7 +664,7 @@ namespace Jube.App
                 {
                     log.Debug("Start: No manual thread pool parameters have been set will configure based on CPU count and certain other estimates.");
                 }
-                
+
                 var logicalCores = Environment.ProcessorCount;
                 var workerThreads = logicalCores * 2;
                 var ioThreads = logicalCores * 4;

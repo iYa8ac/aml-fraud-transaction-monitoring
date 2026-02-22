@@ -17,7 +17,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
     using EntityAnalysisModelManager.EntityAnalysisModel;
     using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
     using log4net;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
 
     public static class ReflectRuleHelper
     {

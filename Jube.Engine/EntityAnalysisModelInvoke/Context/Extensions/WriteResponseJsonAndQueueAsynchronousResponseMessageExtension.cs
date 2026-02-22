@@ -16,21 +16,21 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
     using System;
     using System.Threading.Tasks;
     using Dictionary;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using RabbitMQ.Client;
 
     public static class WriteResponseJsonAndQueueAsynchronousResponseMessageExtension
     {
         public static async Task WriteResponseJsonAndQueueAsynchronousResponseMessageAsync(this Context context, IModel rabbitMqChannel)
         {
-            if (context.Environment.AppSettings("PartialResponseMessageSerialisation").Equals("True",StringComparison.CurrentCultureIgnoreCase))
+            if (context.Environment.AppSettings("PartialResponseMessageSerialisation").Equals("True", StringComparison.CurrentCultureIgnoreCase))
             {
                 if (context.Log.IsInfoEnabled)
                 {
                     context.Log.Info(
                         $"HTTP Handler Entity: GUID payload {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} model id is {context.EntityAnalysisModel.Instance.Id} has partial serialised response environment variable.");
                 }
-                    
+
                 context.JsonResult = BuildJsonResponses.BuildPartialResponsePayloadJson(context);
             }
             else
@@ -40,10 +40,10 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
                     context.Log.Info(
                         $"HTTP Handler Entity: GUID payload {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} model id is {context.EntityAnalysisModel.Instance.Id} has partial serialised response environment variable false and will serialise full response.");
                 }
-                    
+
                 context.JsonResult = BuildJsonResponses.BuildFullJson(context.EntityAnalysisModelInstanceEntryPayload, context.EntityAnalysisModel.JsonSerializationHelper.ArchiveJsonSerializer);
             }
-            
+
             if (context.Environment.AppSettings("AMQP").Equals("True", StringComparison.OrdinalIgnoreCase))
             {
                 PublishToAmqp(context, rabbitMqChannel);

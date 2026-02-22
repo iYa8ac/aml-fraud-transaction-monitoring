@@ -22,7 +22,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ar
     using Data.Poco;
     using Data.Repository;
     using DynamicEnvironment;
-    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using log4net;
 
     public static class ArchiverArchiveRepository
@@ -44,7 +44,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ar
                 var dbContext =
                     DataConnectionDbContext.GetDbContextDataConnection(dynamicEnvironment.AppSettings("ConnectionString"));
                 dbContext.CommandTimeout = 0;
-                
+
                 if (log.IsInfoEnabled)
                 {
                     log.Info("Database Persist: Opened an SQL Bulk Collection via repository.");
@@ -58,7 +58,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ar
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    bulkInsertMessageBuffer.Archive.Clear(); //TODO[RC]:  Create a dead letter archive.
+                    bulkInsertMessageBuffer.Archive.Clear();
                     log.Error($"Database Persist:  Archive Bulk Copy failed {ex}.");
                 }
 
@@ -74,7 +74,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ar
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    bulkInsertMessageBuffer.ArchiveKeys.Clear();  //TODO[RC]:  Create a dead letter archive.
+                    bulkInsertMessageBuffer.ArchiveKeys.Clear();
                     log.Error($"Database Persist:  Archive Keys Bulk Copy failed {ex}.");
                 }
 

@@ -25,6 +25,7 @@ namespace Jube.App.Dto
         public bool Active { get; set; }
         public string SelectJson { get; set; }
         public string FilterJson { get; set; }
+        public string FilterTokens { get; set; }
         public string Description { get; set; }
         public bool EnableHttpEndpoint { get; set; }
         public string HttpEndpoint { get; set; }

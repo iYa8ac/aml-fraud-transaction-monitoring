@@ -11,13 +11,17 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry.TasksPerformance
+namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload.TasksPerformance
 {
-    public class ReadTasksPerformance
+    public class WriteTasksPerformance
     {
-        public TaskPerformance SanctionsAsync { get; set; }
-        public TaskPerformance DictionaryKvPsAsync { get; set; }
-        public TaskPerformance TtlCountersAsync { get; set; }
-        public TaskPerformance AbstractionRulesWithSearchKeysAsync { get; set; }
+        public TaskPerformance CachePayloadLatestUpsertAsync { get; set; }
+        public TaskPerformance CachePayloadUpsertAsync { get; set; }
+        public TaskPerformance CachePayloadInsertAsync { get; set; }
+        public TaskPerformance CacheTtlCounterEntryUpsertAsync { get; set; }
+        public TaskPerformance CacheTtlCounterEntryIncrementAsync { get; set; }
+        public TaskPerformance CacheSanctionInsertAsync { get; set; }
+        public TaskPerformance CacheSanctionUpdateAsync { get; set; }
+        public TaskPerformance CachePayloadLatestInsertAsync { get; set; }
     }
 }

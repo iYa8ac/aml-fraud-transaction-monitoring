@@ -25,11 +25,15 @@ namespace Jube.App.Controllers.Repository
     using Data.Repository;
     using Dto;
     using DynamicEnvironment;
+    using Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
+    using Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload.Extensions;
+    using Engine.Helpers;
     using FluentValidation;
     using log4net;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Validators;
 
@@ -40,16 +44,20 @@ namespace Jube.App.Controllers.Repository
     {
         private readonly DbContext dbContext;
         private readonly DynamicEnvironment dynamicEnvironment;
+        private readonly JsonSerializationHelper jsonSerializationHelper;
         private readonly ILog log;
         private readonly IMapper mapper;
         private readonly PermissionValidation permissionValidation;
-        private readonly CaseNoteRepository repository;
+        private readonly CaseRepository repositoryCase;
+        private readonly CaseNoteRepository repositoryCaseNote;
+        private readonly CaseWorkflowActionRepository repositoryCaseWorkflowAction;
+        private readonly CaseWorkflowStatusRepository repositoryCaseWorkflowStatus;
         private readonly string userName;
         private readonly IValidator<CaseNoteDto> validator;
 
         public CaseNoteController(ILog log,
             DynamicEnvironment dynamicEnvironment
-            , IHttpContextAccessor httpContextAccessor)
+            , IHttpContextAccessor httpContextAccessor, JsonSerializationHelper jsonSerializationHelper)
         {
             if (httpContextAccessor.HttpContext?.User.Identity != null)
             {
@@ -69,9 +77,13 @@ namespace Jube.App.Controllers.Repository
             });
 
             mapper = new Mapper(config);
-            repository = new CaseNoteRepository(dbContext, userName);
+            repositoryCaseNote = new CaseNoteRepository(dbContext, userName);
+            repositoryCase = new CaseRepository(dbContext, userName);
+            repositoryCaseWorkflowAction = new CaseWorkflowActionRepository(dbContext, userName);
+            repositoryCaseWorkflowStatus = new CaseWorkflowStatusRepository(dbContext, userName);
             validator = new CaseNoteDtoValidator();
             this.dynamicEnvironment = dynamicEnvironment;
+            this.jsonSerializationHelper = jsonSerializationHelper;
         }
 
         protected override void Dispose(bool disposing)
@@ -100,56 +112,86 @@ namespace Jube.App.Controllers.Repository
 
             if (!results.IsValid)
             {
-                return Ok(await repository.InsertAsync(mapper.Map<CaseNote>(model), token));
+                return BadRequest();
             }
 
-            var jObject = JObject.Parse(model.Payload);
+            var existingCase = await repositoryCase.GetByIdActiveOnlyAsync(model.CaseId, token);
 
-            var values = new Dictionary<string, string>();
-            foreach (var (key, value) in jObject)
+            if (existingCase == null)
             {
-                if (value != null)
-                {
-                    values.Add(key, value.ToString());
-                }
+                return BadRequest();
             }
 
-            var caseWorkflowActionRepository = new CaseWorkflowActionRepository(dbContext, userName);
-
-            var caseWorkflowAction = await caseWorkflowActionRepository.GetByIdActiveOnlyAsync(model.ActionId, token);
+            var caseWorkflowAction = await repositoryCaseWorkflowAction.GetByIdActiveOnlyAsync(model.ActionId, token);
 
             if (caseWorkflowAction == null)
             {
-                return Forbid();
+                return BadRequest();
             }
+
+            var caseWorkflowStatus = await repositoryCaseWorkflowStatus.GetByGuidAsync(existingCase.CaseWorkflowStatusGuid, token);
+
+            if (caseWorkflowStatus == null)
+            {
+                return BadRequest();
+            }
+
+            var caseNote = await repositoryCaseNote.InsertAsync(mapper.Map<CaseNote>(model), token);
 
             if (caseWorkflowAction.EnableNotification != 1 && caseWorkflowAction.EnableHttpEndpoint != 1)
             {
-                return Ok(await repository.InsertAsync(mapper.Map<CaseNote>(model), token));
+                return Ok(caseNote);
             }
+
+            var payload = JsonConvert.DeserializeObject<EntityAnalysisModelInstanceEntryPayload>(existingCase.Json, jsonSerializationHelper.DefaultJsonSerializerSettingsSettings);
 
             if (caseWorkflowAction.EnableNotification == 1)
             {
                 var notification = new Notification(log, dynamicEnvironment);
+                var notificationSubject = payload.ReplaceTokens(caseWorkflowAction.NotificationSubject);
+                var notificationDestination = payload.ReplaceTokens(caseWorkflowAction.NotificationDestination);
+                var notificationBody = payload.ReplaceTokens(caseWorkflowAction.NotificationBody);
+
                 await notification.SendAsync(caseWorkflowAction.NotificationTypeId ?? 1,
-                    caseWorkflowAction.NotificationDestination,
-                    caseWorkflowAction.NotificationSubject,
-                    caseWorkflowAction.NotificationBody, values, token);
+                    notificationDestination,
+                    notificationSubject,
+                    notificationBody, token);
             }
 
             if (caseWorkflowAction.EnableHttpEndpoint != 1)
             {
-                return Ok(await repository.InsertAsync(mapper.Map<CaseNote>(model), token));
+                return Ok(await repositoryCaseNote.InsertAsync(caseNote, token));
             }
 
-            if (caseWorkflowAction.HttpEndpointTypeId != null)
+            var endpoint = payload.ReplaceTokens(caseWorkflowAction.HttpEndpoint);
+
+            if (caseWorkflowAction.HttpEndpointTypeId == 1)
             {
-                await SendHttpEndpoint.SendAsync(caseWorkflowAction.HttpEndpoint,
-                    caseWorkflowAction.HttpEndpointTypeId.Value
-                    , values);
+                await SendHttpEndpoint.PostAsync(endpoint, PreparePostBodyString(caseNote, existingCase, caseWorkflowStatus, caseWorkflowAction, payload), log);
+            }
+            else
+            {
+                await SendHttpEndpoint.GetAsync(endpoint, log);
             }
 
-            return Ok(await repository.InsertAsync(mapper.Map<CaseNote>(model), token));
+            return Ok(caseNote);
+        }
+
+        private string PreparePostBodyString(CaseNote caseNote, Case existingCase, CaseWorkflowStatus caseWorkflowStatus, CaseWorkflowAction caseWorkflowAction, EntityAnalysisModelInstanceEntryPayload payload)
+        {
+            var jObject = JObject.FromObject(caseNote, jsonSerializationHelper.ArchiveJsonSerializer);
+            jObject["caseWorkflowActionName"] = caseWorkflowAction.Name;
+
+            var caseJObject = JObject.FromObject(existingCase, jsonSerializationHelper.ArchiveJsonSerializer);
+            caseJObject.Remove("json");
+            jObject["case"] = caseJObject;
+
+            caseJObject["caseWorkflowStatus"] = caseWorkflowStatus.Name;
+
+            var payloadJObject = JObject.FromObject(payload, jsonSerializationHelper.ArchiveJsonSerializer);
+            caseJObject["payload"] = payloadJObject;
+
+            return jObject.ToString();
         }
 
         [HttpGet("ByCaseKeyValue")]
@@ -165,7 +207,7 @@ namespace Jube.App.Controllers.Repository
                     return Forbid();
                 }
 
-                return Ok(mapper.Map<List<CaseNote>>(await repository.GetByCaseKeyValueAsync(key, value, token)));
+                return Ok(mapper.Map<List<CaseNote>>(await repositoryCaseNote.GetByCaseKeyValueAsync(key, value, token)));
             }
             catch (Exception e)
             {

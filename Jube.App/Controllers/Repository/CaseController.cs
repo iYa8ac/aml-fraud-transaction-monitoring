@@ -28,12 +28,16 @@ namespace Jube.App.Controllers.Repository
     using Data.Repository;
     using Dto;
     using DynamicEnvironment;
+    using Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
+    using Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload.Extensions;
+    using Engine.Helpers;
     using FluentValidation;
     using FluentValidation.Results;
     using log4net;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Validators;
 
@@ -44,6 +48,7 @@ namespace Jube.App.Controllers.Repository
     {
         private readonly DbContext dbContext;
         private readonly DynamicEnvironment dynamicEnvironment;
+        private readonly JsonSerializationHelper jsonSerializationHelper;
         private readonly ILog log;
         private readonly IMapper mapper;
         private readonly PermissionValidation permissionValidation;
@@ -53,7 +58,7 @@ namespace Jube.App.Controllers.Repository
         private readonly IValidator<CaseDto> validator;
 
         public CaseController(ILog log, DynamicEnvironment dynamicEnvironment
-            , IHttpContextAccessor httpContextAccessor)
+            , IHttpContextAccessor httpContextAccessor, JsonSerializationHelper jsonSerializationHelper)
         {
             if (httpContextAccessor.HttpContext?.User.Identity != null)
             {
@@ -64,6 +69,7 @@ namespace Jube.App.Controllers.Repository
 
             dbContext =
                 DataConnectionDbContext.GetDbContextDataConnection(dynamicEnvironment.AppSettings("ConnectionString"));
+
             permissionValidation = new PermissionValidation(dbContext, userName);
 
             var config = new MapperConfiguration(cfg =>
@@ -77,6 +83,7 @@ namespace Jube.App.Controllers.Repository
             repositoryCaseEvent = new CaseEventRepository(dbContext, userName);
             validator = new CaseDtoValidator();
             this.dynamicEnvironment = dynamicEnvironment;
+            this.jsonSerializationHelper = jsonSerializationHelper;
         }
 
         protected override void Dispose(bool disposing)
@@ -366,7 +373,7 @@ namespace Jube.App.Controllers.Repository
                 {
                     var caseWorkflowStatusRepository = new CaseWorkflowStatusRepository(dbContext, userName);
                     var caseWorkflowStatuses = await caseWorkflowStatusRepository.GetByCasesWorkflowGuidActiveOnlyAsync(existing.CaseWorkflowGuid, token);
-                    var caseWorkflowStatus = caseWorkflowStatuses.FirstOrDefault(f => f.Guid == existing.CaseWorkflowStatusGuid);
+                    var caseWorkflowStatus = caseWorkflowStatuses.FirstOrDefault(f => f.Guid == model.CaseWorkflowStatusGuid);
 
                     if (caseWorkflowStatus == null)
                     {
@@ -388,36 +395,35 @@ namespace Jube.App.Controllers.Repository
 
                     if (model.Payload != null)
                     {
-                        var jObject = JObject.Parse(model.Payload);
-
-                        var values = new Dictionary<string, string>();
-                        foreach (var (key, value) in jObject)
-                        {
-                            if (value != null)
-                            {
-                                values.Add(key, value.ToString());
-                            }
-                        }
-
                         if (caseWorkflowStatus.EnableNotification == 1 ||
                             caseWorkflowStatus.EnableHttpEndpoint == 1)
                         {
+                            var payload = JsonConvert.DeserializeObject<EntityAnalysisModelInstanceEntryPayload>(existing.Json, jsonSerializationHelper.DefaultJsonSerializerSettingsSettings);
+
                             if (caseWorkflowStatus.EnableNotification == 1)
                             {
                                 var notification = new Notification(log, dynamicEnvironment);
+                                var notificationSubject = payload.ReplaceTokens(caseWorkflowStatus.NotificationSubject);
+                                var notificationDestination = payload.ReplaceTokens(caseWorkflowStatus.NotificationDestination);
+                                var notificationBody = payload.ReplaceTokens(caseWorkflowStatus.NotificationBody);
+
                                 await notification.SendAsync(caseWorkflowStatus.NotificationTypeId ?? 1,
-                                    caseWorkflowStatus.NotificationDestination,
-                                    caseWorkflowStatus.NotificationSubject,
-                                    caseWorkflowStatus.NotificationBody, values, token);
+                                    notificationDestination,
+                                    notificationSubject,
+                                    notificationBody, token);
                             }
 
                             if (caseWorkflowStatus.EnableHttpEndpoint == 1)
                             {
-                                if (caseWorkflowStatus.HttpEndpointTypeId != null)
+                                var endpoint = payload.ReplaceTokens(caseWorkflowStatus.HttpEndpoint);
+
+                                if (caseWorkflowStatus.HttpEndpointTypeId == 1)
                                 {
-                                    await SendHttpEndpoint.SendAsync(caseWorkflowStatus.HttpEndpoint,
-                                        caseWorkflowStatus.HttpEndpointTypeId.Value
-                                        , values);
+                                    await SendHttpEndpoint.PostAsync(endpoint, PreparePostBodyString(existing, payload, caseWorkflowStatus), log);
+                                }
+                                else
+                                {
+                                    await SendHttpEndpoint.GetAsync(endpoint, log);
                                 }
                             }
                         }
@@ -459,6 +465,18 @@ namespace Jube.App.Controllers.Repository
                 log.Error(e);
                 return StatusCode(500);
             }
+        }
+
+        private string PreparePostBodyString(Case existing, EntityAnalysisModelInstanceEntryPayload payload, CaseWorkflowStatus caseWorkflowStatus)
+        {
+            var caseJObject = JObject.FromObject(existing, jsonSerializationHelper.ArchiveJsonSerializer);
+            caseJObject["caseWorkflowStatusName"] = caseWorkflowStatus.Name;
+
+            var payloadJObject = JObject.FromObject(payload, jsonSerializationHelper.ArchiveJsonSerializer);
+            caseJObject.Remove("json");
+            caseJObject["payload"] = payloadJObject;
+
+            return caseJObject.ToString();
         }
     }
 }

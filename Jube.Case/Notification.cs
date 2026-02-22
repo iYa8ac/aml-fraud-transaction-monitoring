@@ -19,74 +19,18 @@ namespace Jube.Case
     public class Notification(ILog log, DynamicEnvironment dynamicEnvironment)
     {
         public async Task SendAsync(int notificationType, string notificationDestination, string notificationSubject,
-            string notificationBody, Dictionary<string, string> values, CancellationToken token = default
+            string notificationBody, CancellationToken token = default
         )
         {
-            var replacedNotificationDestination = notificationDestination;
-            if (!String.IsNullOrEmpty(replacedNotificationDestination))
-            {
-                var notificationDestinationTokens =
-                    Tokenisation.ReturnTokens(replacedNotificationDestination);
-
-                foreach (var notificationToken in notificationDestinationTokens)
-                {
-                    if (!values.TryGetValue(notificationToken, out var value))
-                    {
-                        continue;
-                    }
-
-                    var notificationReplaceToken = $"[@{notificationToken}@]";
-                    replacedNotificationDestination =
-                        replacedNotificationDestination.Replace(notificationReplaceToken,
-                            value);
-                }
-            }
-
-            var replacedNotificationSubject = notificationSubject;
-            if (!String.IsNullOrEmpty(replacedNotificationSubject))
-            {
-                var notificationSubjectTokens = Tokenisation.ReturnTokens(replacedNotificationSubject);
-                foreach (var notificationToken in notificationSubjectTokens)
-                {
-                    if (!values.TryGetValue(notificationToken, out var value))
-                    {
-                        continue;
-                    }
-
-                    var notificationReplaceToken = $"[@{notificationToken}@]";
-                    replacedNotificationSubject =
-                        replacedNotificationSubject.Replace(notificationReplaceToken, value);
-                }
-            }
-
-            var replacedNotificationBody = notificationBody;
-            if (!String.IsNullOrEmpty(replacedNotificationBody))
-            {
-                var notificationBodyTokens = Tokenisation.ReturnTokens(replacedNotificationBody);
-
-                foreach (var notificationToken in notificationBodyTokens)
-                {
-                    if (!values.TryGetValue(notificationToken, out var value))
-                    {
-                        continue;
-                    }
-
-                    var notificationReplaceToken = $"[@{notificationToken}@]";
-                    replacedNotificationBody =
-                        replacedNotificationBody.Replace(notificationReplaceToken, value);
-                }
-            }
-
             if (notificationType == 1)
             {
                 var sendMail = new SendMail(dynamicEnvironment, log);
-                sendMail.Send(replacedNotificationDestination, replacedNotificationSubject,
-                    replacedNotificationBody);
+                sendMail.Send(notificationDestination, notificationSubject, notificationBody);
             }
             else
             {
                 var sendSms = new SendSms(dynamicEnvironment, log);
-                await sendSms.SendAsync(replacedNotificationDestination, replacedNotificationBody, token);
+                await sendSms.SendAsync(notificationDestination, notificationBody, token);
             }
         }
     }
