@@ -20,8 +20,8 @@ namespace Jube.Engine
     using Cache;
     using DynamicEnvironment;
     using Exhaustive;
+    using Helpers;
     using log4net;
-    using Newtonsoft.Json.Serialization;
     using RabbitMQ.Client;
     using TaskCancellation;
     using Context=BackgroundTasks.Context.Context;
@@ -31,18 +31,18 @@ namespace Jube.Engine
         ILog log,
         IConnection rabbitMqConnection,
         CacheService cacheService,
-        DefaultContractResolver contractResolver,
+        JsonSerializationHelper jsonSerializationHelper,
         ITaskCoordinator taskCoordinator)
     {
         public readonly Context Context = new Context
         {
+            JsonSerializationHelper = jsonSerializationHelper,
             Services =
             {
                 DynamicEnvironment = dynamicEnvironment,
                 Log = log,
                 RabbitMqConnection = rabbitMqConnection,
                 CacheService = cacheService,
-                ContractResolver = contractResolver,
                 TaskCoordinator = taskCoordinator
             }
         };

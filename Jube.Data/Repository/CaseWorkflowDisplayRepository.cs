@@ -105,6 +105,18 @@ namespace Jube.Data.Repository
                 && w.Id == id && (w.Deleted == 0 || w.Deleted == null), token);
         }
 
+        public Task<CaseWorkflowDisplay> GetByIdActiveOnlyAsync(int id, CancellationToken token = default)
+        {
+            return dbContext.CaseWorkflowDisplay.FirstOrDefaultAsync(w =>
+                w.CaseWorkflow.EntityAnalysisModel.TenantRegistryId == tenantRegistryId
+                && w.Id == id && (w.Deleted == 0 || w.Deleted == null)
+                && w.Active == 1
+                && (w.CaseWorkflowDisplayRole.RoleRegistry.UserRegistry.Name == userName
+                    && w.CaseWorkflowDisplayRole.Deleted == 0 || w.CaseWorkflowDisplayRole.Deleted == null)
+                && (w.CaseWorkflow.CaseWorkflowRole.RoleRegistry.UserRegistry.Name == userName
+                    && w.CaseWorkflow.CaseWorkflowRole.Deleted == 0 || w.CaseWorkflow.CaseWorkflowRole.Deleted == null), token);
+        }
+
         public async Task<CaseWorkflowDisplay> InsertAsync(CaseWorkflowDisplay model, CancellationToken token = default)
         {
             model.CreatedUser = userName;
@@ -132,7 +144,7 @@ namespace Jube.Data.Repository
 
             model.Version = existing.Version + 1;
             model.CreatedUser = userName ?? model.CreatedUser;
-            model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
+            model.Guid = existing.Guid;
             model.CreatedDate = DateTime.Now;
 
             await dbContext.UpdateAsync(model, token: token);

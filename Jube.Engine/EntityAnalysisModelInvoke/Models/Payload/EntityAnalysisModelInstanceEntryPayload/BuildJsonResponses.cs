@@ -11,7 +11,7 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry
+namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload
 {
     using System.IO;
     using System.Linq;
@@ -74,28 +74,28 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
             stream.Seek(0, SeekOrigin.Begin);
             return stream;
         }
-        
+
         private static void AddTagToJObject(Context context, JObject jObject)
         {
 
-            var kvpEntityAnalysisModelTags= context.EntityAnalysisModel.Collections.EntityAnalysisModelTags.Where(w => w.ResponsePayload).ToArray();
+            var kvpEntityAnalysisModelTags = context.EntityAnalysisModel.Collections.EntityAnalysisModelTags.Where(w => w.ResponsePayload).ToArray();
             if (!kvpEntityAnalysisModelTags.Any())
             {
                 return;
             }
-            
+
             var kvpEntityAnalysisModelTagsArray = new JArray();
-            jObject.Add("Tag",kvpEntityAnalysisModelTagsArray);
+            jObject.Add("Tag", kvpEntityAnalysisModelTagsArray);
             foreach (var kvpEntityAnalysisModelTag in kvpEntityAnalysisModelTags)
             {
                 var value = context.EntityAnalysisModelInstanceEntryPayload.Activation.FirstOrDefault(f => f.Key == kvpEntityAnalysisModelTag.Name);
                 if (value.Key != null)
                 {
-                    kvpEntityAnalysisModelTagsArray.Add(JToken.FromObject(value));   
+                    kvpEntityAnalysisModelTagsArray.Add(JToken.FromObject(value));
                 }
             }
         }
-        
+
         private static void AddActivationToJObject(Context context, JObject jObject)
         {
 
@@ -104,19 +104,19 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
             {
                 return;
             }
-            
+
             var kvpModelActivationRulesArray = new JArray();
-            jObject.Add("Activation",kvpModelActivationRulesArray);
+            jObject.Add("Activation", kvpModelActivationRulesArray);
             foreach (var kvpModelActivationRule in kvpModelActivationRules)
             {
                 var value = context.EntityAnalysisModelInstanceEntryPayload.Activation.FirstOrDefault(f => f.Key == kvpModelActivationRule.Name);
                 if (value.Key != null)
                 {
-                    kvpModelActivationRulesArray.Add(JToken.FromObject(value));   
+                    kvpModelActivationRulesArray.Add(JToken.FromObject(value));
                 }
             }
         }
-        
+
         private static void AddExhaustiveAdaptationToJObject(Context context, JObject jObject)
         {
 
@@ -125,19 +125,19 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
             {
                 return;
             }
-            
+
             var kvpExhaustiveModelsArray = new JArray();
-            jObject.Add("ExhaustiveAdaptation",kvpExhaustiveModelsArray);
+            jObject.Add("ExhaustiveAdaptation", kvpExhaustiveModelsArray);
             foreach (var kvpExhaustiveModel in kvpExhaustiveModels)
             {
                 var value = context.EntityAnalysisModelInstanceEntryPayload.ExhaustiveAdaptation.FirstOrDefault(f => f.Key == kvpExhaustiveModel.Name);
                 if (value.Key != null)
                 {
-                    kvpExhaustiveModelsArray.Add(JToken.FromObject(value));   
+                    kvpExhaustiveModelsArray.Add(JToken.FromObject(value));
                 }
             }
         }
-        
+
         private static void AddHttpAdaptationToJObject(Context context, JObject jObject)
         {
 
@@ -146,19 +146,19 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
             {
                 return;
             }
-            
+
             var kvpEntityAnalysisModelAdaptationsArray = new JArray();
-            jObject.Add("HttpAdaptation",kvpEntityAnalysisModelAdaptationsArray);
+            jObject.Add("HttpAdaptation", kvpEntityAnalysisModelAdaptationsArray);
             foreach (var kvpEntityAnalysisModelAdaptation in kvpEntityAnalysisModelAdaptations)
             {
                 var value = context.EntityAnalysisModelInstanceEntryPayload.ExhaustiveAdaptation.FirstOrDefault(f => f.Key == kvpEntityAnalysisModelAdaptation.Value.Name);
                 if (value.Key != null)
                 {
-                    kvpEntityAnalysisModelAdaptationsArray.Add(JToken.FromObject(value));   
+                    kvpEntityAnalysisModelAdaptationsArray.Add(JToken.FromObject(value));
                 }
             }
         }
-        
+
         private static void AddAbstractionCalculationToJObject(Context context, JObject jObject)
         {
 
@@ -167,19 +167,19 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
             {
                 return;
             }
-            
+
             var kvpEntityAnalysisModelAbstractionCalculationsArray = new JArray();
-            jObject.Add("AbstractionCalculation",kvpEntityAnalysisModelAbstractionCalculationsArray);
+            jObject.Add("AbstractionCalculation", kvpEntityAnalysisModelAbstractionCalculationsArray);
             foreach (var kvpEntityAnalysisModelAbstractionCalculation in kvpEntityAnalysisModelAbstractionCalculations)
             {
                 var value = context.EntityAnalysisModelInstanceEntryPayload.AbstractionCalculation.FirstOrDefault(f => f.Key == kvpEntityAnalysisModelAbstractionCalculation.Name);
                 if (value.Key != null)
                 {
-                    kvpEntityAnalysisModelAbstractionCalculationsArray.Add(JToken.FromObject(value));   
+                    kvpEntityAnalysisModelAbstractionCalculationsArray.Add(JToken.FromObject(value));
                 }
             }
         }
-        
+
         private static void AddAbstractionToJObject(Context context, JObject jObject)
         {
 
@@ -188,19 +188,19 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
             {
                 return;
             }
-            
+
             var kvpAbstractionsJArray = new JArray();
-            jObject.Add("Abstraction",kvpAbstractionsJArray);
+            jObject.Add("Abstraction", kvpAbstractionsJArray);
             foreach (var kvpAbstraction in kvpAbstractions)
             {
                 var value = context.EntityAnalysisModelInstanceEntryPayload.Abstraction.FirstOrDefault(f => f.Key == kvpAbstraction.Name);
                 if (value.Key != null)
                 {
-                    kvpAbstractionsJArray.Add(JToken.FromObject(value));   
+                    kvpAbstractionsJArray.Add(JToken.FromObject(value));
                 }
             }
         }
-        
+
         private static void AddSanctionToJObject(Context context, JObject jObject)
         {
 
@@ -209,19 +209,19 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
             {
                 return;
             }
-            
+
             var kvpEntityAnalysisModelSanctionsArray = new JArray();
-            jObject.Add("Sanction",kvpEntityAnalysisModelSanctionsArray);
+            jObject.Add("Sanction", kvpEntityAnalysisModelSanctionsArray);
             foreach (var kvpEntityAnalysisModelSanction in kvpEntityAnalysisModelSanctions)
             {
                 var value = context.EntityAnalysisModelInstanceEntryPayload.Sanction.FirstOrDefault(f => f.Key == kvpEntityAnalysisModelSanction.Name);
                 if (value.Key != null)
                 {
-                    kvpEntityAnalysisModelSanctionsArray.Add(JToken.FromObject(value));   
+                    kvpEntityAnalysisModelSanctionsArray.Add(JToken.FromObject(value));
                 }
             }
         }
-        
+
         private static void AddTtlCounterToJObject(Context context, JObject jObject)
         {
 
@@ -230,19 +230,19 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
             {
                 return;
             }
-            
+
             var kvpModelTtlCountersArray = new JArray();
-            jObject.Add("TtlCounter",kvpModelTtlCountersArray);
+            jObject.Add("TtlCounter", kvpModelTtlCountersArray);
             foreach (var kvpModelTtlCounter in kvpModelTtlCounters)
             {
                 var value = context.EntityAnalysisModelInstanceEntryPayload.TtlCounter.FirstOrDefault(f => f.Key == kvpModelTtlCounter.Name);
                 if (value.Key != null)
                 {
-                    kvpModelTtlCountersArray.Add(JToken.FromObject(value));   
+                    kvpModelTtlCountersArray.Add(JToken.FromObject(value));
                 }
             }
         }
-        
+
         private static void AddDictionaryToJObject(Context context, JObject jObject)
         {
 
@@ -251,19 +251,19 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
             {
                 return;
             }
-            
+
             var kvpDictionariesJArray = new JArray();
-            jObject.Add("Dictionary",kvpDictionariesJArray);
+            jObject.Add("Dictionary", kvpDictionariesJArray);
             foreach (var kvpDictionary in kvpDictionaries)
             {
                 var value = context.EntityAnalysisModelInstanceEntryPayload.Dictionary.FirstOrDefault(f => f.Key == kvpDictionary.Value.Name);
                 if (value.Key != null)
                 {
-                    kvpDictionariesJArray.Add(JToken.FromObject(value));   
+                    kvpDictionariesJArray.Add(JToken.FromObject(value));
                 }
             }
         }
-        
+
         private static void AddCreateCaseToJObject(Context context, JObject jObject)
         {
 
@@ -272,7 +272,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
                 jObject.Add("CreateCase", JToken.FromObject(context.EntityAnalysisModelInstanceEntryPayload.CreateCase));
             }
         }
-        
+
         private static JObject CreateJObject(Context context)
         {
 

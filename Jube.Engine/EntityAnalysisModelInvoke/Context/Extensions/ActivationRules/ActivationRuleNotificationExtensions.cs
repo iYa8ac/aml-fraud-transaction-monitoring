@@ -14,11 +14,10 @@
 namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRules
 {
     using System;
-    using System.Globalization;
     using System.Text;
     using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
-    using Helpers;
     using Models;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload.Extensions;
     using Newtonsoft.Json;
     using RabbitMQ.Client;
 
@@ -36,9 +35,9 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
 
                 var notification = new Notification
                 {
-                    NotificationBody = ReplaceTokens(context, evaluateActivationRule.NotificationBody),
-                    NotificationDestination = ReplaceTokens(context, evaluateActivationRule.NotificationDestination),
-                    NotificationSubject = ReplaceTokens(context, evaluateActivationRule.NotificationSubject),
+                    NotificationBody = context.EntityAnalysisModelInstanceEntryPayload.ReplaceTokens(evaluateActivationRule.NotificationBody),
+                    NotificationDestination = context.EntityAnalysisModelInstanceEntryPayload.ReplaceTokens(evaluateActivationRule.NotificationDestination),
+                    NotificationSubject = context.EntityAnalysisModelInstanceEntryPayload.ReplaceTokens(evaluateActivationRule.NotificationSubject),
                     NotificationTypeId = evaluateActivationRule.NotificationTypeId
                 };
 
@@ -73,54 +72,6 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
                         $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} has not sent a message as notification disabled.");
                 }
             }
-        }
-
-        private static string ReplaceTokens(Context context, string message)
-        {
-            var notificationTokenizationList = NotificationTokenization.ReturnTokens(message);
-
-            if (context.Log.IsInfoEnabled)
-            {
-                context.Log.Info(
-                    $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} has found {notificationTokenizationList.Count} tokens in message {message}.");
-            }
-
-            foreach (var notificationToken in notificationTokenizationList)
-            {
-                var notificationTokenValue = "";
-                if (context.EntityAnalysisModelInstanceEntryPayload.Payload.TryGetValue(notificationToken, out var valuePayload))
-                {
-                    notificationTokenValue = valuePayload.ToString();
-                }
-                else if (context.EntityAnalysisModelInstanceEntryPayload.Abstraction.TryGetValue(notificationToken,
-                             out var valueAbstraction))
-                {
-                    notificationTokenValue = valueAbstraction.ToString(CultureInfo.InvariantCulture);
-                }
-                else if (context.EntityAnalysisModelInstanceEntryPayload.TtlCounter.TryGetValue(notificationToken,
-                             out var valueTtlCounter))
-                {
-                    notificationTokenValue = valueTtlCounter.ToString();
-                }
-                else if (
-                    context.EntityAnalysisModelInstanceEntryPayload.AbstractionCalculation.TryGetValue(notificationToken,
-                        out var valueAbstractionCalculation))
-                {
-                    notificationTokenValue = valueAbstractionCalculation
-                        .ToString(CultureInfo.InvariantCulture);
-                }
-
-                var notificationReplaceToken = $"[@{notificationToken}@]";
-                message = message.Replace(notificationReplaceToken, notificationTokenValue);
-
-                if (context.Log.IsInfoEnabled)
-                {
-                    context.Log.Info(
-                        $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} has finalized notification message {message}.");
-                }
-            }
-
-            return message;
         }
     }
 }

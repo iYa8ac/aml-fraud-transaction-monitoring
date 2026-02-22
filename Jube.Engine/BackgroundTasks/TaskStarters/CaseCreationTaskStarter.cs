@@ -37,12 +37,12 @@ namespace Jube.Engine.BackgroundTasks.TaskStarters
                     if (!context.ConcurrentQueues.PendingCases.TryDequeue(out var createCase))
                     {
                         await Task.Delay(100);
-                        
+
                         continue;
                     }
 
                     await CaseProcessing.CreateAsync(context.Services.DynamicEnvironment,
-                        createCase, context.Services.Log);
+                        createCase, context.Services.Log, context.JsonSerializationHelper);
 
                     // ReSharper disable once RedundantAssignment
                     createCase = null;

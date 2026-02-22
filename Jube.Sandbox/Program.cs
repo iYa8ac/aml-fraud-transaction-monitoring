@@ -13,7 +13,7 @@
 
 using Jube.Dictionary;
 using Jube.Engine.EntityAnalysisModelInvoke.Context;
-using Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
+using Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
 var context = new Context
 {
     EntityAnalysisModelInstanceEntryPayload = new EntityAnalysisModelInstanceEntryPayload

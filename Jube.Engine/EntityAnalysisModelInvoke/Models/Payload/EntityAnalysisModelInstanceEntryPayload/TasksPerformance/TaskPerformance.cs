@@ -11,12 +11,12 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry.TasksPerformance
+// ReSharper disable UnusedMember.Global
+namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload.TasksPerformance
 {
-
-    public class InvokeTaskPerformance
+    public class TaskPerformance(long computeTime, long memory)
     {
-        public InvokeTasksPerformance ComputeTimes { get; init; }
-        public long? Memory { get; set; }
+        public long ComputeTime { get; set; } = computeTime;
+        public long Memory { get; set; } = memory;
     }
 }

@@ -189,17 +189,20 @@ function OnSelect(e) {
         if (typeof item.caseWorkflowId !== "undefined") {
             $.get("../api/CaseWorkflowFilter/ByGuid/" + item.guid,
                 function (data) {
-                    if (!data.notFound) {
-                        if (typeof data !== "undefined") {
-                            const currentBuildJson = {
-                                filterJson: JSON.parse(data.filterJson),
-                                selectJson: JSON.parse(data.selectJson)
-                            };
+                    if (typeof data !== "undefined") {
+                        const currentBuildJson = {
+                            filterJson: JSON.parse(data.filterJson),
+                            selectJson: JSON.parse(data.selectJson),
 
-                            CompileSqlOnServer(data.filterJson, data.selectJson, data.filterJson, item.parentNode().guid, item.guid, item.guid, true, true);
-                            initCaseFilterBuilder(true, currentCaseWorkflowGuid, currentBuildJson);
-                            jsonChangedFromFilterDefault = false;
+                        };
+
+                        if (data.filterTokens !== "undefined") {
+                            currentBuildJson["filterTokens"] = JSON.parse(data.filterTokens);
                         }
+
+                        CompileSqlOnServer(data.filterJson, data.selectJson, null, item.parentNode().guid, item.guid, item.guid, true, true);
+                        initCaseFilterBuilder(true, currentCaseWorkflowGuid, currentBuildJson);
+                        jsonChangedFromFilterDefault = false;
                     }
                 });
         } else {
@@ -212,7 +215,11 @@ function OnSelect(e) {
                                 selectJson: JSON.parse(data.selectJson)
                             };
 
-                            CompileSqlOnServer(data.filterJson, data.selectJson, data.filterJson, data.caseWorkflowGuid, data.caseWorkflowFilterGuid, true, true);
+                            if (data.filterTokens !== "undefined") {
+                                currentBuildJson["filterTokens"] = JSON.parse(data.filterTokens);
+                            }
+
+                            CompileSqlOnServer(data.filterJson, data.selectJson, data.filterTokens, data.caseWorkflowGuid, data.caseWorkflowFilterGuid, true, true);
                             initCaseFilterBuilder(true, currentCaseWorkflowGuid, currentBuildJson);
                             jsonChangedFromFilterDefault = true;
 

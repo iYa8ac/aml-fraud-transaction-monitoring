@@ -26,7 +26,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction
     using Extensions.YourNamespace.Extensions;
     using Helpers;
     using log4net;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using Newtonsoft.Json.Linq;
     using EntityAnalysisModel=EntityAnalysisModelManager.EntityAnalysisModel.EntityAnalysisModel;
 

@@ -15,8 +15,8 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction.Helpers
 {
     using System;
     using Dictionary;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
-    using Models.Payload.EntityAnalysisModelInstanceEntry.TasksPerformance;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload.TasksPerformance;
     using EntityAnalysisModel=EntityAnalysisModelManager.EntityAnalysisModel.EntityAnalysisModel;
 
     public static class EntityAnalysisModelInstanceEntryPayloadHelpers

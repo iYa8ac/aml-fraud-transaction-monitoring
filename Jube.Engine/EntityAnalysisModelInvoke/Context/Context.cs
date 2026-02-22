@@ -20,7 +20,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context
     using System.Threading.Tasks;
     using DynamicEnvironment;
     using log4net;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using TaskCancellation.TaskHelper;
     using EntityAnalysisModel=EntityAnalysisModelManager.EntityAnalysisModel.EntityAnalysisModel;
 

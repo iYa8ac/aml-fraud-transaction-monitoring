@@ -19,7 +19,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models
     using Data.Poco;
     using EntityAnalysisModelInvoke.Context;
     using EntityAnalysisModelInvoke.Models;
-    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using Jube.Cache.Redis.Callback;
     using Jube.Engine.BackgroundTasks.TaskStarters.Models;
 

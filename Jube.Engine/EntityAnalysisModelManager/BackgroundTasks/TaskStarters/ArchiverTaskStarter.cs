@@ -110,7 +110,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                     try
                     {
                         await ArchiverProcessing.CaseCreationAndArchiveStorageAsync(payload,
-                            context.JsonSerializationHelper.ArchiveJsonSerializer,
+                            context.JsonSerializationHelper,
                             buffer,
                             context.ConcurrentQueues.PendingCases,
                             context.Services.DynamicEnvironment, context.Services.Log, token).ConfigureAwait(false);

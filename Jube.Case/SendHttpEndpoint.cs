@@ -14,46 +14,52 @@
 namespace Jube.Case
 {
     using System.Text;
-    using Newtonsoft.Json;
+    using log4net;
 
     public static class SendHttpEndpoint
     {
-        public static async Task SendAsync(string httpEndpoint, byte httpEndpointTypeId, Dictionary<string, string> values)
+        public static async Task PostAsync(string httpEndpoint, string body, ILog log)
         {
             if (String.IsNullOrEmpty(httpEndpoint))
             {
                 return;
             }
 
-            var urlTokens = Tokenisation.ReturnTokens(httpEndpoint);
+            using var client = new HttpClient();
 
-            var replacedUrl = httpEndpoint;
-            foreach (var token in urlTokens)
+            try
             {
-                if (values.TryGetValue(token, out var replacement))
-                {
-                    replacedUrl = replacedUrl.Replace($"[@{token}@]", replacement);
-                }
+                using var content = new StringContent(body, Encoding.UTF8, "application/json");
+                using var response = await client.PostAsync(httpEndpoint, content).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Failed to dispatch to {httpEndpoint} for verb POST with payload {body} with {ex}");
+            }
+        }
+
+        public static async Task GetAsync(string httpEndpoint, ILog log)
+        {
+            if (String.IsNullOrEmpty(httpEndpoint))
+            {
+                return;
             }
 
             using var client = new HttpClient();
 
-            if (httpEndpointTypeId == 1)
+            try
             {
-                var json = JsonConvert.SerializeObject(values);
-                using var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                using var response = await client.PostAsync(replacedUrl, content).ConfigureAwait(false);
+                using var response = await client.GetAsync(httpEndpoint).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
                 await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             }
-            else
+            catch (Exception ex)
             {
-                using var response = await client.GetAsync(replacedUrl).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-
-                await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                log.Error($"Failed to dispatch to {httpEndpoint} for verb GET with {ex}");
             }
         }
     }

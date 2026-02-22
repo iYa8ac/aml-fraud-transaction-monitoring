@@ -1,7 +1,6 @@
 namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Data.Context;
@@ -10,8 +9,12 @@ namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
     using Data.Repository;
     using DynamicEnvironment;
     using EntityAnalysisModelInvoke.Models.CaseManagement;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload.Extensions;
+    using Helpers;
     using Jube.Case;
     using log4net;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     public static class CaseProcessing
@@ -19,6 +22,8 @@ namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
         public static async Task CreateAsync(DynamicEnvironment dynamicEnvironment,
             CreateCase createCase,
             ILog log,
+            JsonSerializationHelper jsonSerializationHelper,
+            EntityAnalysisModelInstanceEntryPayload payload = null,
             CancellationToken token = default)
         {
             var dbContext =
@@ -80,8 +85,7 @@ namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
 
                 var existing = await query.ExecuteAsync(model.CaseWorkflowGuid, model.CaseKey, model.CaseKeyValue, token).ConfigureAwait(false);
 
-                var repositoryCasesWorkflowsStatus =
-                    new CaseWorkflowStatusRepository(dbContext, createCase.TenantRegistryId);
+                var repositoryCasesWorkflowsStatus = new CaseWorkflowStatusRepository(dbContext, createCase.TenantRegistryId);
 
                 CaseWorkflowStatus finalCasesWorkflowsStatus = null;
                 if (existing == null)
@@ -114,36 +118,36 @@ namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
                     if (finalCasesWorkflowsStatus != null)
                     {
                         caseBytes = createCase.Json.Length;
-                        var jObject = JObject.Parse(model.Json);
-
-                        var values = new Dictionary<string, string>();
-                        foreach (var (key, value) in jObject)
-                        {
-                            if (value != null)
-                            {
-                                values.Add(key, value.ToString());
-                            }
-                        }
 
                         if (finalCasesWorkflowsStatus.EnableNotification == 1 ||
                             finalCasesWorkflowsStatus.EnableHttpEndpoint == 1)
                         {
+
+                            var context = payload ?? JsonConvert.DeserializeObject<EntityAnalysisModelInstanceEntryPayload>(createCase.Json, jsonSerializationHelper.DefaultJsonSerializerSettingsSettings);
+
                             if (finalCasesWorkflowsStatus.EnableNotification == 1)
                             {
+                                var notificationSubject = context.ReplaceTokens(finalCasesWorkflowsStatus.NotificationSubject);
+                                var notificationDestination = context.ReplaceTokens(finalCasesWorkflowsStatus.NotificationDestination);
+                                var notificationBody = context.ReplaceTokens(finalCasesWorkflowsStatus.NotificationBody);
+
                                 var notification = new Notification(log, dynamicEnvironment);
                                 await notification.SendAsync(finalCasesWorkflowsStatus.NotificationTypeId ?? 1,
-                                    finalCasesWorkflowsStatus.NotificationDestination,
-                                    finalCasesWorkflowsStatus.NotificationSubject,
-                                    finalCasesWorkflowsStatus.NotificationBody, values, token);
+                                    notificationDestination,
+                                    notificationSubject,
+                                    notificationBody, token);
                             }
 
                             if (finalCasesWorkflowsStatus.EnableHttpEndpoint == 1)
                             {
-                                if (finalCasesWorkflowsStatus.HttpEndpointTypeId != null)
+                                var endpoint = context.ReplaceTokens(finalCasesWorkflowsStatus.HttpEndpoint);
+                                if (finalCasesWorkflowsStatus.HttpEndpointTypeId == 1)
                                 {
-                                    await SendHttpEndpoint.SendAsync(finalCasesWorkflowsStatus.HttpEndpoint,
-                                        finalCasesWorkflowsStatus.HttpEndpointTypeId.Value
-                                        , values);
+                                    await SendHttpEndpoint.PostAsync(endpoint, PreparePostBodyString(model, jsonSerializationHelper.ArchiveJsonSerializer, finalCasesWorkflowsStatus), log);
+                                }
+                                else
+                                {
+                                    await SendHttpEndpoint.GetAsync(endpoint, log);
                                 }
                             }
                         }
@@ -174,6 +178,24 @@ namespace Jube.Engine.BackgroundTasks.TaskStarters.Case
                     log.Info("Case Creation: closed the database connection.");
                 }
             }
+        }
+
+        private static string PreparePostBodyString(Case createCase, JsonSerializer jsonSerializer, CaseWorkflowStatus finalCasesWorkflowsStatus, EntityAnalysisModelInstanceEntryPayload payload = null)
+        {
+            var jObject = JObject.FromObject(createCase, jsonSerializer);
+
+            if (payload == null)
+            {
+                jObject["context"] = JObject.Parse(createCase.Json);
+            }
+            else
+            {
+                jObject["context"] = JObject.FromObject(payload);
+            }
+
+            jObject["caseWorkflowStatus"] = finalCasesWorkflowsStatus.Name;
+            jObject.Remove("json");
+            return jObject.ToString();
         }
     }
 }

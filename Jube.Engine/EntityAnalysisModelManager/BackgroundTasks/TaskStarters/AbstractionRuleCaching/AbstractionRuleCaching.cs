@@ -23,8 +23,8 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
     using EntityAnalysisModel;
     using EntityAnalysisModel.Models.Models;
     using EntityAnalysisModelInvoke.Context.Extensions.ReflectionHelpers;
-    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry;
-    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry.TasksPerformance;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload;
+    using EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload.TasksPerformance;
     using Microsoft.VisualBasic;
 
     public static class AbstractionRuleCaching

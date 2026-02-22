@@ -14,7 +14,7 @@
 namespace Jube.Engine.Helpers
 {
     using System;
-    using Cache.Redis.Serialization.DictionaryNoBoxing.Newtonsoft;
+    using Dictionary.Serialization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
 
@@ -29,12 +29,12 @@ namespace Jube.Engine.Helpers
         {
             get
             {
-                var serializer =  new JsonSerializerSettings
+                var serializer = new JsonSerializerSettings
                 {
                     ContractResolver = defaultContractResolver
                 };
-                
-                serializer.Converters.Add(new DictionaryNoBoxingValueOnlyNewtonsoftConverter());
+
+                serializer.Converters.Add(new DictionaryNoBoxingConverter());
 
                 return serializer;
             }
@@ -87,8 +87,8 @@ namespace Jube.Engine.Helpers
                     ContractResolver = defaultContractResolver
                 };
 
-                serializer.Converters.Add(new DictionaryNoBoxingValueOnlyNewtonsoftConverter());
-                
+                serializer.Converters.Add(new DictionaryNoBoxingConverter());
+
                 return serializer;
             }
         }

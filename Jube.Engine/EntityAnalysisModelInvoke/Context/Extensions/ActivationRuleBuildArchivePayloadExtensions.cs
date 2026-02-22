@@ -40,7 +40,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
             if (context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelReprocessingRuleInstanceId.HasValue)
             {
                 await ArchiverProcessing.CaseCreationAndArchiveStorageAsync(context.EntityAnalysisModelInstanceEntryPayload,
-                    context.EntityAnalysisModel.JsonSerializationHelper.ArchiveJsonSerializer,
+                    context.EntityAnalysisModel.JsonSerializationHelper,
                     null, null, context.Environment, context.Log).ConfigureAwait(false);
 
                 if (context.Log.IsInfoEnabled)

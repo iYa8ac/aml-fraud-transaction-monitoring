@@ -292,10 +292,10 @@ $(document).ready(function () {
 
     $("#CaseFormSubmitButton").click(function (e) {
         e.preventDefault();
-        const clonedArray = JSON.parse(JSON.stringify(values));
+        let clonedArray = {};
         const $inputs = jQuery('#CaseFormHTML :input');
         $inputs.each(function () {
-            clonedArray[this.name] = jQuery(this).val();
+            clonedArray[this.id] = jQuery(this).val();
         });
 
         const buttonObject = $("#CaseFormSubmitButton").kendoButton().data("kendoButton");
@@ -308,7 +308,7 @@ $(document).ready(function () {
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             data: JSON.stringify({
-                payload: JSON.stringify(clonedArray),
+                payload: clonedArray,
                 caseWorkflowFormId: SelectedCasesWorkflowFormID,
                 caseKey: CaseKey,
                 caseKeyValue: CaseKeyValue,
@@ -546,8 +546,8 @@ function CallMacro(e) {
         if (Macros[i].id === e) {
             try {
                 const data = {
-                    caseWorkflowMacroId: Macros[i].id,
-                    payload: JSON.stringify(values)
+                    caseId: CaseId,
+                    caseWorkflowMacroId: Macros[i].id
                 };
 
                 $.ajax({
@@ -1211,22 +1211,23 @@ function DisplayMenu(selectedCasesWorkflowDisplayId) {
         $.each(Displays,
             function (i, displayValue) {
                 if (displayValue.id === selectedCasesWorkflowDisplayId) {
-                    $("#CaseDisplayHTML").show();
+                    const data = {
+                        caseId: CaseId,
+                        caseWorkflowDisplayId: selectedCasesWorkflowDisplayId
+                    };
 
-                    let finalHtml = displayValue.html;
-                    const tokens = displayValue.html.match(/\[@(.*?)]/g);
-                    $.each(tokens,
-                        function (j, tokenValue) {
-                            const token = tokenValue.slice(2, -2);
-                            $.each(ResponsePayload,
-                                function (k, responsePayloadValue) {
-                                    if (token === responsePayloadValue.name) {
-                                        finalHtml = finalHtml.replace(tokens[j], responsePayloadValue.value);
-                                    }
-                                });
-                        });
+                    $.ajax({
+                        url: "../api/CaseWorkflowDisplayExecution",
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        data: JSON.stringify(data),
+                        success: function (data) {
+                            $("#CaseDisplayHTML").html(data);
+                            $("#CaseDisplayHTML").show();
+                        }
+                    });
 
-                    $("#CaseDisplayHTML").html(finalHtml);
                     return false;
                 }
             });
@@ -1482,16 +1483,6 @@ function createActivations(activationsData) {
 function customEditor(container, options) {
     $('<textarea required name="' + options.field + '" style="height: 100px; width: 100%;" />')
         .appendTo(container);
-    /* .kendoAutoComplete({
-          minLength: 3,
-          dataTextField: "NoteSuggestion",
-          filter: "contains",
-          dataSource: {
-              type: "json",
-              serverFiltering: true,
-              transport: { read: "/Service/GetNoteSuggestions.ashx" }
-          }
-      });*/
 }
 
 function SaveCaseKeyJournalSession(columns) {
@@ -1676,3 +1667,5 @@ function DisplayServerValidationErrors(responseObject) {
         list.append('<li>' + responseObject.errors[key].errorMessage + '</li>')
     }
 }
+
+//# sourceURL=Case.js

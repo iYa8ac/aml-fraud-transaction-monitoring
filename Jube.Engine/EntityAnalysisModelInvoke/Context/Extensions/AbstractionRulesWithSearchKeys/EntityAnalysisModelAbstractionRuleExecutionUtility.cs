@@ -24,7 +24,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.AbstractionRu
     using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
     using log4net;
     using Microsoft.VisualBasic;
-    using Models.Payload.EntityAnalysisModelInstanceEntry;
+    using Models.Payload.EntityAnalysisModelInstanceEntryPayload;
     using ReflectionHelpers;
     using TaskCancellation.TaskHelper;
 
@@ -146,7 +146,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.AbstractionRu
                             }
                         }
                     });
-                    
+
                     foreach (var kvp in abstractionRuleMatches)
                     {
                         AbstractionRuleMatches[kvp.Key] = kvp.Value;

@@ -11,23 +11,15 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Cache.Redis.Serialization.DictionaryNoBoxing.Newtonsoft
+namespace Jube.Dictionary.Serialization
 {
-    using Dictionary.Models;
-    using global::Newtonsoft.Json;
-    using DictionaryNoBoxing=Dictionary.DictionaryNoBoxing;
+    using Models;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
-    public class DictionaryNoBoxingValueOnlyNewtonsoftConverter : JsonConverter<DictionaryNoBoxing>
+    public class DictionaryNoBoxingConverter : JsonConverter<DictionaryNoBoxing>
     {
-        public override bool CanRead
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        public override void WriteJson(JsonWriter writer, DictionaryNoBoxing value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, DictionaryNoBoxing? value, JsonSerializer serializer)
         {
             writer.WriteStartObject();
 
@@ -59,7 +51,8 @@ namespace Jube.Cache.Redis.Serialization.DictionaryNoBoxing.Newtonsoft
                         case InternalValue.ValueType.None:
                             break;
                         default:
-                            throw new ArgumentOutOfRangeException();
+                            writer.WriteNull();
+                            break;
                     }
                 }
             }
@@ -67,9 +60,39 @@ namespace Jube.Cache.Redis.Serialization.DictionaryNoBoxing.Newtonsoft
             writer.WriteEndObject();
         }
 
-        public override DictionaryNoBoxing ReadJson(JsonReader reader, Type objectType, DictionaryNoBoxing existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override DictionaryNoBoxing ReadJson(JsonReader reader, Type objectType,
+            DictionaryNoBoxing? existing, bool hasExisting, JsonSerializer serializer)
         {
-            throw new NotImplementedException("Deserialization not implemented.");
+            var dict = existing ?? new DictionaryNoBoxing();
+            var obj = JObject.Load(reader);
+
+            foreach (var prop in obj.Properties())
+            {
+                var token = prop.Value;
+                switch (token.Type)
+                {
+                    case JTokenType.Float:
+                        dict.Add(prop.Name, token.Value<double>());
+                        break;
+                    case JTokenType.Integer:
+                        dict.Add(prop.Name, token.Value<int>());
+                        break;
+                    case JTokenType.Boolean:
+                        dict.Add(prop.Name, token.Value<bool>());
+                        break;
+                    case JTokenType.Date:
+                        dict.Add(prop.Name, token.Value<DateTime>());
+                        break;
+                    case JTokenType.Null:
+                        dict.Add(prop.Name, null);
+                        break;
+                    default:
+                        dict.Add(prop.Name, token.Value<string>());
+                        break;
+                }
+            }
+
+            return dict;
         }
     }
 }

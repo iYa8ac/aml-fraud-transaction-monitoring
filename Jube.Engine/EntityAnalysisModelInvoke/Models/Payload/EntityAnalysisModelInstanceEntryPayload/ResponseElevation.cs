@@ -11,10 +11,17 @@
  * see <https://www.gnu.org/licenses/>.
  */
 
-namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntry
+namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisModelInstanceEntryPayload
 {
-    public class EntityModelActivationRulePayload
+    using System;
+
+    public class ResponseElevation
     {
-        public bool Visible { get; set; }
+        public double Value { get; set; }
+        public string Redirect { get; set; }
+        public string ForeColor { get; set; }
+        public string BackColor { get; set; }
+        public string Content { get; set; }
+        public DateTime CreatedDate { get; init; } = DateTime.Now;
     }
 }
