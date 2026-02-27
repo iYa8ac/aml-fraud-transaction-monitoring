@@ -173,7 +173,7 @@ namespace Jube.App.Controllers.Repository
             }
         }
 
-        [HttpGet("ByEntityAnalysisModelId/{entityAnalysisModelId:int}/ByDataType/{dataTypeId:int}")]
+        [HttpGet("ByEntityAnalysisModelId/{entityAnalysisModelId:int}/ByStringIntegerFloatDataType")]
         public async Task<ActionResult<List<EntityAnalysisModelRequestXPathDto>>> GetByEntityAnalysisModelIdByDataTypeAsync(
             int entityAnalysisModelId, int dataTypeId, CancellationToken token = default)
         {
@@ -188,7 +188,7 @@ namespace Jube.App.Controllers.Repository
                 }
 
                 return Ok(mapper.Map<List<EntityAnalysisModelRequestXPathDto>>(
-                    await repository.GetByEntityAnalysisModelIdByDataTypeAsync(entityAnalysisModelId, dataTypeId, token)));
+                    await repository.GetByEntityAnalysisModelIdByDataTypeAsync(entityAnalysisModelId, token, 1, 2, 3)));
             }
             catch (Exception e)
             {

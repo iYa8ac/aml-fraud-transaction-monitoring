@@ -173,8 +173,8 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(1)] public long CacheTtlCounterEntryRemovalBatchId { get; set; }
         [Column] [Nullable] [Key(2)] public DateTime? ReferenceDate { get; set; }
         [Column] [Nullable] [Key(3)] public string Value { get; set; }
-        [Column] [Nullable] [Key(4)] public long DecrementCount { get; set; }
-        [Column] [Nullable] [Key(5)] public long RevisedCount { get; set; }
+        [Column] [Nullable] [Key(4)] public double DecrementCount { get; set; }
+        [Column] [Nullable] [Key(5)] public double RevisedCount { get; set; }
     }
 
     [Table]
@@ -3116,6 +3116,8 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(28)] public string DefaultValue { get; set; }
         [Column] [Nullable] [Key(29)] public int? SearchKeyFetchLimit { get; set; }
         [Column] [Nullable] [Key(30)] public Guid Guid { get; set; }
+        [Column] [Nullable] [Key(31)] public byte? Cache { get; set; }
+        [Column] [Nullable] [Key(33)] public int? CacheIndexId { get; set; }
     }
 
     [Table]
@@ -3166,6 +3168,8 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(31)] public DateTime? UpdatedDate { get; set; }
         [Column] [Nullable] [Key(32)] public string UpdatedUser { get; set; }
         [Column] [Nullable] [Key(33)] public int? ImportId { get; set; }
+        [Column] [Nullable] [Key(34)] public byte? Cache { get; set; }
+        [Column] [Nullable] [Key(35)] public int? CacheIndexId { get; set; }
     }
 
     [Table]
@@ -3426,6 +3430,9 @@ namespace Jube.Data.Poco
 
         [Column] [Nullable] [Key(19)] public Guid Guid { get; set; }
         [Column] [Nullable] [Key(20)] public int? ImportId { get; set; }
+        [Column] [Nullable] [Key(21)] public byte? EnableSum { get; set; }
+        [Column] [Nullable] [Key(22)] public string ResolutionInterval { get; set; }
+        [Column] [Nullable] [Key(23)] public string TtlCounterDataValue { get; set; }
     }
 
     [Table]
@@ -3461,6 +3468,9 @@ namespace Jube.Data.Poco
         [Column] [Nullable] [Key(16)] public string TtlCounterDataName { get; set; }
         [Column] [Nullable] [Key(17)] public byte? OnlineAggregation { get; set; }
         [Column] [Nullable] [Key(18)] public byte? EnableLiveForever { get; set; }
+        [Column] [Nullable] [Key(19)] public byte? EnableSum { get; set; }
+        [Column] [Nullable] [Key(20)] public string ResolutionInterval { get; set; }
+        [Column] [Nullable] [Key(21)] public string TtlCounterDataValue { get; set; }
     }
 
     [Table]

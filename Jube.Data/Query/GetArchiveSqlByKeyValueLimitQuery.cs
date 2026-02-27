@@ -24,11 +24,11 @@ namespace Jube.Data.Query
 
     public class GetArchiveSqlByKeyValueLimitQuery(string connectionString, ILog log)
     {
-        public async Task<List<DictionaryNoBoxing>> ExecuteAsync(string sql,
+        public async Task<List<DictionaryNoBoxing<string>>> ExecuteAsync(string sql,
             string key, string value, string order, int limit, CancellationToken token = default)
         {
             var connection = new NpgsqlConnection(connectionString);
-            var values = new List<DictionaryNoBoxing>();
+            var values = new List<DictionaryNoBoxing<string>>();
             try
             {
                 await connection.OpenAsync(token).ConfigureAwait(false);
@@ -44,7 +44,7 @@ namespace Jube.Data.Query
                 var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
                 while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
-                    var document = new DictionaryNoBoxing();
+                    var document = new DictionaryNoBoxing<string>();
                     for (var index = 0; index < reader.FieldCount; index++)
                     {
                         if (await reader.IsDBNullAsync(index, token))

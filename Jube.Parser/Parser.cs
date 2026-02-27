@@ -119,7 +119,7 @@ namespace Jube.Parser
             {
                 this.ruleScriptTokens.Add("Contains");
             }
-            
+
             if (!this.ruleScriptTokens.Contains("Sanctions"))
             {
                 this.ruleScriptTokens.Add("Sanctions");
@@ -360,7 +360,7 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine(
-                "Public Shared Function Match(Data As DictionaryNoBoxing,List As Dictionary(Of String, List(Of String)), KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
+                "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),List As Dictionary(Of String, List(Of String)), KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
 
             countLine += 1;
             sb.AppendLine("Dim Matched as Boolean");
@@ -423,7 +423,7 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine(
-                "Public Shared Function Match(Data As DictionaryNoBoxing,List As Dictionary(Of String, List(Of String)), KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
+                "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),List As Dictionary(Of String, List(Of String)), KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
 
             countLine += 1;
             sb.AppendLine("Dim Matched as Boolean");
@@ -486,7 +486,7 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine(
-                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Long),Abstraction As PooledDictionary(Of String, Double),HttpAdaptation As Dictionary(Of String, Double),ExhaustiveAdaptation As PooledDictionary(Of String, Double),List as PooledDictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Activation as ICollection(Of String),Log as ILog) As Boolean");
+                "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),TTLCounter As PooledDictionary(Of String, Double),Abstraction As PooledDictionary(Of String, Double),HttpAdaptation As Dictionary(Of String, Double),ExhaustiveAdaptation As PooledDictionary(Of String, Double),List as PooledDictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Activation as ICollection(Of String),Log as ILog) As Boolean");
 
             countLine += 1;
             sb.AppendLine("Dim Matched as Boolean");
@@ -549,7 +549,7 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine(
-                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Long),Abstraction As PooledDictionary(Of String, Double),List as Dictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
+                "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),TTLCounter As PooledDictionary(Of String, Double),Abstraction As PooledDictionary(Of String, Double),List as Dictionary(Of String,List(Of String)),Deviation as PooledDictionary(Of String, Double),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean");
 
             countLine += 1;
             sb.AppendLine("Dim Matched as Boolean");
@@ -612,7 +612,7 @@ namespace Jube.Parser
 
             countLine += 1;
             sb.AppendLine(
-                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter as PooledDictionary(Of String,Long),List as Dictionary(Of String,List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Object");
+                "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),TTLCounter as PooledDictionary(Of String,Long),List as Dictionary(Of String,List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Object");
 
             if (tryCatchWrap)
             {
@@ -638,7 +638,7 @@ namespace Jube.Parser
             return parsedRule;
         }
 
-        public ParsedRule TranslateFromDotNotation(ParsedRule parsedRule)
+        public ParsedRule TranslateFromDotNotation(ParsedRule parsedRule, bool showOnlyCacheForPayload = false)
         {
             var sb = new StringBuilder();
             var lines = parsedRule.OriginalRuleText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
@@ -688,92 +688,101 @@ namespace Jube.Parser
                                 var defaultValue = "";
                                 if (EntityAnalysisModelRequestXPaths != null || EntityAnalysisModelInlineScriptProperties != null)
                                 {
-                                    if (EntityAnalysisModelRequestXPaths.ContainsKey(elements[k]))
+                                    if (EntityAnalysisModelRequestXPaths.TryGetValue(elements[k], out EntityAnalysisModelRequestXPath value))
                                     {
-                                        asFunction = EntityAnalysisModelRequestXPaths[elements[k]].DataTypeId switch
+                                        if (!EntityAnalysisModelRequestXPaths[elements[k]].Cache && showOnlyCacheForPayload)
                                         {
-                                            1 => "AsString()",
-                                            2 => "AsInt()",
-                                            3 => "AsDouble()",
-                                            4 => "AsDateTime()",
-                                            5 => "AsBool",
-                                            6 => "AsDouble()",
-                                            7 => "AsDouble()",
-                                            _ => "AsString()"
-                                        };
+                                            var errorSpan = new ErrorSpan
+                                            {
+                                                Message =
+                                                    $"Line {i + 1}: Request XPath exists but it is not defined as cache for {elements[k]}.",
+                                                Line = i
+                                            };
 
-                                        switch (EntityAnalysisModelRequestXPaths[elements[k]].DataTypeId)
+                                            parsedRule.ErrorSpans.Add(errorSpan);
+                                            asFunction = "AsString()";
+                                        }
+                                        else
                                         {
-                                            case 2:
-                                                databaseCast = "::int";
-                                                defaultValue = EntityAnalysisModelRequestXPaths[elements[k]]
-                                                    .DefaultValue;
+                                            asFunction = value.DataTypeId switch
+                                            {
+                                                1 => "AsString()",
+                                                2 => "AsInt()",
+                                                3 => "AsDouble()",
+                                                4 => "AsDateTime()",
+                                                5 => "AsBool",
+                                                6 => "AsDouble()",
+                                                7 => "AsDouble()",
+                                                _ => "AsString()"
+                                            };
 
-                                                if (!Int32.TryParse(defaultValue, out _))
-                                                {
-                                                    defaultValue = "0";
-                                                }
+                                            switch (value.DataTypeId)
+                                            {
+                                                case 2:
+                                                    databaseCast = "::int";
+                                                    defaultValue = value.DefaultValue;
 
-                                                break;
-                                            case 3:
-                                                databaseCast = "::float8";
-                                                defaultValue = EntityAnalysisModelRequestXPaths[elements[k]]
-                                                    .DefaultValue;
+                                                    if (!Int32.TryParse(defaultValue, out _))
+                                                    {
+                                                        defaultValue = "0";
+                                                    }
 
-                                                if (!Double.TryParse(defaultValue, out _))
-                                                {
-                                                    defaultValue = "0";
-                                                }
+                                                    break;
+                                                case 3:
+                                                    databaseCast = "::float8";
+                                                    defaultValue = value.DefaultValue;
 
-                                                break;
-                                            case 4:
-                                                databaseCast = "::timestamp";
-                                                defaultValue = EntityAnalysisModelRequestXPaths[elements[k]]
-                                                    .DefaultValue;
+                                                    if (!Double.TryParse(defaultValue, out _))
+                                                    {
+                                                        defaultValue = "0";
+                                                    }
 
-                                                if (!DateTime.TryParse(defaultValue, out _))
-                                                {
-                                                    defaultValue = "'" + DateTime.Now.ToString("O") + "'";
-                                                }
+                                                    break;
+                                                case 4:
+                                                    databaseCast = "::timestamp";
+                                                    defaultValue = value.DefaultValue;
 
-                                                break;
-                                            case 5:
-                                                databaseCast = "::boolean";
-                                                defaultValue = EntityAnalysisModelRequestXPaths[elements[k]]
-                                                    .DefaultValue;
+                                                    if (!DateTime.TryParse(defaultValue, out _))
+                                                    {
+                                                        defaultValue = "'" + DateTime.Now.ToString("O") + "'";
+                                                    }
 
-                                                if (!Boolean.TryParse(defaultValue, out _))
-                                                {
-                                                    defaultValue = "false";
-                                                }
+                                                    break;
+                                                case 5:
+                                                    databaseCast = "::boolean";
+                                                    defaultValue = value.DefaultValue;
 
-                                                break;
-                                            case 6:
-                                                databaseCast = "::float8";
+                                                    if (!Boolean.TryParse(defaultValue, out _))
+                                                    {
+                                                        defaultValue = "false";
+                                                    }
 
-                                                if (!Double.TryParse(defaultValue, out _))
+                                                    break;
+                                                case 6:
+                                                    databaseCast = "::float8";
 
-                                                {
-                                                    defaultValue = EntityAnalysisModelRequestXPaths[elements[k]]
-                                                        .DefaultValue;
-                                                }
+                                                    if (!Double.TryParse(defaultValue, out _))
 
-                                                break;
-                                            case 7:
-                                                databaseCast = "::float8";
-                                                defaultValue = EntityAnalysisModelRequestXPaths[elements[k]]
-                                                    .DefaultValue;
+                                                    {
+                                                        defaultValue = EntityAnalysisModelRequestXPaths[elements[k]]
+                                                            .DefaultValue;
+                                                    }
 
-                                                if (!Double.TryParse(defaultValue, out _))
-                                                {
-                                                    defaultValue = "0";
-                                                }
+                                                    break;
+                                                case 7:
+                                                    databaseCast = "::float8";
+                                                    defaultValue = value.DefaultValue;
 
-                                                break;
-                                            default:
-                                                defaultValue = "'" + EntityAnalysisModelRequestXPaths[elements[k]]
-                                                    .DefaultValue + "'";
-                                                break;
+                                                    if (!Double.TryParse(defaultValue, out _))
+                                                    {
+                                                        defaultValue = "0";
+                                                    }
+
+                                                    break;
+                                                default:
+                                                    defaultValue = "'" + value.DefaultValue + "'";
+                                                    break;
+                                            }
                                         }
                                     }
                                     else if (EntityAnalysisModelInlineScriptProperties.ContainsKey(elements[k]))
@@ -810,7 +819,7 @@ namespace Jube.Parser
                                         };
                                         parsedRule.ErrorSpans.Add(errorSpan);
 
-                                        asFunction = "String";
+                                        asFunction = "String()";
                                     }
                                 }
 
@@ -997,13 +1006,13 @@ namespace Jube.Parser
 
                                 replaceString = replaceString + "List(\"" + elements[k] + "\")";
                             }
-                            
+
                             else if (String.Equals("Activation", firstString,
                                          StringComparison.OrdinalIgnoreCase))
                             {
                                 findString = firstString + "." + elements[k];
 
-                                if (EntityAnalysisModelsActivationRules!= null)
+                                if (EntityAnalysisModelsActivationRules != null)
                                 {
                                     if (EntityAnalysisModelsActivationRules.All(w => w != elements[k]))
                                     {
@@ -1019,7 +1028,7 @@ namespace Jube.Parser
 
                                 replaceString = replaceString + "Activation.Contains(\"" + elements[k] + "\")";
                             }
-                            
+
                             else
                             {
                                 findString = firstString + "." + elements[k];

@@ -52,8 +52,9 @@ namespace Jube.Cache.Redis
                         {
                             expired.Add(new ExpiredTtlCounterEntry
                             {
-                                Value = (int)keyTtlCounterEntry.Value,
-                                DataValue = dataValue.Name,
+                                Value = (double)keyTtlCounterEntry.Value,
+                                DataName = dataValue.Name,
+                                DataValue = dataValue.Value,
                                 ReferenceDate = referenceDateTimestamp
                             });
                         }
@@ -68,7 +69,7 @@ namespace Jube.Cache.Redis
             return expired;
         }
 
-        public async Task<long> GetAggregationAsync(int tenantRegistryId,
+        public async Task<double> GetAggregationAsync(int tenantRegistryId,
             Guid entityAnalysisModelGuid, Guid entityAnalysisModelTtlCounterGuid,
             string dataName, string dataValue,
             DateTime referenceDateFrom, DateTime referenceDateTo)
@@ -88,13 +89,13 @@ namespace Jube.Cache.Redis
                 $"TtlCounterEntry:{tenantRegistryId}:{entityAnalysisModelGuid:N}" +
                 $":{entityAnalysisModelTtlCounterGuid:N}:{dataName}:{dataValue}";
 
-            var sum = 0L;
+            var sum = 0d;
             await foreach (var hashEntry in redisDatabase.HashScanAsync(redisKey))
             {
                 var timestamp = (int)hashEntry.Name;
                 if (timestamp >= referenceDateFromTimestamp && timestamp <= referenceDateToTimestamp)
                 {
-                    sum += (long)hashEntry.Value;
+                    sum += (double)hashEntry.Value;
                 }
             }
 
@@ -103,7 +104,7 @@ namespace Jube.Cache.Redis
         }
 
         public async Task UpsertAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string dataName, string dataValue,
-            Guid entityAnalysisModelTtlCounterGuid, DateTime referenceDate, int increment)
+            Guid entityAnalysisModelTtlCounterGuid, DateTime referenceDate, double increment)
         {
             try
             {
@@ -111,8 +112,7 @@ namespace Jube.Cache.Redis
                     $"TtlCounterEntry:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{entityAnalysisModelTtlCounterGuid:N}:{dataName}:{dataValue}";
                 var redisHSetKey = $"{referenceDate.ToUnixTimeMilliSeconds()}";
 
-                await redisDatabase.HashIncrementAsync(redisKey, redisHSetKey, increment,
-                    commandFlag).ConfigureAwait(false);
+                await redisDatabase.HashIncrementAsync(redisKey, redisHSetKey, increment, commandFlag).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

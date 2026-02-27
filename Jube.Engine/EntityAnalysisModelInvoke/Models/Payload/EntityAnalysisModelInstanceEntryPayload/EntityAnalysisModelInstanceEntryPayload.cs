@@ -23,7 +23,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
 
     public class EntityAnalysisModelInstanceEntryPayload
     {
-        [JsonProperty(Order = 1)] public DictionaryNoBoxing Payload { get; set; }
+        [JsonProperty(Order = 1)] public DictionaryNoBoxing<string> Payload { get; set; }
         [JsonProperty(Order = 2)] public ResponseElevation ResponseElevation { get; set; } = new ResponseElevation();
         [JsonProperty(Order = 3)] public string EntityAnalysisModelInstanceName { get; set; }
         [JsonProperty(Order = 4)] public double R { get; set; }
@@ -42,7 +42,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Models.Payload.EntityAnalysisMod
         [JsonProperty(Order = 17)] public string PrevailingEntityAnalysisModelActivationRuleName { get; set; }
         [JsonProperty(Order = 18)] public int EntityAnalysisModelActivationRuleCount { get; set; }
         [JsonProperty(Order = 19)] public PooledDictionary<string, double> Dictionary { get; set; }
-        [JsonProperty(Order = 20)] public PooledDictionary<string, long> TtlCounter { get; set; }
+        [JsonProperty(Order = 20)] public PooledDictionary<string, double> TtlCounter { get; set; }
         [JsonProperty(Order = 21)] public PooledDictionary<string, double> Sanction { get; set; }
         [JsonProperty(Order = 22)] public PooledDictionary<string, double> Abstraction { get; set; }
         [JsonProperty(Order = 23)] public PooledDictionary<string, double> AbstractionCalculation { get; set; }

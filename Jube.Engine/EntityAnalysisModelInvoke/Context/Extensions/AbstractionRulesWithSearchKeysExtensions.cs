@@ -39,7 +39,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
                         $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} Entity cache storage is enabled so will now proceed to loop through the distinct grouping keys for this model.");
                 }
 
-                var abstractionRuleMatches = new Dictionary<int, List<DictionaryNoBoxing>>();
+                var abstractionRuleMatches = new Dictionary<int, List<DictionaryNoBoxing<string>>>();
                 foreach (var (key, value) in context.EntityAnalysisModel.Collections.DistinctSearchKeys)
                 {
                     if (context.Log.IsInfoEnabled)
@@ -140,7 +140,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
         }
 
         private static async Task CalculateAbstractionRuleValuesOrLookupFromTheCacheAsync(Context context,
-            CacheService cacheService, Dictionary<int, List<DictionaryNoBoxing>> abstractionRuleMatches)
+            CacheService cacheService, Dictionary<int, List<DictionaryNoBoxing<string>>> abstractionRuleMatches)
         {
             var listEntityAnalysisModelIdAbstractionRuleNameSearchKeySearchValueRequest =
                 new List<EntityAnalysisModelIdAbstractionRuleNameSearchKeySearchValue>();

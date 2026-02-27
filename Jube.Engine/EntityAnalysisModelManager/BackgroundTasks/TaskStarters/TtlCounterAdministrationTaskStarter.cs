@@ -213,16 +213,16 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
             CacheTtlCounterEntryRemovalBatch cacheTtlCounterEntryRemovalBatch)
         {
 
-            var revisedCount = await ttlCounterAdministrationCacheService.CacheServiceDecrementTtlCounterAsync(ttlCounterWithinLoop, expiredTtlCounterEntry.DataValue, expiredTtlCounterEntry.Value).ConfigureAwait(false);
+            var revisedCount = await ttlCounterAdministrationCacheService.CacheServiceDecrementTtlCounterAsync(ttlCounterWithinLoop, expiredTtlCounterEntry.DataName, expiredTtlCounterEntry.Value).ConfigureAwait(false);
 
             await ttlCounterAdministrationCacheService.CacheServiceDeleteTtlCounterEntryAsync(entityAnalysisModel.Services.CacheService.CacheTtlCounterEntryRepository, ttlCounterWithinLoop,
-                expiredTtlCounterEntry.DataValue,
+                expiredTtlCounterEntry.DataName,
                 expiredTtlCounterEntry.ReferenceDate).ConfigureAwait(false);
 
             cacheTtlCounterEntryRemovalBatchEntryList.Add(new CacheTtlCounterEntryRemovalBatchEntry
             {
                 CacheTtlCounterEntryRemovalBatchId = cacheTtlCounterEntryRemovalBatch.Id,
-                Value = expiredTtlCounterEntry.DataValue,
+                Value = expiredTtlCounterEntry.DataName,
                 DecrementCount = expiredTtlCounterEntry.Value,
                 RevisedCount = revisedCount,
                 ReferenceDate = expiredTtlCounterEntry.ReferenceDate

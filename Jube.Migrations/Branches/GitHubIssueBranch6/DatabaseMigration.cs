@@ -4,7 +4,7 @@ using FluentMigrator;
 namespace Jube.Migrations.Branches.GitHubIssueBranch6
 {
     [Migration(20250405191700)]
-    public class DatabaseDatabaseMigration : Migration
+    public class DatabaseMigration : Migration
     {
         public override void Up()
         {

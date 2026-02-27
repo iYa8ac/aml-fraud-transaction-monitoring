@@ -20,9 +20,20 @@ var ttlCounterDataName = $("#TtlCounterDataName").kendoDropDownList({
     dataValueField: "value"
 });
 
+var ttlCounterDataValue = $("#TtlCounterDataValue").kendoDropDownList({
+    dataTextField: "text",
+    dataValueField: "value"
+});
+
 var liveForever = $("#LiveForever").kendoSwitch({
     change: function () {
         SetLiveForever();
+    }
+});
+
+var sum = $("#Sum").kendoSwitch({
+    change: function () {
+        SetSum();
     }
 });
 
@@ -35,7 +46,7 @@ var onlineAggregation = $("#OnlineAggregation").kendoSwitch();
 
 function SetLiveForever() {
     let liveForever = $('#LiveForever');
-    let table = $('.sTStyle');
+    let table = $('#LiveForeverTable');
     if (liveForever.prop('checked')) {
         table.hide();
     } else {
@@ -43,17 +54,35 @@ function SetLiveForever() {
     }
 }
 
-$.get("../api/EntityAnalysisModelRequestXPath/ByEntityAnalysisModelId/" + parentKey + "/ByDataType/1",
+function SetSum() {
+    let sum = $('#Sum');
+    let table = $('#SumTable');
+    if (sum.prop('checked')) {
+        table.show();
+    } else {
+        table.hide();
+    }
+}
+
+$.get("../api/EntityAnalysisModelRequestXPath/ByEntityAnalysisModelId/" + parentKey + "/ByStringIntegerFloatDataType",
     function (data) {
         for (const value of data) {
-            ttlCounterDataName.getKendoDropDownList().dataSource.add({
-                "value": value.name,
-                "text": value.name
-            });
+            if (value.dataTypeId === 1) {
+                ttlCounterDataName.getKendoDropDownList().dataSource.add({
+                    "value": value.name,
+                    "text": value.name
+                });
+            } else if (value.dataTypeId === 2 || value.dataTypeId === 3) {
+                ttlCounterDataValue.getKendoDropDownList().dataSource.add({
+                    "value": value.name,
+                    "text": value.name
+                });
+            }
         }
 
         if (typeof id === "undefined") {
             SetLiveForever();
+            SetSum();
             ReadyNew();
         } else {
             $.get(endpoint + "/" + id,
@@ -62,11 +91,19 @@ $.get("../api/EntityAnalysisModelRequestXPath/ByEntityAnalysisModelId/" + parent
                         data.ttlCounterInterval +
                         "]").prop('checked', true);
 
+                    $("input[name=ResolutionInterval][value=" +
+                        data.resolutionInterval +
+                        "]").prop('checked', true);
+
                     ttlCounterValue.data("kendoNumericTextBox").value(data.ttlCounterValue);
 
                     ttlCounterDataName.data("kendoDropDownList")
                         .value(data.ttlCounterDataName);
 
+                    let dropdownTtlCounterDataValue = ttlCounterDataValue.data("kendoDropDownList");
+                    let firstValue = dropdownTtlCounterDataValue.dataItem(0) ? dropdownTtlCounterDataValue.dataItem(0).value : "";
+                    dropdownTtlCounterDataValue.value(data.ttlCounterDataValue || firstValue);
+                    
                     if (data.onlineAggregation) {
                         onlineAggregation.data("kendoSwitch").check(true);
                     } else {
@@ -79,6 +116,13 @@ $.get("../api/EntityAnalysisModelRequestXPath/ByEntityAnalysisModelId/" + parent
                         liveForever.data("kendoSwitch").check(false);
                     }
 
+                    if (data.enableSum) {
+                        sum.data("kendoSwitch").check(true);
+                    } else {
+                        sum.data("kendoSwitch").check(false);
+                    }
+
+                    SetSum();
                     SetLiveForever();
                     ReadyExisting(data);
                 });
@@ -101,7 +145,10 @@ function GetData() {
         enableLiveForever: liveForever.prop("checked"),
         ttlCounterDataName: ttlCounterDataName.data("kendoDropDownList").value(),
         ttlCounterValue: ttlCounterValue.val(),
-        ttlCounterInterval: $('input[name=TtlCounterInterval]:checked').val()
+        ttlCounterInterval: $('input[name=TtlCounterInterval]:checked').val(),
+        ttlCounterDataValue: ttlCounterDataValue.data("kendoDropDownList").value(),
+        enableSum: sum.prop("checked"),
+        resolutionInterval: $('input[name=ResolutionInterval]:checked').val()
     };
 }
 

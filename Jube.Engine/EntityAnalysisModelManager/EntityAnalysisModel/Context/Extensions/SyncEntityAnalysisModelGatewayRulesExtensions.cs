@@ -227,7 +227,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                             gatewayRuleScript.Append("Imports System\r\n");
                             gatewayRuleScript.Append("Public Class GatewayRule\r\n");
                             gatewayRuleScript.Append(
-                                "Public Shared Function Match(Data As DictionaryNoBoxing,List As Dictionary(Of String, List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean\r\n");
+                                "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),List As Dictionary(Of String, List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Boolean\r\n");
                             gatewayRuleScript.Append("Dim Matched as Boolean\r\n");
                             gatewayRuleScript.Append("Try\r\n");
                             gatewayRuleScript.Append(modelGatewayRule.GatewayRuleScript + "\r\n");

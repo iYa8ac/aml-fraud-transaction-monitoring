@@ -22,9 +22,9 @@ namespace Jube.Cache.Redis
         ILog log,
         CommandFlags commandFlag = CommandFlags.FireAndForget) : ICacheTtlCounterRepository
     {
-        public async Task<long> DecrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        public async Task<double> DecrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             Guid entityAnalysisModelTtlCounterGuid,
-            string dataName, string dataValue, int decrement)
+            string dataName, string dataValue, double decrement)
         {
             try
             {
@@ -50,7 +50,7 @@ namespace Jube.Cache.Redis
             return 0;
         }
 
-        public async Task<int> GetByNameDataNameDataValueAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        public async Task<double> GetByNameDataNameDataValueAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             Guid entityAnalysisModelTtlCounterGuid, string dataName, string dataValue)
         {
             try
@@ -58,7 +58,7 @@ namespace Jube.Cache.Redis
                 var redisKey =
                     $"TtlCounter:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{entityAnalysisModelTtlCounterGuid:N}:{dataName}";
                 var redisHSetKey = $"{dataValue}";
-                return (int)await redisDatabase.HashGetAsync(redisKey, redisHSetKey).ConfigureAwait(false);
+                return (double)await redisDatabase.HashGetAsync(redisKey, redisHSetKey).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -70,7 +70,7 @@ namespace Jube.Cache.Redis
 
         public async Task IncrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string dataName,
             string dataValue,
-            Guid entityAnalysisModelTtlCounterGuid, int increment, DateTime referenceDate)
+            Guid entityAnalysisModelTtlCounterGuid, double increment, DateTime referenceDate)
         {
             try
             {

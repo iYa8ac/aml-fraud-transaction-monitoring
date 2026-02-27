@@ -17,9 +17,9 @@ namespace Jube.Dictionary.Serialization
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
-    public class DictionaryNoBoxingConverter : JsonConverter<DictionaryNoBoxing>
+    public class DictionaryNoBoxingConverter : JsonConverter<DictionaryNoBoxing<string>>
     {
-        public override void WriteJson(JsonWriter writer, DictionaryNoBoxing? value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, DictionaryNoBoxing<string>? value, JsonSerializer serializer)
         {
             writer.WriteStartObject();
 
@@ -60,10 +60,10 @@ namespace Jube.Dictionary.Serialization
             writer.WriteEndObject();
         }
 
-        public override DictionaryNoBoxing ReadJson(JsonReader reader, Type objectType,
-            DictionaryNoBoxing? existing, bool hasExisting, JsonSerializer serializer)
+        public override DictionaryNoBoxing<string> ReadJson(JsonReader reader, Type objectType,
+            DictionaryNoBoxing<string>? existing, bool hasExisting, JsonSerializer serializer)
         {
-            var dict = existing ?? new DictionaryNoBoxing();
+            var dict = existing ?? new DictionaryNoBoxing<string>();
             var obj = JObject.Load(reader);
 
             foreach (var prop in obj.Properties())

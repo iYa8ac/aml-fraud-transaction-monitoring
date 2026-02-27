@@ -21,7 +21,7 @@ namespace Jube.Cache.Redis.Interfaces
         Task UpsertAsync(int tenantRegistryId, Guid entityAnalysisModelId,
             DateTime referenceDate, Guid entityAnalysisModelInstanceEntryGuid, string entryKey, string entryKeyValue);
 
-        Task UpsertAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, DictionaryNoBoxing payload,
+        Task UpsertAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, DictionaryNoBoxing<int> payload,
             DateTime referenceDate, Guid entityAnalysisModelInstanceEntryGuid, string entryKey, string entryKeyValue);
 
         Task<List<string>> GetDistinctKeysAsync(int tenantRegistryId, Guid entityAnalysisModelGuid, string key,

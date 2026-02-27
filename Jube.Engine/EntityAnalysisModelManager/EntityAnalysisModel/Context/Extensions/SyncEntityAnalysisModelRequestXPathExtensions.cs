@@ -296,6 +296,48 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 }
                             }
 
+                            if (!record.Cache.HasValue)
+                            {
+                                entityAnalysisModelRequestXPath.Cache = false;
+
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Start: Entity Model {key} and Response Payload {entityAnalysisModelRequestXPath.Id} set DEFAULT Cache value as {entityAnalysisModelRequestXPath.Cache}.");
+                                }
+                            }
+                            else
+                            {
+                                entityAnalysisModelRequestXPath.Cache = record.Cache == 1;
+
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Start: Entity Model {key} and Response Payload {entityAnalysisModelRequestXPath.Id} set Cache value as {entityAnalysisModelRequestXPath.Cache}.");
+                                }
+                            }
+                            
+                            if (!record.CacheIndexId.HasValue)
+                            {
+                                entityAnalysisModelRequestXPath.CacheIndexId = record.Id;
+
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Start: Entity Model {key} and Response Payload {entityAnalysisModelRequestXPath.Id} set DEFAULT Cache Index Id value as {entityAnalysisModelRequestXPath.Id}.");
+                                }
+                            }
+                            else
+                            {
+                                entityAnalysisModelRequestXPath.CacheIndexId = record.CacheIndexId.Value;
+
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Start: Entity Model {key} and Response Payload {entityAnalysisModelRequestXPath.Id} set Cache Index Id value as {entityAnalysisModelRequestXPath.CacheIndexId}.");
+                                }
+                            }
+                            
                             if (!record.EnableSuppression.HasValue)
                             {
                                 entityAnalysisModelRequestXPath.EnableSuppression = false;
@@ -542,7 +584,8 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                     new EntityAnalysisModelRequestXPath
                                     {
                                         DataTypeId = entityAnalysisModelRequestXPath.DataTypeId,
-                                        DefaultValue = entityAnalysisModelRequestXPath.DefaultValue
+                                        DefaultValue = entityAnalysisModelRequestXPath.DefaultValue,
+                                        Cache = entityAnalysisModelRequestXPath.Cache
                                     });
                             }
 

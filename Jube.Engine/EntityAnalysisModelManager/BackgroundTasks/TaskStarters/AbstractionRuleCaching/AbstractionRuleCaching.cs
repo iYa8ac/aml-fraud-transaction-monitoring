@@ -119,7 +119,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
                                 Activation = new PooledDictionary<string, EntityModelActivationRulePayload>(entityAnalysisModel.Collections.ModelActivationRules.Count),
                                 Tag = new PooledDictionary<string, double>(entityAnalysisModel.Collections.EntityAnalysisModelTags.Count),
                                 Dictionary = new PooledDictionary<string, double>(entityAnalysisModel.Dependencies.KvpDictionaries.Count),
-                                TtlCounter = new PooledDictionary<string, long>(entityAnalysisModel.Collections.ModelTtlCounters.Count),
+                                TtlCounter = new PooledDictionary<string, double>(entityAnalysisModel.Collections.ModelTtlCounters.Count),
                                 Sanction = new PooledDictionary<string, double>(entityAnalysisModel.Collections.EntityAnalysisModelSanctions.Count),
                                 AbstractionCalculation = new PooledDictionary<string, double>(entityAnalysisModel.Collections.EntityAnalysisModelAbstractionCalculations.Count),
                                 HttpAdaptation = new PooledDictionary<string, double>(entityAnalysisModel.Collections.EntityAnalysisModelAdaptations.Count),
@@ -130,7 +130,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
                                 }
                             };
 
-                            var abstractionRuleMatches = new Dictionary<int, List<DictionaryNoBoxing>>();
+                            var abstractionRuleMatches = new Dictionary<int, List<DictionaryNoBoxing<string>>>();
 
                             if (entityAnalysisModel.Services.Log.IsInfoEnabled)
                             {
@@ -251,15 +251,15 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
             }
         }
 
-        private static Task<Dictionary<int, List<DictionaryNoBoxing>>> ProcessAllAbstractionRulesAsync(EntityAnalysisModel entityAnalysisModel,
+        private static Task<Dictionary<int, List<DictionaryNoBoxing<string>>>> ProcessAllAbstractionRulesAsync(EntityAnalysisModel entityAnalysisModel,
             DistinctSearchKey distinctSearchKey,
-            List<DictionaryNoBoxing> documents,
-            Dictionary<int, List<DictionaryNoBoxing>> abstractionRuleMatches, CancellationToken token = default)
+            List<DictionaryNoBoxing<string>> documents,
+            Dictionary<int, List<DictionaryNoBoxing<string>>> abstractionRuleMatches, CancellationToken token = default)
         {
-            Dictionary<int, List<DictionaryNoBoxing>> values = null;
+            Dictionary<int, List<DictionaryNoBoxing<string>>> values = null;
             try
             {
-                var logicHashMatches = new Dictionary<string, List<DictionaryNoBoxing>>();
+                var logicHashMatches = new Dictionary<string, List<DictionaryNoBoxing<string>>>();
 
                 if (entityAnalysisModel.Services.Log.IsInfoEnabled)
                 {
@@ -286,7 +286,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
                                 $"Abstraction Rule Caching: For model {entityAnalysisModel.Instance.Id} and grouping key {distinctSearchKey.SearchKey} is checking is abstraction rule {evaluateAbstractionRule.Id} will be used to filter for matches.  As some rule logic can be common across a number of rules,  a check will be made to see if this logic has already been executed using the hash of the rule logic as {evaluateAbstractionRule.LogicHash}.");
                         }
 
-                        List<DictionaryNoBoxing> matches;
+                        List<DictionaryNoBoxing<string>> matches;
                         if (logicHashMatches.TryGetValue(evaluateAbstractionRule.LogicHash, out var match))
                         {
                             matches = match;

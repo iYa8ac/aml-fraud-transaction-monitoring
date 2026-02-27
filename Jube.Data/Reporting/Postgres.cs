@@ -171,14 +171,14 @@ namespace Jube.Data.Reporting
             return value;
         }
 
-        public async Task<List<DictionaryNoBoxing>> ExecuteReturnPayloadFromArchiveWithSkipLimitAsync(
+        public async Task<List<DictionaryNoBoxing<string>>> ExecuteReturnPayloadFromArchiveWithSkipLimitAsync(
             string sql,
             DateTime adjustedStartDate,
             int skip,
             int limit,
             CancellationToken token = default)
         {
-            var value = new List<DictionaryNoBoxing>();
+            var value = new List<DictionaryNoBoxing<string>>();
             var connection = new NpgsqlConnection(connectionString);
             try
             {
@@ -195,7 +195,7 @@ namespace Jube.Data.Reporting
                 var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
                 while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
-                    var dictionaryNoBoxing = new DictionaryNoBoxing();
+                    var dictionaryNoBoxing = new DictionaryNoBoxing<string>();
                     for (var index = 0; index < reader.FieldCount; index++)
                     {
                         if (!dictionaryNoBoxing.ContainsKey(reader.GetName(index)))

@@ -15,6 +15,7 @@ namespace Jube.Data.Repository
 {
     using System;
     using System.Collections.Generic;
+    using System.Data;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -75,7 +76,18 @@ namespace Jube.Data.Repository
                     && (w.Deleted == 0 || w.Deleted == null))
                 .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
         }
-
+        
+        public async Task<IEnumerable<EntityAnalysisModelRequestXpath>> GetByEntityAnalysisModelIdOrderByIdCacheOnlyAsync(int entityAnalysisModelId, CancellationToken token = default)
+        {
+            return await dbContext.EntityAnalysisModelRequestXpath
+                .Where(w =>
+                    (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
+                    && w.EntityAnalysisModelId == entityAnalysisModelId
+                    && w.Cache == 1
+                    && (w.Deleted == 0 || w.Deleted == null))
+                .OrderBy(o => o.Id).ToListAsync(token).ConfigureAwait(false);
+        }
+        
         public async Task<IEnumerable<EntityAnalysisModelRequestXpath>> GetBySuppressionKeysAsync(CancellationToken token = default)
         {
             return await dbContext.EntityAnalysisModelRequestXpath
@@ -99,12 +111,12 @@ namespace Jube.Data.Repository
         }
 
         public async Task<IEnumerable<EntityAnalysisModelRequestXpath>> GetByEntityAnalysisModelIdByDataTypeAsync(
-            int entityAnalysisModelId, int dataTypeId, CancellationToken token = default)
+            int entityAnalysisModelId, CancellationToken token = default, params int[] dataTypeIds)
         {
             return await dbContext.EntityAnalysisModelRequestXpath
                 .Where(w =>
                     (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue)
-                    && w.DataTypeId == dataTypeId
+                    && dataTypeIds.Contains(w.DataTypeId.Value)
                     && w.EntityAnalysisModelId == entityAnalysisModelId && (w.Deleted == 0 || w.Deleted == null))
                 .ToListAsync(token);
         }
@@ -118,12 +130,29 @@ namespace Jube.Data.Repository
 
         public async Task<EntityAnalysisModelRequestXpath> InsertAsync(EntityAnalysisModelRequestXpath model, CancellationToken token = default)
         {
-            model.CreatedUser = userName ?? model.CreatedUser;
-            model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
-            model.CreatedDate = DateTime.Now;
-            model.Version = 1;
-            model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
-            return model;
+            await using var transaction = await dbContext.BeginTransactionAsync(IsolationLevel.Serializable, token);
+            try
+            {
+                var cacheIndexId = await dbContext.EntityAnalysisModelRequestXpath
+                    .Where(w => (w.EntityAnalysisModel.TenantRegistryId == tenantRegistryId || !tenantRegistryId.HasValue) 
+                                && w.EntityAnalysisModel.Id == model.EntityAnalysisModelId
+                    ).MaxAsync(m => m.CacheIndexId, token) ?? 0;
+            
+                model.CreatedUser = userName ?? model.CreatedUser;
+                model.Guid = model.Guid == Guid.Empty ? Guid.NewGuid() : model.Guid;
+                model.CreatedDate = DateTime.Now;
+                model.Version = 1;
+                model.CacheIndexId = cacheIndexId + 1;
+                
+                model.Id = await dbContext.InsertWithInt32IdentityAsync(model, token: token);
+                await transaction.CommitAsync(token);
+                return model;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(token);
+                throw;
+            }
         }
 
         public async Task<EntityAnalysisModelRequestXpath> UpdateAsync(EntityAnalysisModelRequestXpath model, CancellationToken token = default)
@@ -141,6 +170,7 @@ namespace Jube.Data.Repository
 
             model.Version = existing.Version + 1;
             model.Guid = existing.Guid;
+            model.CacheIndexId = existing.CacheIndexId;
             model.CreatedUser = userName;
             model.CreatedDate = DateTime.Now;
 

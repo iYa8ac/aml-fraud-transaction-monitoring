@@ -4,5 +4,6 @@ namespace Jube.Parser
     {
         public int DataTypeId { get; set; }
         public  string DefaultValue { get; set; }
+        public bool Cache { get; set; }
     }
 }

@@ -20,7 +20,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
 
     public class EntityAnalysisModelInlineFunction
     {
-        public delegate object Match(DictionaryNoBoxing data, Dictionary<string, List<string>> list,
+        public delegate object Match(DictionaryNoBoxing<string> data, Dictionary<string, List<string>> list,
             PooledDictionary<string, double> kvp, ILog log);
 
         public int Id { get; init; }

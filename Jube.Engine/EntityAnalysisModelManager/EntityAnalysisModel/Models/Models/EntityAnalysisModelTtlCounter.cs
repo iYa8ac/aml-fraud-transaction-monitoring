@@ -24,8 +24,11 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
         public string Name { get; set; }
         public bool ReportTable { get; set; }
         public string TtlCounterDataName { get; set; }
+        public bool EnableSum { get; set; }
+        public string TtlCounterDataValue { get; set; }
         public bool OnlineAggregation { get; set; }
         public bool EnableLiveForever { get; set; }
         public Guid Guid { get; set; }
+        public string ResolutionInterval { get; set; }
     }
 }

@@ -216,7 +216,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 activationRuleScript.Append("Imports System\r\n");
                                 activationRuleScript.Append("Public Class InlineFunction\r\n");
                                 activationRuleScript.Append(
-                                    "Public Shared Function Match(Data As DictionaryNoBoxing,List As Dictionary(Of String, List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Object\r\n");
+                                    "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),List As Dictionary(Of String, List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Object\r\n");
                                 activationRuleScript.Append("Dim Matched as Object = Nothing");
                                 activationRuleScript.Append("\r\n");
                                 activationRuleScript.Append("Try\r\n");

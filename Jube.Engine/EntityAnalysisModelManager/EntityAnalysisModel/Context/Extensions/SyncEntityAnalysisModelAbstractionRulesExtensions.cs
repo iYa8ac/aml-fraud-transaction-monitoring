@@ -437,7 +437,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                             if (record.BuilderRuleScript != null && modelAbstractionRule.RuleScriptTypeId == 1)
                             {
                                 parsedRule.OriginalRuleText = record.BuilderRuleScript;
-                                parsedRule = context.Services.Parser.TranslateFromDotNotation(parsedRule);
+                                parsedRule = context.Services.Parser.TranslateFromDotNotation(parsedRule, true);
                                 parsedRule = context.Services.Parser.Parse(parsedRule);
 
                                 if (parsedRule.ErrorSpans.Count == 0)
@@ -564,7 +564,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                             abstractionRuleScript.Append("Imports System\r\n");
                             abstractionRuleScript.Append("Public Class AbstractionRule\r\n");
                             abstractionRuleScript.Append(
-                                "Public Shared Function Match(Data As DictionaryNoBoxing,List as Dictionary(Of String,List(Of String)),KVP as PooledDictionary(of String,Double),Log as ILog) As Boolean\r\n");
+                                "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),List as Dictionary(Of String,List(Of String)),KVP as PooledDictionary(of String,Double),Log as ILog) As Boolean\r\n");
                             abstractionRuleScript.Append("Dim Matched as Boolean\r\n");
                             abstractionRuleScript.Append("Try\r\n");
                             abstractionRuleScript.Append(modelAbstractionRule.AbstractionRuleScript + "\r\n");

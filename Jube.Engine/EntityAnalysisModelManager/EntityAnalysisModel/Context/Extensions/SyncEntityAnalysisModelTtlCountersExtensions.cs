@@ -138,6 +138,67 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                 }
                             }
 
+                            if (!record.EnableSum.HasValue)
+                            {
+                                entityAnalysisModelTtlCounter.EnableSum = false;
+
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Start: Model {key} and Enable Live Forever {entityAnalysisModelTtlCounter.Id} set DEFAULT Enable Sum as {entityAnalysisModelTtlCounter.EnableSum}.");
+                                }
+                            }
+                            else
+                            {
+                                entityAnalysisModelTtlCounter.EnableSum = record.EnableSum.Value == 1;
+
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Start: Model {key} and Enable Live Forever {entityAnalysisModelTtlCounter.Id} set Enable Sum as {entityAnalysisModelTtlCounter.EnableSum}.");
+                                }
+                            }
+                            
+                            if (record.TtlCounterDataValue == null)
+                            {
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Start: Model {key} and TTL Counter {entityAnalysisModelTtlCounter.Id} set DEFAULT TTL Counter Data Value as {entityAnalysisModelTtlCounter.TtlCounterDataValue}.");
+                                }
+                            }
+                            else
+                            {
+                                entityAnalysisModelTtlCounter.TtlCounterDataValue = record.TtlCounterDataValue.Replace(" ", "_");
+
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Start: Model {key} and Cross Model Abstraction {entityAnalysisModelTtlCounter.Id} set TTL Counter Data Value as {entityAnalysisModelTtlCounter.TtlCounterDataValue}.");
+                                }
+                            }
+
+                            if (record.ResolutionInterval == null)
+                            {
+                                entityAnalysisModelTtlCounter.ResolutionInterval = "d";
+
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Start: Model {key} and TTL Counter {entityAnalysisModelTtlCounter.Id} set DEFAULT Resolution Interval as {entityAnalysisModelTtlCounter.ResolutionInterval}.");
+                                }
+                            }
+                            else
+                            {
+                                entityAnalysisModelTtlCounter.ResolutionInterval = record.ResolutionInterval;
+
+                                if (context.Services.Log.IsDebugEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Model {key} and TTL Counter {entityAnalysisModelTtlCounter.Id} set Resolution Interval as {entityAnalysisModelTtlCounter.ResolutionInterval}.");
+                                }
+                            }
+
                             if (record.TtlCounterInterval == null)
                             {
                                 entityAnalysisModelTtlCounter.TtlCounterInterval = "d";

@@ -18,7 +18,7 @@ var context = new Context
 {
     EntityAnalysisModelInstanceEntryPayload = new EntityAnalysisModelInstanceEntryPayload
     {
-        Payload = new DictionaryNoBoxing
+        Payload = new DictionaryNoBoxing<string>
         {
             {
                 "IP", "123.123.123.123"

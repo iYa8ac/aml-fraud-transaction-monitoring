@@ -15,15 +15,15 @@ namespace Jube.Cache.Redis.Interfaces
 {
     public interface ICacheTtlCounterRepository
     {
-        Task<long> DecrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        Task<double> DecrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             Guid entityAnalysisModelTtlCounterGuid,
-            string dataName, string dataValue, int decrement);
+            string dataName, string dataValue, double decrement);
 
-        Task<int> GetByNameDataNameDataValueAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
+        Task<double> GetByNameDataNameDataValueAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
             Guid entityAnalysisModelTtlCounterGuid, string dataName, string dataValue);
 
         Task IncrementTtlCounterCacheAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
-            string dataName, string dataValue, Guid entityAnalysisModelTtlCounterGuid, int increment,
+            string dataName, string dataValue, Guid entityAnalysisModelTtlCounterGuid, double increment,
             DateTime referenceDate);
     }
 }

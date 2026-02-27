@@ -14,7 +14,9 @@
 namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
 {
     using System.Collections.Generic;
+    using System.Linq;
     using Cache;
+    using Dictionary;
     using EntityAnalysisModelManager.EntityAnalysisModel.Models.Models;
     using TaskCancellation.TaskHelper;
 
@@ -49,12 +51,14 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
         {
             if (context.EntityAnalysisModel.Flags.EnableCache)
             {
+                var reducedInternedPayload = ParseToReducedInternedPayload(context);
+
                 if (context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelReprocessingRuleInstanceId.HasValue)
                 {
                     context.PendingWriteTasks.Add(TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.CachePayloadUpsertAsync, async () => await cacheService.CachePayloadRepository.UpsertAsync(
                         context.EntityAnalysisModel.Instance.TenantRegistryId,
                         context.EntityAnalysisModel.Instance.Guid,
-                        context.EntityAnalysisModelInstanceEntryPayload.Payload,
+                        reducedInternedPayload,
                         context.EntityAnalysisModelInstanceEntryPayload.ReferenceDate,
                         context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid).ConfigureAwait(false)));
 
@@ -69,7 +73,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
                     context.PendingWriteTasks.Add(TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.CachePayloadInsertAsync, async () => await cacheService.CachePayloadRepository.InsertAsync(
                         context.EntityAnalysisModel.Instance.TenantRegistryId,
                         context.EntityAnalysisModel.Instance.Guid,
-                        context.EntityAnalysisModelInstanceEntryPayload.Payload,
+                        reducedInternedPayload,
                         context.EntityAnalysisModelInstanceEntryPayload.ReferenceDate,
                         context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid).ConfigureAwait(false)));
 
@@ -88,6 +92,20 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
                         $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} does not allow entity storage in the cache.");
                 }
             }
+        }
+        
+        private static DictionaryNoBoxing<int> ParseToReducedInternedPayload(Context context)
+        {
+            var reducedInternedPayload = new DictionaryNoBoxing<int>();
+            reducedInternedPayload.Add(-1,context.EntityAnalysisModelInstanceEntryPayload.ReferenceDate);
+            foreach (var entityAnalysisModelRequestXPath in context.EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.Where(w => w.Cache))
+            {
+                if (context.EntityAnalysisModelInstanceEntryPayload.Payload.TryGetValue(entityAnalysisModelRequestXPath.Name, out var value))
+                {
+                    reducedInternedPayload.Add(entityAnalysisModelRequestXPath.CacheIndexId,value);   
+                }
+            }
+            return reducedInternedPayload;
         }
     }
 }

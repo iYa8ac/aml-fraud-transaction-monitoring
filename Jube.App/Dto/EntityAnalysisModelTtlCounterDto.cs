@@ -38,5 +38,8 @@ namespace Jube.App.Dto
         public int Version { get; set; }
         public string DeletedUser { get; set; }
         public DateTime DeletedDate { get; set; }
+        public bool EnableSum { get; set; }
+        public string ResolutionInterval { get; set; }
+        public string TtlCounterDataValue { get; set; }
     }
 }

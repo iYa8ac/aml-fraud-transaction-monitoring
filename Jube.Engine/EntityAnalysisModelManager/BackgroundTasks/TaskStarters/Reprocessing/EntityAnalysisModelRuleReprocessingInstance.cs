@@ -20,8 +20,8 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Re
 
     public class EntityAnalysisModelRuleReprocessingInstance
     {
-        public delegate bool Match(DictionaryNoBoxing data, Dictionary<string, List<string>> list,
-            PooledDictionary<string, DictionaryNoBoxing> kvp, ILog log);
+        public delegate bool Match(DictionaryNoBoxing<string> data, Dictionary<string, List<string>> list,
+            PooledDictionary<string, DictionaryNoBoxing<string>> kvp, ILog log);
 
         public int ReprocessingIntervalValue { get; set; }
         public string ReprocessingIntervalType { get; set; }
