@@ -17,34 +17,38 @@ namespace Jube.Cache.Redis.Serialization.DictionaryNoBoxing.MessagePack
     using global::MessagePack;
     using global::MessagePack.Formatters;
     using global::MessagePack.Resolvers;
-
+    
     public class EnvelopeDictionaryNoBoxingResolver : IFormatterResolver
     {
         public static readonly EnvelopeDictionaryNoBoxingResolver Instance = new EnvelopeDictionaryNoBoxingResolver();
 
         private readonly ConcurrentDictionary<Type, object> formatterCache = new ConcurrentDictionary<Type, object>();
 
-        private EnvelopeDictionaryNoBoxingResolver() {}
+        private EnvelopeDictionaryNoBoxingResolver() { }
 
         public IMessagePackFormatter<T> GetFormatter<T>()
         {
-            // If the formatter is already cached, return it directly.
             if (formatterCache.TryGetValue(typeof(T), out var cachedFormatter))
             {
                 return (IMessagePackFormatter<T>)cachedFormatter;
             }
 
-            // If not cached, perform a direct check for our specific type and cache the formatter if applicable.
-            if (typeof(T) != typeof(EnvelopeDictionaryNoBoxing))
+            object formatter;
+            if (typeof(T) == typeof(EnvelopeDictionaryNoBoxing<int>))
+            {
+                formatter = new EnvelopeDictionaryNoBoxingMessagePackFormatter<int>();
+            }
+            else if (typeof(T) == typeof(EnvelopeDictionaryNoBoxing<string>))
+            {
+                formatter = new EnvelopeDictionaryNoBoxingMessagePackFormatter<string>();
+            }
+            else
             {
                 return StandardResolver.Instance.GetFormatter<T>();
             }
-            
-            var formatter = new EnvelopeDictionaryNoBoxingMessagePackFormatter();
+
             formatterCache[typeof(T)] = formatter;
             return (IMessagePackFormatter<T>)formatter;
-
-            // Fallback to the standard resolver for other types.
         }
     }
 }

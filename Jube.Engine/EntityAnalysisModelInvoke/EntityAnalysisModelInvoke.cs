@@ -46,14 +46,13 @@ namespace Jube.Engine.EntityAnalysisModelInvoke
             return context;
         }
 
-        public static async Task<Context.Context> InvokeAsync(EntityAnalysisModel entityAnalysisModel, DictionaryNoBoxing dictionaryNoBoxing, int entityAnalysisModelReprocessingRuleInstanceId)
+        public static Task InvokeAsync(EntityAnalysisModel entityAnalysisModel, DictionaryNoBoxing<string> dictionaryNoBoxing, int entityAnalysisModelReprocessingRuleInstanceId)
         {
             var extractor = new EntityAnalysisModelDictionaryNoBoxingExtractor(entityAnalysisModel, entityAnalysisModel.Dependencies.ActiveEntityAnalysisModels, entityAnalysisModel.Services.JubeEnvironment, entityAnalysisModel.Services.Log);
             var context = extractor.CreateContext(dictionaryNoBoxing, entityAnalysisModelReprocessingRuleInstanceId);
             context.EntityAnalysisModelInstanceEntryPayload.InvokeTaskPerformance.ComputeTimes.Parse = (int)(context.Stopwatch.ElapsedTicks * 1000000 / Stopwatch.Frequency);
-            await InvokeAsync(context).ConfigureAwait(false);
+            return InvokeAsync(context);
 
-            return context;
         }
 
         private static async Task CheckAsyncAndInvokeContextAsync(bool async, Context.Context context)

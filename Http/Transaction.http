@@ -2,9 +2,9 @@ POST http://127.0.0.1:5001/api/invoke/EntityAnalysisModel/90c425fd-101a-420b-91d
 Content-Type: application/json
 
 {
-  "AccountId": "Test20",
+  "AccountId": "Test26",
   "TxnId": "0987654321",
-  "TxnDateTime": "2024-12-01T21:41:37.248",
+  "TxnDateTime": "2025-09-01T21:41:37.248",
   "Currency": "826",
   "ResponseCode": "0",
   "CurrencyAmount": "123.45",

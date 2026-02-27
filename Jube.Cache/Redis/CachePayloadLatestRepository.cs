@@ -60,7 +60,7 @@ namespace Jube.Cache.Redis
         }
 
         public async Task UpsertAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
-            DictionaryNoBoxing payload,
+            DictionaryNoBoxing<int> payload,
             DateTime referenceDate,
             Guid entityAnalysisModelInstanceEntryGuid, string entryKey, string entryKeyValue)
         {

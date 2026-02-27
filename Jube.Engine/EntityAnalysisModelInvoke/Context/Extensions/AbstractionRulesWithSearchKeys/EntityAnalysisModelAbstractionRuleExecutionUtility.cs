@@ -16,6 +16,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.AbstractionRu
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Cache;
     using Dictionary;
@@ -32,11 +33,11 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.AbstractionRu
     {
         public string AbstractionRuleGroupingKey { get; init; }
         public DistinctSearchKey DistinctSearchKey { get; init; }
-        public DictionaryNoBoxing CachePayloadDocument { get; init; }
+        public DictionaryNoBoxing<string> CachePayloadDocument { get; init; }
         public EntityAnalysisModel EntityAnalysisModel { get; init; }
         public EntityAnalysisModelInstanceEntryPayload EntityAnalysisModelInstanceEntryPayload { get; init; }
         public PooledDictionary<string, double> EntityInstanceEntryDictionaryKvPs { get; init; }
-        public Dictionary<int, List<DictionaryNoBoxing>> AbstractionRuleMatches { get; init; } = new Dictionary<int, List<DictionaryNoBoxing>>();
+        public Dictionary<int, List<DictionaryNoBoxing<string>>> AbstractionRuleMatches { get; init; } = new Dictionary<int, List<DictionaryNoBoxing<string>>>();
         public bool Finished { get; private set; }
         public ILog Log { get; init; }
         public CacheService CacheService { get; init; }
@@ -59,7 +60,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.AbstractionRu
                         EntityAnalysisModelInstanceEntryPayload.ReferenceDate,
                         EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid).ConfigureAwait(false)));
 
-                var documents = await CacheService.CachePayloadRepository.GetExcludeCurrentAsync(
+                var documentsRemovedInterned = await CacheService.CachePayloadRepository.GetExcludeCurrentAsync(
                     EntityAnalysisModel.Instance.TenantRegistryId,
                     EntityAnalysisModel.Instance.Guid,
                     AbstractionRuleGroupingKey,
@@ -68,89 +69,88 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.AbstractionRu
                     EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid
                 ).ConfigureAwait(false);
 
+                var documents = ParseDocuments(documentsRemovedInterned);
+                documents.Add(CachePayloadDocument);
+
+                if (Log.IsInfoEnabled)
                 {
-                    documents.Add(CachePayloadDocument);
+                    Log.Info(
+                        $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} has created a filter for cache where {AbstractionRuleGroupingKey} has added the current transaction to the records,  so there are now {documents.Count} records for evaluation.  The records will now be matched against the Abstraction rules where this {AbstractionRuleGroupingKey} is expressed and the rule is marked as a history rule (else it will be done later as a basic rule).");
+                }
 
-                    if (Log.IsInfoEnabled)
+                var logicHashMatches = new ConcurrentDictionary<string, List<DictionaryNoBoxing<string>>>();
+                var abstractionRuleMatches = new ConcurrentDictionary<int, List<DictionaryNoBoxing<string>>>();
+
+                var parallelOptions = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = 4
+                };
+
+                var rulesToEvaluate = EntityAnalysisModel.Collections.ModelAbstractionRules
+                    .FindAll(x => x.SearchKey == AbstractionRuleGroupingKey && x.Search);
+
+                Parallel.ForEach(rulesToEvaluate, parallelOptions, evaluateAbstractionRule =>
+                {
+                    try
                     {
-                        Log.Info(
-                            $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} has created a filter for cache where {AbstractionRuleGroupingKey} has added the current transaction to the records,  so there are now {documents.Count} records for evaluation.  The records will now be matched against the Abstraction rules where this {AbstractionRuleGroupingKey} is expressed and the rule is marked as a history rule (else it will be done later as a basic rule).");
-                    }
+                        if (Log.IsInfoEnabled)
+                        {
+                            Log.Info(
+                                $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} will process Abstraction Rule {evaluateAbstractionRule.Id}.");
+                        }
 
-                    var logicHashMatches = new ConcurrentDictionary<string, List<DictionaryNoBoxing>>();
-                    var abstractionRuleMatches = new ConcurrentDictionary<int, List<DictionaryNoBoxing>>();
+                        if (!logicHashMatches.TryGetValue(evaluateAbstractionRule.LogicHash, out var matches))
+                        {
+                            matches = documents.FindAll(x => ReflectRuleHelper.Execute(
+                                evaluateAbstractionRule,
+                                EntityAnalysisModel, x,
+                                EntityInstanceEntryDictionaryKvPs, Log));
 
-                    var parallelOptions = new ParallelOptions
-                    {
-                        MaxDegreeOfParallelism = 4
-                    };
+                            logicHashMatches.TryAdd(evaluateAbstractionRule.LogicHash, matches);
 
-                    var rulesToEvaluate = EntityAnalysisModel.Collections.ModelAbstractionRules
-                        .FindAll(x => x.SearchKey == AbstractionRuleGroupingKey && x.Search);
-
-                    Parallel.ForEach(rulesToEvaluate, parallelOptions, evaluateAbstractionRule =>
-                    {
-                        try
+                            if (Log.IsInfoEnabled)
+                            {
+                                Log.Info(
+                                    $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} abstraction rule id {evaluateAbstractionRule.Id} logic hash {evaluateAbstractionRule.LogicHash} run now and added to logic cache - {matches.Count} matched.");
+                            }
+                        }
+                        else
                         {
                             if (Log.IsInfoEnabled)
                             {
                                 Log.Info(
-                                    $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} will process Abstraction Rule {evaluateAbstractionRule.Id}.");
-                            }
-
-                            if (!logicHashMatches.TryGetValue(evaluateAbstractionRule.LogicHash, out var matches))
-                            {
-                                matches = documents.FindAll(x => ReflectRuleHelper.Execute(
-                                    evaluateAbstractionRule,
-                                    EntityAnalysisModel, x,
-                                    EntityInstanceEntryDictionaryKvPs, Log));
-
-                                logicHashMatches.TryAdd(evaluateAbstractionRule.LogicHash, matches);
-
-                                if (Log.IsInfoEnabled)
-                                {
-                                    Log.Info(
-                                        $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} abstraction rule id {evaluateAbstractionRule.Id} logic hash {evaluateAbstractionRule.LogicHash} run now and added to logic cache - {matches.Count} matched.");
-                                }
-                            }
-                            else
-                            {
-                                if (Log.IsInfoEnabled)
-                                {
-                                    Log.Info(
-                                        $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} abstraction rule id {evaluateAbstractionRule.Id} reuse matches from logic cache [{matches.Count}] for logic hash {evaluateAbstractionRule.LogicHash}.");
-                                }
-                            }
-
-                            var fromDate = GetFromDate(evaluateAbstractionRule);
-
-                            var finalMatches = matches.FindAll(x =>
-                                x[EntityAnalysisModel.References.ReferenceDateName].AsDateTime() >= fromDate &&
-                                x[EntityAnalysisModel.References.ReferenceDateName].AsDateTime() <=
-                                EntityAnalysisModelInstanceEntryPayload.ReferenceDate);
-
-                            abstractionRuleMatches[evaluateAbstractionRule.Id] = finalMatches;
-
-                            if (Log.IsInfoEnabled)
-                            {
-                                Log.Info(
-                                    $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} abstraction rule id {evaluateAbstractionRule.Id} has {finalMatches.Count} final matches.");
+                                    $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} abstraction rule id {evaluateAbstractionRule.Id} reuse matches from logic cache [{matches.Count}] for logic hash {evaluateAbstractionRule.LogicHash}.");
                             }
                         }
-                        catch (Exception ex) when (ex is not OperationCanceledException)
+
+                        var fromDate = GetFromDate(evaluateAbstractionRule);
+
+                        var finalMatches = matches.FindAll(x =>
+                            x[EntityAnalysisModel.References.ReferenceDateName].AsDateTime() >= fromDate &&
+                            x[EntityAnalysisModel.References.ReferenceDateName].AsDateTime() <=
+                            EntityAnalysisModelInstanceEntryPayload.ReferenceDate);
+
+                        abstractionRuleMatches[evaluateAbstractionRule.Id] = finalMatches;
+
+                        if (Log.IsInfoEnabled)
                         {
-                            if (Log.IsInfoEnabled)
-                            {
-                                Log.Info(
-                                    $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} abstraction rule id {evaluateAbstractionRule.Id} exception {ex}.");
-                            }
+                            Log.Info(
+                                $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} abstraction rule id {evaluateAbstractionRule.Id} has {finalMatches.Count} final matches.");
                         }
-                    });
-
-                    foreach (var kvp in abstractionRuleMatches)
-                    {
-                        AbstractionRuleMatches[kvp.Key] = kvp.Value;
                     }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        if (Log.IsInfoEnabled)
+                        {
+                            Log.Info(
+                                $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} abstraction rule id {evaluateAbstractionRule.Id} exception {ex}.");
+                        }
+                    }
+                });
+
+                foreach (var kvp in abstractionRuleMatches)
+                {
+                    AbstractionRuleMatches[kvp.Key] = kvp.Value;
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -170,6 +170,35 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.AbstractionRu
                         $"Abstraction Rule Execute: GUID {EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} has concluded for grouping key {AbstractionRuleGroupingKey}.");
                 }
             }
+        }
+        
+        private List<DictionaryNoBoxing<string>> ParseDocuments(List<DictionaryNoBoxing<int>> documentsRemovedInterned)
+        {
+            var documents = new List<DictionaryNoBoxing<string>>();
+            foreach (var documentRemovedInterned in documentsRemovedInterned)
+            {
+                var document = new DictionaryNoBoxing<string>();
+                foreach (var (key, value) in documentRemovedInterned)
+                {
+                    if (key < 0)
+                    {
+                        switch (key)
+                        {
+                            case -1:
+                                document.Add(EntityAnalysisModel.References.ReferenceDateName, value);
+                                break;
+                        }
+                    }
+                        
+                    var entityAnalysisModelRequestXPath = EntityAnalysisModel.Collections.EntityAnalysisModelRequestXPaths.FirstOrDefault(f => f.CacheIndexId == key && f.Cache);
+                    if (entityAnalysisModelRequestXPath != null)
+                    {
+                        document.Add(entityAnalysisModelRequestXPath.Name, value);
+                    }
+                }
+                documents.Add(document);
+            }
+            return documents;
         }
 
         private DateTime GetFromDate(EntityAnalysisModelAbstractionRule evaluateAbstractionRule)

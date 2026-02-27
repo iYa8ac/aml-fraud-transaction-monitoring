@@ -150,8 +150,8 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
         }
 
         public static double GetAggregateValue(EntityAnalysisModel entityAnalysisModel, DistinctSearchKey distinctSearchKey, string groupingValue,
-            Dictionary<int, List<DictionaryNoBoxing>> abstractionRuleMatches,
-            KeyValuePair<int, List<DictionaryNoBoxing>> abstractionRuleMatch,
+            Dictionary<int, List<DictionaryNoBoxing<string>>> abstractionRuleMatches,
+            KeyValuePair<int, List<DictionaryNoBoxing<string>>> abstractionRuleMatch,
             EntityAnalysisModelAbstractionRule abstractionRule,
             EntityAnalysisModelInstanceEntryPayload entityAnalysisModelInstanceEntryPayload)
         {

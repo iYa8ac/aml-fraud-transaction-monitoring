@@ -84,19 +84,42 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
                                             context.Log.Info(
                                                 $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} has built a TTL Counter insert payload of TTLCounterName as {foundTtlCounter.Name}, TTLCounterDataName as {foundTtlCounter.TtlCounterDataName} and TTLCounterDataNameValue as {context.EntityAnalysisModelInstanceEntryPayload.Payload[foundTtlCounter.TtlCounterDataName]}.  Is about to insert the entry.");
                                         }
-
+                                        
+                                        double incrementValue = 1;
+                                        if (foundTtlCounter.EnableSum)
+                                        {
+                                            incrementValue = context.EntityAnalysisModelInstanceEntryPayload.Payload[foundTtlCounter.TtlCounterDataValue];
+                                            
+                                            if (context.Log.IsInfoEnabled)
+                                            {
+                                                context.Log.Info(
+                                                    $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} has built a TTL Counter insert payload of TTLCounterName as {foundTtlCounter.Name}, TTLCounterDataName as {foundTtlCounter.TtlCounterDataName} and TTLCounterDataNameValue as {context.EntityAnalysisModelInstanceEntryPayload.Payload[foundTtlCounter.TtlCounterDataName]}.  Has incremented based on sum for value {foundTtlCounter.TtlCounterDataValue} with a increment value of {incrementValue}.");
+                                            }
+                                        }
+                                        
                                         if (!foundTtlCounter.EnableLiveForever)
                                         {
-                                            var resolution = context.EntityAnalysisModelInstanceEntryPayload
-                                                .ReferenceDate.Floor(TimeSpan.FromMinutes(1));
+                                            var resolution = foundTtlCounter.ResolutionInterval switch
+                                            {
+                                                "n" => context.EntityAnalysisModelInstanceEntryPayload.ReferenceDate.Floor(TimeSpan.FromMinutes(1)),
+                                                "h" => context.EntityAnalysisModelInstanceEntryPayload.ReferenceDate.Floor(TimeSpan.FromHours(1)),
+                                                "d" => context.EntityAnalysisModelInstanceEntryPayload.ReferenceDate.Floor(TimeSpan.FromDays(1)),
+                                                _ => context.EntityAnalysisModelInstanceEntryPayload.ReferenceDate.Floor(TimeSpan.FromMinutes(1))
+                                            };
 
+                                            if (context.Log.IsInfoEnabled)
+                                            {
+                                                context.Log.Info(
+                                                    $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} has built a TTL Counter insert payload of TTLCounterName as {foundTtlCounter.Name}, TTLCounterDataName as {foundTtlCounter.TtlCounterDataName} and TTLCounterDataNameValue as {context.EntityAnalysisModelInstanceEntryPayload.Payload[foundTtlCounter.TtlCounterDataName]}.  Is about to insert the entry with a resolution of {resolution}.");
+                                            }
+                                            
                                             context.PendingWriteTasks.Add(TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.CacheTtlCounterEntryUpsertAsync, async () => await cacheService.CacheTtlCounterEntryRepository.UpsertAsync(
                                                 context.EntityAnalysisModel.Instance.TenantRegistryId, context.EntityAnalysisModel.Instance.Guid,
                                                 foundTtlCounter.TtlCounterDataName,
                                                 context.EntityAnalysisModelInstanceEntryPayload.Payload[foundTtlCounter.TtlCounterDataName]
                                                     .AsString(),
                                                 foundTtlCounter.Guid,
-                                                resolution, 1).ConfigureAwait(false)));
+                                                resolution, incrementValue).ConfigureAwait(false)));
                                         }
                                         else
                                         {
@@ -106,14 +129,14 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ActivationRul
                                                     $"Entity Invoke: GUID {context.EntityAnalysisModelInstanceEntryPayload.EntityAnalysisModelInstanceEntryGuid} and model {context.EntityAnalysisModel.Instance.Id} has built a TTL Counter insert payload of TTLCounterName as {foundTtlCounter.Name}, TTLCounterDataName as {foundTtlCounter.TtlCounterDataName} and TTLCounterDataNameValue as {context.EntityAnalysisModelInstanceEntryPayload.Payload[foundTtlCounter.TtlCounterDataName]} is set to live forever so no entry has been made to wind back counters.");
                                             }
                                         }
-
+                                        
                                         context.PendingWriteTasks.Add(TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.CacheTtlCounterEntryIncrementAsync, async () => await cacheService.CacheTtlCounterRepository
                                             .IncrementTtlCounterCacheAsync(context.EntityAnalysisModel.Instance.TenantRegistryId,
                                                 context.EntityAnalysisModel.Instance.Guid,
                                                 foundTtlCounter.TtlCounterDataName,
                                                 context.EntityAnalysisModelInstanceEntryPayload.Payload[foundTtlCounter.TtlCounterDataName]
                                                     .AsString(),
-                                                foundTtlCounter.Guid, 1,
+                                                foundTtlCounter.Guid, incrementValue,
                                                 context.EntityAnalysisModelInstanceEntryPayload.ReferenceDate
                                             ).ConfigureAwait(false)));
                                     }

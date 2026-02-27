@@ -26,7 +26,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.AbstractionRu
     public static class EntityAnalysisModelAbstractionRuleAggregatorUtility
     {
         public static double Aggregate(EntityAnalysisModelInstanceEntryPayload payload,
-            Dictionary<int, List<DictionaryNoBoxing>> abstractionRuleMatches,
+            Dictionary<int, List<DictionaryNoBoxing<string>>> abstractionRuleMatches,
             EntityAnalysisModelAbstractionRule abstractionRule, ILog log)
         {
             double abstractionValue = 0;

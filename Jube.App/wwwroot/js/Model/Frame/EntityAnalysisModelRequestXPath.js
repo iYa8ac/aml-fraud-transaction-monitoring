@@ -40,6 +40,8 @@ var searchKeyCache = $("#SearchKeyCache").kendoSwitch({
 
 var enableSuppression = $("#EnableSuppression").kendoSwitch();
 
+var cache = $("#Cache").kendoSwitch();
+
 var searchKeyCacheSample = $("#SearchKeyCacheSample").kendoSwitch();
 
 var searchKeyCacheValue = $("#SearchKeyCacheValue").kendoNumericTextBox({
@@ -228,6 +230,12 @@ if (typeof GetSelectedChildID() === "undefined") {
                 enableSuppression.data("kendoSwitch").check(false);
             }
 
+            if (data.cache) {
+                cache.data("kendoSwitch").check(true);
+            } else {
+                cache.data("kendoSwitch").check(false);
+            }
+
             dataTypeId.data("kendoDropDownList").value(data.dataTypeId);
             $("#Version").html(data.version);
             $("#CreatedDate").html(new Date(data.createdDate).toLocaleString());
@@ -295,7 +303,8 @@ function GetData() {
         searchKeyFetchLimit: searchKeyFetchLimit.val(),
         searchKeyTtlIntervalValue: searchKeyTtlIntervalValue.val(),
         searchKeyTtlInterval: $('input[name=SearchKeyTtlInterval]:checked').val(),
-        defaultValue: getDefaultValueStyle()
+        defaultValue: getDefaultValueStyle(),
+        cache: cache.prop("checked")
     };
 }
 

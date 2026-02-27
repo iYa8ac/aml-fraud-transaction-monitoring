@@ -50,6 +50,9 @@ namespace Jube.Cache.Redis
         private LruCacheConcurrentSizedDictionary<string, byte[]> lruCacheConcurrentSizedDictionary;
         private Timer timer;
 
+        private const int HotKeysBatchSize = 100;
+        private const int JournalBatchSize = 100;
+
         private CachePayloadRepository(ConnectionMultiplexer connectionMultiplexer, IDatabaseAsync redisDatabase,
             string postgresConnectionString, ILog log,
             CommandFlags commandFlag, bool fill, bool localCache, long localCacheBytes, bool messagePackCompression, bool storePayloadCountsAndBytes,
@@ -74,7 +77,7 @@ namespace Jube.Cache.Redis
         }
 
         public async Task InsertAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
-            DictionaryNoBoxing payload,
+            DictionaryNoBoxing<int> payload,
             DateTime referenceDate,
             Guid entityAnalysisModelInstanceEntryGuid)
         {
@@ -85,7 +88,7 @@ namespace Jube.Cache.Redis
 
                 var ms = new MemoryStream();
 
-                var dictionaryNoBoxingWrapper = new EnvelopeDictionaryNoBoxing
+                var dictionaryNoBoxingWrapper = new EnvelopeDictionaryNoBoxing<int>
                 {
                     Version = 1,
                     Data = payload
@@ -133,7 +136,7 @@ namespace Jube.Cache.Redis
         }
 
         public async Task UpsertAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,
-            DictionaryNoBoxing payload,
+            DictionaryNoBoxing<int> payload,
             DateTime referenceDate,
             Guid entityAnalysisModelInstanceEntryGuid)
         {
@@ -190,7 +193,7 @@ namespace Jube.Cache.Redis
                 {
                     return;
                 }
-                
+
                 var tasks = new List<Task<TimedTaskResult>>();
                 var sortedSetExpiredCount = expiredSortedSetEntries.Count;
                 var expiredSortedSetMinTimestamp = (long)expiredSortedSetEntries.FirstOrDefault().Score;
@@ -396,7 +399,9 @@ namespace Jube.Cache.Redis
                 }
                 finally
                 {
+                    // ReSharper disable once MethodSupportsCancellation
                     await dbContext.CloseAsync();
+                    // ReSharper disable once MethodSupportsCancellation
                     await dbContext.DisposeAsync();
                 }
             }
@@ -620,61 +625,126 @@ namespace Jube.Cache.Redis
                 {
                     var localCacheInstanceRepository = new LocalCacheInstanceRepository(dbContext);
 
-                    if (fill)
+                    if (!fill)
+                    {
+                        await localCacheInstanceRepository.FinishFillAsync(localCacheInstance.Id, 0, 0, lruCacheConcurrentSizedDictionary.Count, lruCacheConcurrentSizedDictionary.TotalSize, token);
+                        return;
+                    }
+
+                    token.ThrowIfCancellationRequested();
+
+                    var count = 0;
+                    var bytes = 0L;
+
+                    await localCacheInstanceRepository.StartFillAsync(localCacheInstance.Id, token);
+
+                    var entityAnalysisModelRepository = new EntityAnalysisModelRepository(dbContext);
+                    foreach (var entityAnalysisModel in await entityAnalysisModelRepository.GetAsync(token).ConfigureAwait(false))
                     {
                         token.ThrowIfCancellationRequested();
 
-                        var count = 0;
-                        var bytes = 0L;
+                        var lruJournalKey = $"LruJournal:{entityAnalysisModel.TenantRegistryId}:{entityAnalysisModel.Guid:N}";
+                        var payloadKey = $"Payload:{entityAnalysisModel.TenantRegistryId}:{entityAnalysisModel.Guid:N}";
+                        var localCacheForPayloadKey = GetLocalCacheEntry(lruJournalKey);
 
-                        await localCacheInstanceRepository.StartFillAsync(localCacheInstance.Id, token);
-
-                        var entityAnalysisModelRepository = new EntityAnalysisModelRepository(dbContext);
-                        foreach (var entityAnalysisModel in await entityAnalysisModelRepository.GetAsync(token).ConfigureAwait(false))
+                        try
                         {
-                            token.ThrowIfCancellationRequested();
-
-                            var payloadKey = $"Payload:{entityAnalysisModel.TenantRegistryId}:{entityAnalysisModel.Guid:N}";
-                            var localCacheForPayloadKey = GetLocalCacheEntry(payloadKey);
-
-                            try
+                            long hotKeyPosition = 0;
+                            while (true)
                             {
-                                await foreach (var hashEntry in redisDatabase.HashScanAsync(payloadKey).WithCancellation(token).ConfigureAwait(false))
+                                token.ThrowIfCancellationRequested();
+
+                                var hotKeyEntries = await redisDatabase.SortedSetRangeByRankWithScoresAsync(
+                                    lruJournalKey,
+                                    hotKeyPosition,
+                                    hotKeyPosition + HotKeysBatchSize - 1,
+                                    Order.Descending
+                                );
+
+                                if (hotKeyEntries.Length == 0)
                                 {
-                                    token.ThrowIfCancellationRequested();
+                                    break;
+                                }
 
-                                    try
+                                foreach (var hotKeyEntry in hotKeyEntries)
+                                {
+                                    long journalPosition = 0;
+
+                                    while (true)
                                     {
-                                        AddToLruCacheConcurrentSizedDictionaryForLocalCacheInstanceKey(
-                                            localCacheForPayloadKey,
-                                            hashEntry.Name.ToString(), hashEntry.Value
+                                        token.ThrowIfCancellationRequested();
+
+                                        var journalEntries = await redisDatabase.SortedSetRangeByRankWithScoresAsync(
+                                            hotKeyEntry.Element.ToString(),
+                                            journalPosition,
+                                            journalPosition + JournalBatchSize - 1,
+                                            Order.Descending
                                         );
-                                        Interlocked.Add(ref bytes, hashEntry.Value.Length());
-                                        Interlocked.Add(ref count, 1);
-                                    }
-                                    catch (Exception ex) when (!(ex is OperationCanceledException))
-                                    {
-                                        log.Error($"Error processing hashEntry {hashEntry.Name}: {ex.Message}");
-                                    }
 
-                                    if (count % 100000 == 0)
-                                    {
-                                        await UpdateFillInLocalCacheInstanceRepositoryAsync(localCacheInstanceRepository, count, bytes, token);
+                                        if (journalEntries.Length == 0)
+                                        {
+                                            break;
+                                        }
+
+                                        foreach (var journalEntry in journalEntries)
+                                        {
+                                            var hashEntry = await redisDatabase.HashGetAsync(payloadKey, journalEntry.Element.ToString());
+
+                                            token.ThrowIfCancellationRequested();
+
+                                            try
+                                            {
+                                                AddToLruCacheConcurrentSizedDictionaryForLocalCacheInstanceKey(
+                                                    localCacheForPayloadKey,
+                                                    journalEntry.ToString(), hashEntry
+                                                );
+                                                bytes += hashEntry.Length();
+                                                count += 1;
+                                            }
+                                            catch (Exception ex) when (ex is not OperationCanceledException)
+                                            {
+                                                log.Error($"Error processing hashEntry {hashEntry}: {ex.Message}");
+                                            }
+
+                                            if (count % 100000 == 0)
+                                            {
+                                                await UpdateFillInLocalCacheInstanceRepositoryAsync(localCacheInstanceRepository, count, bytes, token);
+                                            }
+
+                                            if (!lruCacheConcurrentSizedDictionary.IsFull)
+                                            {
+                                                continue;
+                                            }
+
+                                            await FinishFillInLocalCacheInstanceRepositoryAsync(localCacheInstanceRepository, count, bytes, token);
+                                            return;
+                                        }
+
+                                        if (journalEntries.Length < JournalBatchSize)
+                                        {
+                                            break;
+                                        }
+
+                                        journalPosition += JournalBatchSize;
                                     }
                                 }
-                            }
-                            catch (Exception ex) when (!(ex is OperationCanceledException))
-                            {
-                                log.Error($"Could not migrate key {payloadKey} for exception {ex}.");
+
+                                if (hotKeyEntries.Length < HotKeysBatchSize)
+                                {
+                                    break;
+                                }
+
+                                hotKeyPosition += HotKeysBatchSize;
                             }
                         }
+                        catch (Exception ex) when (ex is not OperationCanceledException)
+                        {
+                            log.Error($"Could not migrate key {lruJournalKey} for exception {ex}.");
+                        }
+                    }
 
-                        await FinishFillInLocalCacheInstanceRepositoryAsync(localCacheInstanceRepository, count, bytes, token);
-                    }
-                    else
-                    {
-                        await localCacheInstanceRepository.FinishFillAsync(localCacheInstance.Id, 0, 0, lruCacheConcurrentSizedDictionary.Count, lruCacheConcurrentSizedDictionary.TotalSize, token);
-                    }
+                    await FinishFillInLocalCacheInstanceRepositoryAsync(localCacheInstanceRepository, count, bytes, token);
+
                 }
                 catch (Exception ex)
                 {
@@ -707,17 +777,17 @@ namespace Jube.Cache.Redis
                 gCMemoryInfoForUpdateFill.HeapSizeBytes, gCMemoryInfoForUpdateFill.TotalCommittedBytes, token);
         }
 
-        private DictionaryNoBoxing Unpack(ReadOnlyMemory<byte> buffer)
+        private DictionaryNoBoxing<int> Unpack(ReadOnlyMemory<byte> buffer)
         {
             if (buffer.IsEmpty)
             {
-                return new DictionaryNoBoxing();
+                return new DictionaryNoBoxing<int>();
             }
 
             var unpacked = MessagePackSerializer
-                .Deserialize<EnvelopeDictionaryNoBoxing>(buffer, messagePackSerializerOptions);
+                .Deserialize<EnvelopeDictionaryNoBoxing<int>>(buffer, messagePackSerializerOptions);
 
-            return unpacked.Data ?? new DictionaryNoBoxing();
+            return unpacked.Data ?? new DictionaryNoBoxing<int>();
         }
 
         private void AddToLruCacheConcurrentSizedDictionaryForLocalCacheInstanceKey(LocalCacheInstanceKey localCacheInstanceKey, string hSetKey,
@@ -784,14 +854,17 @@ namespace Jube.Cache.Redis
             {
                 var redisJournalKey = $"Journal:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{redisJournalValue}";
                 var keyPayload = $"Payload:{tenantRegistryId}:{entityAnalysisModelGuid:N}";
+                var lruJournalKey = $"LruJournal:{tenantRegistryId}:{entityAnalysisModelGuid:N}";
                 var eventHashRemovePattern = $"HashRemove:{Dns.GetHostName()}:{localCacheInstanceGuidString}:{keyPayload}";
 
                 DeleteFromLocalCache(keyPayload, sortedSetEntry.Element.ToString(), false);
-                AppendSetRemovalTasksAndPublishEvent(tasks, sortedSetEntry, redisJournalKey, redisKeyPayloadJournal, redisJournalValue, eventHashRemovePattern);
+                AppendSetRemovalTasksAndPublishEvent(tasks, sortedSetEntry, redisJournalKey, redisKeyPayloadJournal, lruJournalKey, redisJournalValue, eventHashRemovePattern);
             }
         }
 
-        private void AppendSetRemovalTasksAndPublishEvent(List<Task<TimedTaskResult>> tasks, SortedSetEntry sortedSetEntry, string redisJournalKey, string redisKeyPayloadJournal, RedisValue redisJournalValue, string eventHashRemovePattern)
+        private void AppendSetRemovalTasksAndPublishEvent(List<Task<TimedTaskResult>> tasks, SortedSetEntry sortedSetEntry,
+            string redisJournalKey, string redisKeyPayloadJournal, string redisLruJournalKey, RedisValue redisJournalValue,
+            string eventHashRemovePattern)
         {
             tasks.Add(TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.SortedSetRemoveReferenceDate, async () => await redisDatabase.SortedSetRemoveAsync(
                 redisJournalKey,
@@ -802,6 +875,14 @@ namespace Jube.Cache.Redis
                 redisKeyPayloadJournal,
                 redisJournalValue
             )));
+
+            tasks.Add(TaskHelper.MeasureTaskTimeAndMemoryAllocatedAsync(TaskType.SortedSetLruJournalRemove, async () =>
+            {
+                if (!await redisDatabase.KeyExistsAsync(redisJournalKey))
+                {
+                    await redisDatabase.SortedSetRemoveAsync(redisLruJournalKey, redisJournalKey);
+                }
+            }));
 
             if (publishSubscribe)
             {
@@ -845,7 +926,7 @@ namespace Jube.Cache.Redis
             }
         }
 
-        public async Task<List<DictionaryNoBoxing>> GetExcludeCurrentAsync(
+        public async Task<List<DictionaryNoBoxing<int>>> GetExcludeCurrentAsync(
             int tenantRegistryId,
             Guid entityAnalysisModelGuid,
             string key,
@@ -853,10 +934,12 @@ namespace Jube.Cache.Redis
             int limit,
             Guid entityInconsistentAnalysisModelInstanceEntryGuid)
         {
-            var documents = new List<DictionaryNoBoxing>();
+            var documents = new List<DictionaryNoBoxing<int>>();
             try
             {
                 var redisKey = $"Journal:{tenantRegistryId}:{entityAnalysisModelGuid:N}:{key}:{value}";
+                var lruJournalKey = $"LruJournal:{tenantRegistryId}:{entityAnalysisModelGuid:N}";
+                await redisDatabase.SortedSetAddAsync(lruJournalKey, redisKey, DateTime.Now.ToUnixTimeMilliSeconds(), commandFlag);
 
                 var sortedSetEntries =
                     (await redisDatabase.SortedSetRangeByRankWithScoresAsync(redisKey, 0, limit, Order.Descending)
@@ -873,7 +956,7 @@ namespace Jube.Cache.Redis
 
                 var localCacheForPayloadKey = GetLocalCacheEntry(keyPayload);
                 var missedSortedSetKeys = new List<RedisValue>();
-                var keyToDocumentMap = new Dictionary<string, DictionaryNoBoxing>();
+                var keyToDocumentMap = new Dictionary<string, DictionaryNoBoxing<int>>();
 
                 foreach (var sortedSetKey in sortedSetKeys)
                 {
@@ -989,8 +1072,8 @@ namespace Jube.Cache.Redis
                 log.Error($"Cache Redis: Has created an exception as {ex}.");
             }
         }
-        
-        
+
+
         async Task BatchSortedSetRemoveAsync(IDatabaseAsync db, RedisKey key, IEnumerable<RedisValue> values)
         {
             const int batchSize = 1000;

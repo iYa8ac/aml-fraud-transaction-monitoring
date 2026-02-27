@@ -18,6 +18,6 @@ namespace Jube.Cache.Redis.Models
         public DateTime ReferenceDate { get; init; }
         public string DataName { get; init; }
         public string DataValue { get; init; }
-        public int Value { get; init; }
+        public double Value { get; init; }
     }
 }

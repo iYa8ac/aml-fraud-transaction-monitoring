@@ -33,5 +33,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
         public int SearchKeyFetchLimit { get; set; }
         public string SearchKeyTtlInterval { get; set; }
         public int SearchKeyTtlIntervalValue { get; set; }
+        public bool Cache { get; set; }
+        public int CacheIndexId { get; set; }
     }
 }

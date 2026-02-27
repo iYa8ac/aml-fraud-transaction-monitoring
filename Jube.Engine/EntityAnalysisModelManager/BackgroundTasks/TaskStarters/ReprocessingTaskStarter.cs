@@ -173,7 +173,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                                                     sampled += 1;
 
                                                     var entityInstanceEntryDictionaryKvPs =
-                                                        new PooledDictionary<string, DictionaryNoBoxing>();
+                                                        new PooledDictionary<string, DictionaryNoBoxing<string>>();
 
                                                     if (entityAnalysisModelRuleReprocessing.EntityAnalysisModelRuleReprocessingInstance
                                                         .ReprocessingRuleCompileDelegate(entry,
@@ -363,7 +363,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
 
         private async Task InvokeReprocessingForDocumentAsync(EntityAnalysisModel entityAnalysisModel,
             EntityAnalysisModelRuleReprocessingInstance entityAnalysisModelRuleReprocessingInstance, int processed,
-            DictionaryNoBoxing entry)
+            DictionaryNoBoxing<string> entry)
         {
             try
             {
@@ -741,7 +741,8 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                             new EntityAnalysisModelRequestXPath
                             {
                                 DataTypeId = entityAnalysisModelRequestXPath.DataTypeId,
-                                DefaultValue = entityAnalysisModelRequestXPath.DefaultValue
+                                DefaultValue = entityAnalysisModelRequestXPath.DefaultValue,
+                                Cache = entityAnalysisModelRequestXPath.Cache
                             });
                     }
 
@@ -815,7 +816,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                     gatewayRuleScript.Append("Imports System\r\n");
                     gatewayRuleScript.Append("Public Class GatewayRule\r\n");
                     gatewayRuleScript.Append(
-                        "Public Shared Function Match(Data As DictionaryNoBoxing, List As Dictionary(Of String, List(Of String)),KVP As PooledDictionary(Of String, DictionaryNoBoxing),Log As ILog) As Boolean\r\n");
+                        "Public Shared Function Match(Data As DictionaryNoBoxing(Of String), List As Dictionary(Of String, List(Of String)),KVP As PooledDictionary(Of String, DictionaryNoBoxing(Of String)),Log As ILog) As Boolean\r\n");
                     gatewayRuleScript.Append("Dim Matched As Boolean\r\n");
                     gatewayRuleScript.Append("Try\r\n");
                     gatewayRuleScript.Append(returnTuple.EntityAnalysisModelRuleReprocessingInstance.ReprocessingRuleScript + "\r\n");
@@ -937,6 +938,15 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters
                         }
                         else
                         {
+                            foreach (var compileError in compile.Errors)
+                            {
+                                if (context.Services.Log.IsInfoEnabled)
+                                {
+                                    context.Services.Log.Debug(
+                                        $"Entity Reprocessing: Model {key} and Reprocessing Rule Model {returnTuple.EntityAnalysisModelRuleReprocessingInstance.EntityAnalysisModelsReprocessingRuleInstanceId} compile error {compileError.GetMessage()}.");
+                                }
+                            }
+                            
                             if (context.Services.Log.IsDebugEnabled)
                             {
                                 context.Services.Log.Debug(

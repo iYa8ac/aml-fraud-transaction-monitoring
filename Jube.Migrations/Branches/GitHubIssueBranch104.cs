@@ -13,7 +13,6 @@
 
 namespace Jube.Migrations.Branches
 {
-    using System;
     using FluentMigrator;
 
     [Migration(20260126115400)]

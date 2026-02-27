@@ -68,7 +68,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
 
         public async Task CacheServiceUpsertOrDeleteSearchKeyValueAsync(DistinctSearchKey distinctSearchKey,
             string groupingValue,
-            KeyValuePair<int, List<DictionaryNoBoxing>> abstractionRuleMatch,
+            KeyValuePair<int, List<DictionaryNoBoxing<string>>> abstractionRuleMatch,
             EntityAnalysisModelAbstractionRule abstractionRule,
             double abstractionValue)
         {
@@ -103,7 +103,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
 
         private async Task<double?> CacheServiceFindCacheKeyValueEntryAsync(CacheAbstractionRepository cacheAbstractionRepository,
             DistinctSearchKey distinctSearchKey, string groupingValue,
-            KeyValuePair<int, List<DictionaryNoBoxing>> abstractionRuleMatch,
+            KeyValuePair<int, List<DictionaryNoBoxing<string>>> abstractionRuleMatch,
             EntityAnalysisModelAbstractionRule abstractionRule,
             double abstractionValue)
         {
@@ -131,7 +131,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
 
         private async Task CacheServiceInsertSearchKeyValueAsync(CacheAbstractionRepository cacheAbstractionRepository,
             DistinctSearchKey distinctSearchKey, string groupingValue,
-            KeyValuePair<int, List<DictionaryNoBoxing>> abstractionRuleMatch,
+            KeyValuePair<int, List<DictionaryNoBoxing<string>>> abstractionRuleMatch,
             EntityAnalysisModelAbstractionRule abstractionRule,
             double abstractionValue)
         {

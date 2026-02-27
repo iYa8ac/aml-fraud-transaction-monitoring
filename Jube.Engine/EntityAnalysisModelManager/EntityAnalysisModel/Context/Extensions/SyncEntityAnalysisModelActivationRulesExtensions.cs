@@ -890,7 +890,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                             activationRuleScript.Append("Imports System\r\n");
                             activationRuleScript.Append("Public Class ActivationRule\r\n");
                             activationRuleScript.Append(
-                                "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Long),Abstraction As PooledDictionary(Of string,double),HttpAdaptation As PooledDictionary(Of String, Double),ExhaustiveAdaptation As PooledDictionary(Of String, Double),List as Dictionary(Of String,List(Of String)),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Activation as ICollection(Of String),Log as ILog) As Boolean\r\n");
+                                "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),TTLCounter As PooledDictionary(Of String, Double),Abstraction As PooledDictionary(Of string,double),HttpAdaptation As PooledDictionary(Of String, Double),ExhaustiveAdaptation As PooledDictionary(Of String, Double),List as Dictionary(Of String,List(Of String)),Calculation As PooledDictionary(Of String, Double),Sanctions As PooledDictionary(Of String, Double),KVP As PooledDictionary(Of String, Double),Activation as ICollection(Of String),Log as ILog) As Boolean\r\n");
                             activationRuleScript.Append("Dim Matched as Boolean\r\n");
                             activationRuleScript.Append("Try\r\n");
                             activationRuleScript.Append(modelActivationRule.ActivationRuleScript + "\r\n");

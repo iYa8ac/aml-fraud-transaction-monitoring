@@ -22,7 +22,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions.ReflectionHel
     public static class ReflectRuleHelper
     {
         public static bool Execute(EntityAnalysisModelAbstractionRule abstractionRule,
-            EntityAnalysisModel entityAnalysisModel, DictionaryNoBoxing fields,
+            EntityAnalysisModel entityAnalysisModel, DictionaryNoBoxing<string> fields,
             PooledDictionary<string, double> entityInstanceEntryDictionaryKvPs, ILog log)
         {
             var matched = abstractionRule.AbstractionRuleCompileDelegate(fields,

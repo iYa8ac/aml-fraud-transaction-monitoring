@@ -43,7 +43,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction
             stopwatch.Start();
 
             var entityAnalysisModelInstanceEntryPayload = EntityAnalysisModelInstanceEntryPayloadHelpers.Create(entityAnalysisModel);
-            entityAnalysisModelInstanceEntryPayload.Payload = new DictionaryNoBoxing(entityAnalysisModel.References.PayloadInitialSize);
+            entityAnalysisModelInstanceEntryPayload.Payload = new DictionaryNoBoxing<string>(entityAnalysisModel.References.PayloadInitialSize);
             var reportDatabaseValues = new List<ArchiveKey>();
 
             var json = ParseJson(inputStream, entityAnalysisModel, entityAnalysisModelInstanceEntryPayload);
@@ -87,7 +87,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction
         private (string entryId, DateTime referenceDate) ExtractEntryAndReferenceDate(
             JObject json,
             EntityAnalysisModel model,
-            DictionaryNoBoxing payload)
+            DictionaryNoBoxing<string> payload)
         {
             var modelEntryValue = "";
             var referenceDateValue = DateTime.Now;
@@ -146,7 +146,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction
             JObject json,
             EntityAnalysisModel entityAnalysisModel,
             EntityAnalysisModelInstanceEntryPayload entityInstanceEntryPayloadStore,
-            DictionaryNoBoxing payload,
+            DictionaryNoBoxing<string> payload,
             List<ArchiveKey> reportDatabaseValues,
             bool isReprocess,
             ILog log)
@@ -227,7 +227,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction
             EntityAnalysisModelRequestXPath xPath,
             string value,
             bool defaultFallback,
-            DictionaryNoBoxing payload,
+            DictionaryNoBoxing<string> payload,
             List<ArchiveKey> reportDatabaseValues,
             bool isReprocess,
             ILog log)

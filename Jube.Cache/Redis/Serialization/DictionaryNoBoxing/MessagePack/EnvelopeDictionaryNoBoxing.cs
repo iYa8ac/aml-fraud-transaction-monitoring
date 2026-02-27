@@ -15,9 +15,9 @@ namespace Jube.Cache.Redis.Serialization.DictionaryNoBoxing.MessagePack
 {
     using Dictionary;
 
-    public class EnvelopeDictionaryNoBoxing
+    public class EnvelopeDictionaryNoBoxing<TKey> where TKey : notnull
     {
-        public byte Version { get; init; } = 1;
-        public DictionaryNoBoxing Data { get; set; }
+        public byte Version { get; set; } = 2;
+        public DictionaryNoBoxing<TKey> Data { get; set; } = new DictionaryNoBoxing<TKey>();
     }
 }

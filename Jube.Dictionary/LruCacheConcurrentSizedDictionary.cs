@@ -48,6 +48,14 @@ namespace Jube.Dictionary
             this.sizeEstimator = sizeEstimator ?? throw new ArgumentNullException(nameof(sizeEstimator));
         }
 
+        public bool IsFull
+        {
+            get
+            {
+                return TotalSize > maxSizeBytes;
+            }
+        }
+
         public long EvictionBytes
         {
             get
@@ -262,10 +270,12 @@ namespace Jube.Dictionary
                 return Interlocked.Read(ref totalSize);
             }
         }
+        
         public long EstimatedSizeBytes()
         {
             return TotalSize;
         }
+        
         private long EstimateSize(TValue value)
         {
             return sizeEstimator(value);
@@ -319,10 +329,10 @@ namespace Jube.Dictionary
                     return new CacheEntry(value, newSize);
                 });
         }
-
+        
         private void EvictIfNeeded()
         {
-            if (TotalSize <= maxSizeBytes || isEvicting)
+            if (!IsFull || isEvicting)
             {
                 return;
             }

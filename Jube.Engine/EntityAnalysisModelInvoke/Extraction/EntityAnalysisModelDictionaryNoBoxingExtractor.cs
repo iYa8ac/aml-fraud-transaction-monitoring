@@ -32,7 +32,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction
         ILog log)
     {
         public Context CreateContext(
-            DictionaryNoBoxing payload, int entityAnalysisModelReprocessingRuleInstanceId)
+            DictionaryNoBoxing<string> payload, int entityAnalysisModelReprocessingRuleInstanceId)
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -56,7 +56,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction
         }
 
         private EntityAnalysisModelInstanceEntryPayload ExtractModelFieldsForInvocation(
-            DictionaryNoBoxing entry, int entityAnalysisModelReprocessingRuleInstanceId)
+            DictionaryNoBoxing<string> entry, int entityAnalysisModelReprocessingRuleInstanceId)
         {
             var entityAnalysisModelInstanceEntryPayload = EntityAnalysisModelInstanceEntryPayloadHelpers.Create(entityAnalysisModel, entry["EntityAnalysisModelInstanceEntryGuid"]);
 
@@ -101,7 +101,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction
         }
 
         private void ExtractRequestXPathForInvocation(
-            DictionaryNoBoxing entry,
+            DictionaryNoBoxing<string> entry,
             EntityAnalysisModelInstanceEntryPayload entityAnalysisModelInstanceEntryPayload)
         {
             try

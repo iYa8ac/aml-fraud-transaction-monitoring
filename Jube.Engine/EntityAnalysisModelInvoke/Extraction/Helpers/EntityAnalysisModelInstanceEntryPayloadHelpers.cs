@@ -35,7 +35,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Extraction.Helpers
                 Activation = new PooledDictionary<string, EntityModelActivationRulePayload>(),
                 Tag = new PooledDictionary<string, double>(model.Collections.EntityAnalysisModelTags.Count),
                 Dictionary = new PooledDictionary<string, double>(model.Dependencies.KvpDictionaries.Count),
-                TtlCounter = new PooledDictionary<string, long>(model.Collections.ModelTtlCounters.Count),
+                TtlCounter = new PooledDictionary<string, double>(model.Collections.ModelTtlCounters.Count),
                 Sanction = new PooledDictionary<string, double>(model.Collections.EntityAnalysisModelSanctions.Count),
                 AbstractionCalculation =
                     new PooledDictionary<string, double>(model.Collections.EntityAnalysisModelAbstractionCalculations.Count),

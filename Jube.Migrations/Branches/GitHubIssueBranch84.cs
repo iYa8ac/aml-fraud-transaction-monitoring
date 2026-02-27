@@ -173,7 +173,7 @@ namespace Jube.Migrations.Branches
 
             var messagePackSerializerOptionsNew = MessagePackSerializerOptions.Standard
                 .WithResolver(
-                    CompositeResolver.Create(new EnvelopeDictionaryNoBoxingMessagePackFormatter())
+                    CompositeResolver.Create(new EnvelopeDictionaryNoBoxingMessagePackFormatter<string>())
                 ).WithCompression(dynamicEnvironment.AppSettings("RedisMessagePackCompression").Equals("True", StringComparison.OrdinalIgnoreCase)
                     ? MessagePackCompression.Lz4BlockArray : MessagePackCompression.None);
 
@@ -292,10 +292,10 @@ namespace Jube.Migrations.Branches
             return bytes;
         }
 
-        private static EnvelopeDictionaryNoBoxing MapToEnvelopeForDictionaryNoBoxing(Dictionary<string, object> oldKeyValuePairs)
+        private static EnvelopeDictionaryNoBoxing<string> MapToEnvelopeForDictionaryNoBoxing(Dictionary<string, object> oldKeyValuePairs)
         {
 
-            var dictionaryNoBoxingWrapper = new EnvelopeDictionaryNoBoxing
+            var dictionaryNoBoxingWrapper = new EnvelopeDictionaryNoBoxing<string>
             {
                 Version = 1,
                 Data = MapToDictionaryNoBoxing(oldKeyValuePairs)
@@ -303,10 +303,10 @@ namespace Jube.Migrations.Branches
             return dictionaryNoBoxingWrapper;
         }
 
-        private static DictionaryNoBoxing MapToDictionaryNoBoxing(Dictionary<string, object> oldKeyValuePairs)
+        private static DictionaryNoBoxing<string> MapToDictionaryNoBoxing(Dictionary<string, object> oldKeyValuePairs)
         {
 
-            var dictionaryNoBoxing = new DictionaryNoBoxing(oldKeyValuePairs.Count);
+            var dictionaryNoBoxing = new DictionaryNoBoxing<string>(oldKeyValuePairs.Count);
             foreach (var oldKeyValuePair in oldKeyValuePairs)
             {
                 switch (oldKeyValuePair.Value)

@@ -20,7 +20,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
 
     public class EntityAnalysisModelAbstractionCalculation
     {
-        public delegate double Match(DictionaryNoBoxing data, PooledDictionary<string, long> ttlCounter,
+        public delegate double Match(DictionaryNoBoxing<string> data, PooledDictionary<string, double> ttlCounter,
             PooledDictionary<string, double> abstraction,
             Dictionary<string, List<string>> list, PooledDictionary<string, double> kvp,
             ILog log);

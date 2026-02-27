@@ -18,11 +18,11 @@ namespace Jube.Cache.Redis.Interfaces
     public interface ICachePayloadRepository
     {
         Task InsertAsync(int tenantRegistryId,
-            Guid entityAnalysisModelGuid, DictionaryNoBoxing payload,
+            Guid entityAnalysisModelGuid, DictionaryNoBoxing<int> payload,
             DateTime referenceDate, Guid entityAnalysisModelInstanceEntryGuid);
 
         Task UpsertAsync(int tenantRegistryId,
-            Guid entityAnalysisModelGuid, DictionaryNoBoxing payload,
+            Guid entityAnalysisModelGuid, DictionaryNoBoxing<int> payload,
             DateTime referenceDate, Guid entityAnalysisModelInstanceEntryGuid);
 
         Task DeleteByReferenceDateAsync(int tenantRegistryId, Guid entityAnalysisModelGuid,

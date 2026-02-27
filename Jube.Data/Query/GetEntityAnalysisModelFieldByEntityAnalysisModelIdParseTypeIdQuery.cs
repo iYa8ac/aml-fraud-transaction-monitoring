@@ -18,6 +18,7 @@ namespace Jube.Data.Query
     using System.Threading;
     using System.Threading.Tasks;
     using Context;
+    using Poco;
     using Repository;
     using SyntaxTree;
 
@@ -48,8 +49,19 @@ namespace Jube.Data.Query
                 var entityAnalysisModelRequestXPathRepository =
                     new EntityAnalysisModelRequestXPathRepository(dbContext, tenantRegistryId);
 
-                foreach (var entityAnalysisModelRequestXpath in await entityAnalysisModelRequestXPathRepository
-                             .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false))
+                IEnumerable<EntityAnalysisModelRequestXpath> entityAnalysisModelRequestXpaths;
+                if (reporting || parserTypeId != 3)
+                {
+                    entityAnalysisModelRequestXpaths = await entityAnalysisModelRequestXPathRepository
+                        .GetByEntityAnalysisModelIdOrderByIdAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+                }
+                else
+                {
+                        entityAnalysisModelRequestXpaths = await entityAnalysisModelRequestXPathRepository
+                        .GetByEntityAnalysisModelIdOrderByIdCacheOnlyAsync(entityAnalysisModelId, token).ConfigureAwait(false);
+                }
+                
+                foreach (var entityAnalysisModelRequestXpath in entityAnalysisModelRequestXpaths)
                 {
                     var getModelFieldByParserTypeIdDto = new Dto
                     {
@@ -204,7 +216,7 @@ namespace Jube.Data.Query
             {
                 var entityAnalysisModelAbstractionRuleRepository =
                     new EntityAnalysisModelAbstractionRuleRepository(dbContext, tenantRegistryId);
-
+                
                 var entityAnalysisModelAbstractionRules = await entityAnalysisModelAbstractionRuleRepository
                     .GetByEntityAnalysisModelIdOrderByIdDescAsync(entityAnalysisModelId, token).ConfigureAwait(false);
 

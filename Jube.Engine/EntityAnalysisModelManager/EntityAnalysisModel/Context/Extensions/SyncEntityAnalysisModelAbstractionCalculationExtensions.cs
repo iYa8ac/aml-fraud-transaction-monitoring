@@ -253,7 +253,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Context.Ext
                                     activationRuleScript.Append("Imports System\r\n");
                                     activationRuleScript.Append("Public Class CalculationRule\r\n");
                                     activationRuleScript.Append(
-                                        "Public Shared Function Match(Data As DictionaryNoBoxing,TTLCounter As PooledDictionary(Of String, Long),Abstraction As PooledDictionary(Of string,double),List as Dictionary(Of String,List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Double\r\n");
+                                        "Public Shared Function Match(Data As DictionaryNoBoxing(Of String),TTLCounter As PooledDictionary(Of String, Double),Abstraction As PooledDictionary(Of string,double),List as Dictionary(Of String,List(Of String)),KVP As PooledDictionary(Of String, Double),Log as ILog) As Double\r\n");
                                     activationRuleScript.Append("Dim Matched as Double\r\n");
                                     activationRuleScript.Append("Try\r\n");
                                     activationRuleScript.Append(entityAnalysisModelAbstractionCalculation.FunctionScript +

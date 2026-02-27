@@ -160,7 +160,7 @@ namespace Jube.App.Controllers.Helper
                     ErrorSpans = errorSpans,
                     OriginalRuleText = parseRuleRequestDto.RuleText
                 };
-                parsedRule = parser.TranslateFromDotNotation(parsedRule);
+                parsedRule = parser.TranslateFromDotNotation(parsedRule, parseRuleRequestDto.RuleParseType == 3);
                 parsedRule = parser.Parse(parsedRule);
 
                 var sb = new StringBuilder();
@@ -390,7 +390,8 @@ namespace Jube.App.Controllers.Helper
                         new EntityAnalysisModelRequestXPath
                         {
                             DataTypeId = entityAnalysisModelRequestXPaths.DataTypeId ?? 1,
-                            DefaultValue = entityAnalysisModelRequestXPaths.DefaultValue
+                            DefaultValue = entityAnalysisModelRequestXPaths.DefaultValue,
+                            Cache = entityAnalysisModelRequestXPaths.Cache == 1
                         }
                     );
                 }

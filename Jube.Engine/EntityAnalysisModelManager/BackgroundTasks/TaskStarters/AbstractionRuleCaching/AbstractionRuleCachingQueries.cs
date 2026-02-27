@@ -84,9 +84,9 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Ab
             return value;
         }
 
-        public async Task<List<DictionaryNoBoxing>> GetAllForKeyAsync(DistinctSearchKey distinctSearchKey, string groupingValue, CancellationToken token = default)
+        public async Task<List<DictionaryNoBoxing<string>>> GetAllForKeyAsync(DistinctSearchKey distinctSearchKey, string groupingValue, CancellationToken token = default)
         {
-            List<DictionaryNoBoxing> values = null;
+            List<DictionaryNoBoxing<string>> values = null;
             try
             {
                 if (entityAnalysisModel.Services.Log.IsInfoEnabled)

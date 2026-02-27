@@ -23,7 +23,7 @@ namespace Jube.Cache.Redis.Interfaces
             Guid entityAnalysisModelTtlCounterGuid,
             string dataName, DateTime referenceDate);
 
-        Task<long> GetAggregationAsync(int tenantRegistryId,
+        Task<double> GetAggregationAsync(int tenantRegistryId,
             Guid entityAnalysisModelGuid, Guid entityAnalysisModelTtlCounterGuid,
             string dataName, string dataValue,
             DateTime referenceDateFrom, DateTime referenceDateTo);
@@ -31,7 +31,7 @@ namespace Jube.Cache.Redis.Interfaces
         Task UpsertAsync(int tenantRegistryId,
             Guid entityAnalysisModelGuid, string dataName, string dataValue,
             Guid entityAnalysisModelTtlCounterGuid,
-            DateTime referenceDate, int increment);
+            DateTime referenceDate, double increment);
 
         Task DeleteAsync(int tenantRegistryId,
             Guid entityAnalysisModelGuid, Guid entityAnalysisModelTtlCounterGuid,

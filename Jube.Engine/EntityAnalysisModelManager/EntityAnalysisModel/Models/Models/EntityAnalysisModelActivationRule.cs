@@ -21,7 +21,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
 
     public class EntityAnalysisModelActivationRule
     {
-        public delegate bool Match(DictionaryNoBoxing data, PooledDictionary<string, long> ttlCounter,
+        public delegate bool Match(DictionaryNoBoxing<string> data, PooledDictionary<string, double> ttlCounter,
             PooledDictionary<string, double> abstraction,
             PooledDictionary<string, double> httpAdaptation,
             PooledDictionary<string, double> exhaustiveAdaptation,

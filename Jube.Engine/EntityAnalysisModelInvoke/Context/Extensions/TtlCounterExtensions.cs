@@ -129,7 +129,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
             }
         }
 
-        private static async Task<long> PerformOnlineAggregationFromCacheAsync(Context context, CacheService cacheService,
+        private static async Task<double> PerformOnlineAggregationFromCacheAsync(Context context, CacheService cacheService,
             EntityAnalysisModelTtlCounter ttlCounter)
         {
             if (context.Log.IsInfoEnabled)
@@ -174,7 +174,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
             return count;
         }
 
-        private static void AddToResponse(Context context, EntityAnalysisModelTtlCounter ttlCounter, long count)
+        private static void AddToResponse(Context context, EntityAnalysisModelTtlCounter ttlCounter, double count)
         {
 
             lock (context.EntityAnalysisModelInstanceEntryPayload.TtlCounter)
@@ -256,7 +256,7 @@ namespace Jube.Engine.EntityAnalysisModelInvoke.Context.Extensions
             return Task.WhenAll(tasks);
         }
 
-        private static async Task<long> GetCachedTtlCounterValueAsync(Context context, CacheService cacheService, EntityAnalysisModelTtlCounter ttlCounter)
+        private static async Task<double> GetCachedTtlCounterValueAsync(Context context, CacheService cacheService, EntityAnalysisModelTtlCounter ttlCounter)
         {
             var ttlCounterValue = await cacheService.CacheTtlCounterRepository
                 .GetByNameDataNameDataValueAsync(context.EntityAnalysisModel.Instance.TenantRegistryId,

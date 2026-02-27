@@ -20,7 +20,7 @@ namespace Jube.Engine.EntityAnalysisModelManager.EntityAnalysisModel.Models.Mode
 
     public class EntityAnalysisModelAbstractionRule
     {
-        public delegate bool Match(DictionaryNoBoxing data,
+        public delegate bool Match(DictionaryNoBoxing<string> data,
             Dictionary<string, List<string>> list,
             PooledDictionary<string, double> kvp, ILog log);
 

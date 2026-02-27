@@ -48,7 +48,8 @@ namespace Jube.TaskCancellation.TaskHelper
         CachePayloadLatestRemovalBatchEntry = 29,
         ProcessTtlCounterDeprecation = 30,
         BulkInsertTtlCounterEntryRemovalBatchResponseTime = 31,
-        BulkInsertCachePayloadLatestRemovalBatchEntry = 32
+        BulkInsertCachePayloadLatestRemovalBatchEntry = 32,
+        SortedSetLruJournalRemove = 33
     }
 
     public static class TaskHelper

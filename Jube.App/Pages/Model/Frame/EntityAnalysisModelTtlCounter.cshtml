@@ -63,13 +63,31 @@
                 </td>
                 <td>
                     <input id="LiveForever" type="checkbox"/>
-                    <table class="sTStyle">
+                    <table id="LiveForeverTable" class="sTStyle">
                         <tr>
                             <td class="sTBorderStyle">
                                 <label for="TtlCounterDataName">Data Name</label>
                             </td>
                             <td>
                                 <select id="TtlCounterDataName"></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sTBorderStyle">
+                                <label for="Sum">Sum</label>
+                            </td>
+                            <td>
+                                <input id="Sum" type="checkbox"/>
+                                <table id="SumTable" class="sTStyle">
+                                    <tr>
+                                        <td class="sTBorderStyle">
+                                            <label for="TtlCounterDataValue">Data Value</label>
+                                        </td>
+                                        <td>
+                                            <select id="TtlCounterDataValue"></select>
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                         <tr>
@@ -117,6 +135,30 @@
                             </td>
                             <td>
                                 <input type="number" id="TtlCounterValue" value="1"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sTBorderStyle">
+                                <label for="ResolutionInterval">Resolution Interval</label>
+                            </td>
+                            <td>
+                                <ul id="ResolutionInterval" class="fieldlist">
+                                    <li>
+                                        <input type="radio" class="k-radio" id="ResolutionIntervalMin"
+                                               name="ResolutionInterval" checked="checked" value="n"/>
+                                        <label class="k-radio-label" for="ResolutionIntervalMin">Hours</label>
+                                    </li>
+                                    <li>
+                                        <input type="radio" class="k-radio" id="ResolutionIntervalHour"
+                                               name="ResolutionInterval" checked="checked" value="h"/>
+                                        <label class="k-radio-label" for="ResolutionIntervalHour">Hours</label>
+                                    </li>
+                                    <li>
+                                        <input type="radio" class="k-radio" id="ResolutionIntervalDay"
+                                               name="ResolutionInterval" value="d"/>
+                                        <label class="k-radio-label" for="ResolutionIntervalDay">Days</label>
+                                    </li>
+                                </ul>
                             </td>
                         </tr>
                     </table>

@@ -30,10 +30,10 @@ namespace Jube.Engine.EntityAnalysisModelManager.BackgroundTasks.TaskStarters.Tt
             return referenceDate;
         }
 
-        public async Task<long> CacheServiceDecrementTtlCounterAsync(EntityAnalysisModelTtlCounter ttlCounter,
-            string key, int decrement)
+        public async Task<double> CacheServiceDecrementTtlCounterAsync(EntityAnalysisModelTtlCounter ttlCounter,
+            string key, double decrement)
         {
-            var value = 0L;
+            var value = 0d;
             try
             {
                 value = await entityAnalysisModel.Services.CacheService.CacheTtlCounterRepository.DecrementTtlCounterCacheAsync(entityAnalysisModel.Instance.TenantRegistryId, entityAnalysisModel.Instance.Guid, ttlCounter.Guid,
