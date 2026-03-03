@@ -35,10 +35,10 @@
       - postgres
     environment:
       - ASPNETCORE_URLS=http://0.0.0.0:5001
-      - ConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=$DockerComposePostgresPassword;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
-      - ReportConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=$DockerComposePostgresPassword;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - ConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=StrongPostgresPassword123!;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - ReportConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=${DockerComposePostgresPassword};Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
       - EnableSandbox=False
-      - JWTKey=$DockerComposeJWTKey
+      - JWTKey=SuperSecretJWTKeyHereChangeMe
       - RedisConnectionString=redis
       - EnableExhaustiveTraining=False
       - Landlord=True
@@ -48,7 +48,7 @@
       - EnableTtlCounter=False
       - EnableSearchKeyCache=False
       - EnableCasesAutomation=False
-      - PasswordHashingKey=$DockerComposePasswordHashingKey
+      - PasswordHashingKey=AnotherStrongSecretKeyHere
       - EnableMigration=True
       - Log4NetLogLevel=ERROR
       - DOTNET_GC_SERVER=1
