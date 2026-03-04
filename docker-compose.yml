@@ -3,7 +3,7 @@
     image: "postgres:17"
     container_name: "postgres"
     environment:
-      POSTGRES_PASSWORD: StrongPostgresPassword123!
+      POSTGRES_PASSWORD: SuperSecretPasswordToChangeForPg
     volumes:
       - postgres:/var/lib/postgresql/data
     ports:
@@ -35,10 +35,10 @@
       - postgres
     environment:
       - ASPNETCORE_URLS=http://0.0.0.0:5001
-      - ConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=StrongPostgresPassword123!;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
-      - ReportConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=StrongPostgresPassword123!;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - ConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=SuperSecretPasswordToChangeForPg;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - ReportConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=SuperSecretPasswordToChangeForPg;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
       - EnableSandbox=False
-      - JWTKey=SuperSecretJWTKeyHereChangeMe
+      - JWTKey=IMPORTANT:_ChangeThisKey_~%pvif3KRo!3Mkm1oMC50TvAPi%{mUt<9sBm>DPjGZyfYYWssseVrNUqLQE}mz{L_UsingThisKeyIsDangerous
       - RedisConnectionString=redis
       - EnableExhaustiveTraining=False
       - Landlord=True
@@ -48,7 +48,7 @@
       - EnableTtlCounter=False
       - EnableSearchKeyCache=False
       - EnableCasesAutomation=False
-      - PasswordHashingKey=AnotherStrongSecretKeyHere
+      - PasswordHashingKey=IMPORTANT:_ChangeThisKey_~%pvif3KRo!3Mkm1oMC50TvAPi%{mUt<9sBm>DPjGZyfYYWssseVrNUqLQE}mz{L_UsingThisKeyIsDangerous
       - EnableMigration=True
       - Log4NetLogLevel=ERROR
       - DOTNET_GC_SERVER=1
@@ -73,10 +73,10 @@
       - postgres
     environment:
       - ASPNETCORE_URLS=http://0.0.0.0:5001
-      - ConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=StrongPostgresPassword123!;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
-      - ReportConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=StrongPostgresPassword123!;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - ConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=SuperSecretPasswordToChangeForPg;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - ReportConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=SuperSecretPasswordToChangeForPg;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
       - RedisConnectionString=redis
-      - JWTKey=SuperSecretJWTKeyHereChangeMe
+      - JWTKey=IMPORTANT:_ChangeThisKey_~%pvif3KRo!3Mkm1oMC50TvAPi%{mUt<9sBm>DPjGZyfYYWssseVrNUqLQE}mz{L_UsingThisKeyIsDangerous
       - EnableExhaustiveTraining=True
       - EnableReprocessing=True
       - EnableSanctionLoader=True
@@ -87,7 +87,7 @@
       - StreamingActivationWatcher=False
       - EnableCallback=True
       - EnablePublicInvokeController=True
-      - PasswordHashingKey=AnotherStrongSecretKeyHere
+      - PasswordHashingKey=IMPORTANT:_ChangeThisKey_~%pvif3KRo!3Mkm1oMC50TvAPi%{mUt<9sBm>DPjGZyfYYWssseVrNUqLQE}mz{L_UsingThisKeyIsDangerous
       - EnableMigration=False
       - Log4NetLogLevel=ERROR
       - DOTNET_GC_SERVER=1
