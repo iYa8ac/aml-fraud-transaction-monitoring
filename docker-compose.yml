@@ -3,7 +3,7 @@
     image: "postgres:17"
     container_name: "postgres"
     environment:
-      POSTGRES_PASSWORD: $DockerComposePostgresPassword
+      POSTGRES_PASSWORD: StrongPostgresPassword123!
     volumes:
       - postgres:/var/lib/postgresql/data
     ports:
@@ -36,7 +36,7 @@
     environment:
       - ASPNETCORE_URLS=http://0.0.0.0:5001
       - ConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=StrongPostgresPassword123!;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
-      - ReportConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=${DockerComposePostgresPassword};Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - ReportConnectionString=Host=postgres;Port=5432;Database=postgres;Username=postgres;Password=StrongPostgresPassword123!;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
       - EnableSandbox=False
       - JWTKey=SuperSecretJWTKeyHereChangeMe
       - RedisConnectionString=redis
